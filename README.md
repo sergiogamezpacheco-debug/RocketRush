@@ -78,3 +78,11 @@ Cada mundo nuevo tiene su paisaje, su plataforma, un bloque nuevo y su propio ob
 Cada mundo tiene 1 nivel difícil (57, 65, 78, 86, 99), 4 medios y 5 fáciles, y su nivel extra (Tumba del faraón, Cueva de cristal, Ídolo de oro, Forja del dragón y Tesoro galáctico).
 
 Pruebas: `node tools/mechanics.js` (reglas de los bloques nuevos y de los objetos que cruzan) y `python3 tools/worldsflow.py` (capturas de cada mundo).
+
+## Niveles 101 a 1000 (mundos 11-100)
+
+- Los crea un generador determinista (`genLevel` en `src/levels3d.js`): el nivel N es siempre el mismo. Usa plantillas de estructura probadas (bloques, pirámides, escaleras, torres gemelas, anillos, puentes, murallas, templos y estructuras flotantes en el espacio), los elementos ya aprendidos y, sobre todo, el bloque propio de cada paisaje.
+- **Paisajes**: cada 10 niveles cambia el mundo y rotan los 6 paisajes (mar, desierto, nieve, selva, volcán y espacio). En cada vuelta cambia la luz: día, atardecer, noche (con estrellas) y aurora boreal.
+- **Dificultad**: en cada mundo, 1 nivel difícil, 4 medios y 5 fáciles. Cada nivel generado se afina con el jugador simulado (`tools/gentune.js`, resultados en `src/gentune.js`).
+- **Niveles extra**: uno por mundo (100 en total). Ahora usan los números 10001-10100; las partidas guardadas antiguas se convierten solas.
+- El mapa solo pinta los mundos abiertos y el siguiente, para que siga siendo ligero.

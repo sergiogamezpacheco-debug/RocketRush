@@ -12,7 +12,7 @@ with sync_playwright() as p:
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(1500)
     pg.evaluate("() => ChromaGame.manual(true)")
     pg.click('#btnPlay'); ticks(pg,1,True); pg.screenshot(path=OUT+'m1_mapa.png')
-    print('extra 1 cerrado:', pg.evaluate("() => !document.querySelector('.bonus[data-id=\"101\"]').classList.contains('open')"), pg.evaluate("() => document.querySelector('.bonus[data-id=\"101\"] span').textContent"))
+    print('extra 1 cerrado:', pg.evaluate("() => !document.querySelector('.bonus[data-id=\"10001\"]').classList.contains('open')"), pg.evaluate("() => document.querySelector('.bonus[data-id=\"10001\"] span').textContent"))
     # ganar el nivel 10 con 3 estrellas: se simula derribándolo todo
     pg.evaluate("() => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.startLevel(10, []); const s=ChromaGame.G.sim; for (const b of s.blocks) { b.position.y -= 20; } }")
     for i in range(30):

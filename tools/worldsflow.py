@@ -9,7 +9,7 @@ LV = [int(x) for x in sys.argv[1:]] or [51, 61, 71, 81, 91]
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     pg=b.new_context(viewport={'width':390,'height':844}).new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
-    pg.add_init_script("localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:100, seen:{bird:true,ship:true}, daily:{n:0,last:null,best:0,shields:0,adRescue:-99,auto:Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)}}))")
+    pg.add_init_script("localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:1000, seen:{bird:true,ship:true}, daily:{n:0,last:null,best:0,shields:0,adRescue:-99,auto:Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)}}))")
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(1500); ev(pg,"() => ChromaGame.manual(true)")
     shots=[]
     for lv in LV:

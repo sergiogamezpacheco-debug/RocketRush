@@ -18,6 +18,6 @@ for (const L of ALL) {
   const missing = [...new Set(L.balls)].filter(c => 'rbgyp'.includes(c) && !colors.has(c));
   if (missing.length) probs.push('bolas de colores que no hay: ' + missing.join(''));
   if (probs.length) bad++;
-  console.log(`${L.bonus ? 'E' + (L.id - 100) : 'N' + L.id} ${L.name.padEnd(22)} bloques=${String(bl.length).padStart(2)} bolas=${L.balls} ${probs.length ? '⚠ ' + probs.join('; ') : 'OK'}`);
+  console.log(`${L.bonus ? 'E' + (L.id - 10000) : 'N' + L.id} ${L.name.padEnd(22)} bloques=${String(bl.length).padStart(2)} bolas=${L.balls} ${probs.length ? '⚠ ' + probs.join('; ') : 'OK'}`);
 }
 console.log(bad ? `${bad} niveles con problemas` : 'todos estables');

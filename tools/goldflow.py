@@ -10,11 +10,11 @@ with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     pg=b.new_context(viewport={'width':390,'height':844}).new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
     stars={i:3 for i in range(1,11)}
-    pg.add_init_script("localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:11, stars:%s, coins:400, bonusSeen:{101:true}, daily:{n:0,last:null,best:0,shields:0,adRescue:-99,auto:Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)}}))" % str(stars).replace("'",'"'))
+    pg.add_init_script("localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:11, stars:%s, coins:400, bonusSeen:{10001:true}, daily:{n:0,last:null,best:0,shields:0,adRescue:-99,auto:Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)}}))" % str(stars).replace("'",'"'))
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(1500)
     ev(pg,"() => ChromaGame.manual(true)")
     # 1) primera vez en el extra 1: ganar con 3 estrellas
-    pg.click('#btnPlay'); ticks(pg,1); pg.click('.bonus[data-id="101"]', force=True); ticks(pg,1)
+    pg.click('#btnPlay'); ticks(pg,1); pg.click('.bonus[data-id="10001"]', force=True); ticks(pg,1)
     print('pre (1ª vez):', ev(pg,"() => document.getElementById('preGo').textContent"), '|', ev(pg,"() => document.getElementById('preReward').textContent"))
     print('bolas del nivel:', ev(pg,"() => ChromaGame.LEVELS.length && ChromaGame.G.level.balls"))
     pg.click('#preGo'); ticks(pg,40)
@@ -25,7 +25,7 @@ with sync_playwright() as p:
     print('victoria:', on(pg,'win'), '·', ev(pg,"() => document.getElementById('winCoins').textContent"), '· doradas en inventario:', ev(pg,"() => ChromaGame.save().boosters.golden"), '· monedas', ev(pg,"() => ChromaGame.save().coins"))
     # 2) reintentar el extra: pasa por la pantalla de pago
     pg.wait_for_timeout(1500)
-    pg.click('#winMap'); ticks(pg,1); pg.click('.bonus[data-id="101"]', force=True); ticks(pg,1,True); pg.screenshot(path=OUT+'g1_pago.png')
+    pg.click('#winMap'); ticks(pg,1); pg.click('.bonus[data-id="10001"]', force=True); ticks(pg,1,True); pg.screenshot(path=OUT+'g1_pago.png')
     print('pre (repetir):', ev(pg,"() => document.getElementById('preGo').textContent"), '|', ev(pg,"() => document.getElementById('preReward').textContent"))
     c0=ev(pg,"() => ChromaGame.save().coins"); pg.click('#preGo'); ticks(pg,40)
     print('pago al repetir:', c0, '→', ev(pg,"() => ChromaGame.save().coins"), '· jugando', ev(pg,"() => ChromaGame.G.mode"))

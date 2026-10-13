@@ -14,6 +14,14 @@
   const DEFAULT_SAVE = () => ({ unlocked: 1, stars: {}, best: {}, coins: 300, boosters: { bomb: 2, rainbow: 1, extra: 1, golden: 0 }, gems: 0, gemDry: 0, gemRoll: null, bonusGemRoll: {}, pass: null, skins: { owned: ['classic'], equip: 'classic' }, streak: 0, sound: true, vibe: true, music: true, adsRemoved: false, starter: false, played: 0, lastInter: 0 });
   let save;
   try { save = Object.assign(DEFAULT_SAVE(), JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) { save = DEFAULT_SAVE(); }
+  // partidas antiguas: los niveles extra eran 101-110; ahora son 10001-10100 (101-1000 son niveles normales)
+  if (!save.bonusIds2) {
+    for (const key of ['stars', 'best', 'bonusDone', 'bonusSeen', 'bonusGemRoll']) {
+      const o = save[key]; if (!o) continue;
+      for (let i = 101; i <= 110; i++) if (o[i] !== undefined) { o[10000 + i - 100] = o[i]; delete o[i]; }
+    }
+    save.bonusIds2 = true;
+  }
   function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* sin almacenamiento */ } }
 
   // ---------------- audio ----------------
@@ -930,12 +938,37 @@
     G.camLook.set(0, lookY, 0);
     cannonG.position.set(cp.x, cp.y, cp.z);
   }
+  // mundos 11-100: el paisaje de su ciclo con la luz de su variante (día, atardecer, noche o aurora)
+  const BIOME_BASE = { sea: 1, desert: 6, snow: 7, jungle: 8, volcano: 9, space: 10 };
+  const mixC = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
+  function themeFor(world) {
+    if (THEMES[world]) return Object.assign({ variant: 'día' }, THEMES[world]);
+    const W = WORLDS[world - 1] || { biome: 'sea', variant: 'día' };
+    const base = Object.assign({}, THEMES[BIOME_BASE[W.biome] || 1], { variant: W.variant });
+    if (W.biome === 'sea') Object.assign(base, THEMES[1 + (world % 5)], { biome: undefined });
+    const v = W.variant;
+    if (v === 'atardecer') Object.assign(base, { top: mixC(base.top, 0x4a2f8a, 0.6), mid: mixC(base.mid, 0xff9a6a, 0.55), hor: mixC(base.hor, 0xffa050, 0.7), fog: mixC(base.fog, 0xf0a080, 0.5), sun: 0xffb070, sea: mixC(base.sea, 0x6a3a8a, 0.35), sunI: 2.1, hemiI: 0.8 });
+    else if (v === 'noche') Object.assign(base, { top: 0x060a26, mid: mixC(base.mid, 0x18245a, 0.8), hor: mixC(base.hor, 0x2a3a6a, 0.75), fog: mixC(base.fog, 0x141c3a, 0.8), sun: 0xa8b8ff, hemi: [0x8a9ad8, 0x2a2440], sea: mixC(base.sea, 0x0a1a40, 0.6), sunI: 1.3, hemiI: 0.6, stars: true });
+    else if (v === 'aurora') Object.assign(base, { top: 0x0a1434, mid: mixC(base.mid, 0x1f6a6a, 0.75), hor: mixC(base.hor, 0x6affc0, 0.45), fog: mixC(base.fog, 0x1a3a4a, 0.75), sun: 0xc8fff0, hemi: [0x9fe8d8, 0x2a3a40], sea: mixC(base.sea, 0x0a3040, 0.5), sunI: 1.5, hemiI: 0.7, stars: true, aurora: true });
+    if (W.biome === 'space') Object.assign(base, { top: THEMES[10].top, fogNear: 160, fogFar: 400, stars: false, aurora: v === 'aurora' });
+    return base;
+  }
+  // cielo de noche (estrellas) y aurora boreal, compartidos por todos los paisajes
+  const nightStars = (() => { const geo = new THREE.BufferGeometry(), a = new Float32Array(900 * 3); for (let i = 0; i < 900; i++) { const u = Math.random() * 0.95 + 0.05, t = Math.random() * TAU, q = Math.sqrt(1 - u * u); a[i * 3] = Math.cos(t) * q * 250; a[i * 3 + 1] = u * 250; a[i * 3 + 2] = Math.sin(t) * q * 250; } geo.setAttribute('position', new THREE.BufferAttribute(a, 3)); return new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false, transparent: true, opacity: 0.85, depthWrite: false, fog: false })); })();
+  nightStars.visible = false; scene.add(nightStars);
+  const auroraTex = canvasTex(256, 64, (g) => { const gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, 'rgba(120,255,200,0)'); gr.addColorStop(0.5, 'rgba(120,255,190,0.9)'); gr.addColorStop(1, 'rgba(160,100,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 64); });
+  const aurora = new THREE.Group();
+  for (let i = 0; i < 3; i++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(180 - i * 15, 180 - i * 15, 40, 48, 1, true, Math.PI * (0.9 + i * 0.15), Math.PI * 0.7), new THREE.MeshBasicMaterial({ map: auroraTex, transparent: true, opacity: 0.55 - i * 0.12, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false, fog: false })); m.position.y = 70 + i * 18; aurora.add(m); }
+  aurora.visible = false; scene.add(aurora);
   function setTheme(world) {
-    const th = THEMES[world] || THEMES[1];
+    const th = themeFor(world);
     skyMat.uniforms.top.value.set(th.top); skyMat.uniforms.mid.value.set(th.mid); skyMat.uniforms.hor.value.set(th.hor);
     scene.fog = new THREE.Fog(th.fog, th.fogNear || 45, th.fogFar || 140);
     seaMat.color.set(th.sea); sun.color.set(th.sun); hemi.color.set(th.hemi[0]); hemi.groundColor.set(th.hemi[1]);
+    sun.intensity = th.sunI || 2.6; hemi.intensity = th.hemiI || 0.9;
     setBiome(th.biome || 'sea');
+    nightStars.visible = !!th.stars; aurora.visible = !!th.aurora;
+    if (th.stars) sunDisc.visible = false;
   }
 
   // ---------------- vista de un nivel ----------------
@@ -1656,7 +1689,9 @@
   function bonusOpen(w) { return worldStars3(w) >= 10; }
   function renderMap() {
     let h = '';
-    for (const W of WORLDS) {
+    // con 100 mundos solo se pintan los ya abiertos y el siguiente (el mapa sigue siendo ligero)
+    const upto = Math.min(WORLDS.length, Math.floor((Math.min(save.unlocked, LEVELS.length) - 1) / 10) + 2);
+    for (const W of WORLDS.slice(0, upto)) {
       h += `<div class="world"><h3>Mundo ${W.n} · ${W.name}<small>${W.sub}</small></h3><div class="grid">`;
       for (const L of LEVELS.filter(l => l.world === W.n)) {
         const st = save.stars[L.id] || 0, locked = L.id > save.unlocked, cur = L.id === save.unlocked;
@@ -1668,6 +1703,7 @@
         <div class="btx"><b>Nivel extra · ${B.name}</b><span>${open ? (bst ? 'Superado con ' + bst + ' &#9733; · vuelve a jugarlo' : '¡Desbloqueado! Premio triple y potenciadores de regalo') : `Consigue 3 &#9733; en los 10 niveles del mundo (${n3}/10)`}</span>
         <div class="bbar"><i style="width:${n3 * 10}%"></i></div></div></div></div>`;
     }
+    if (upto < WORLDS.length) h += `<div class="world more"><h3>Quedan ${WORLDS.length - upto} mundos más<small>hasta el nivel ${LEVELS.length}: se abren al avanzar</small></h3></div>`;
     $('mapList').innerHTML = h;
     $('mapList').querySelectorAll('.lv').forEach(el => el.addEventListener('click', () => { Audio.init(); Audio.click(); openPre(+el.dataset.id); }));
     $('mapList').querySelectorAll('.bonus').forEach(el => el.addEventListener('click', () => {

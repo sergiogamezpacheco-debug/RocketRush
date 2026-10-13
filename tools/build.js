@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), src = path.join(root, 'src'), ven = path.join(root, 'vendor');
 let html = fs.readFileSync(path.join(src, 'index.html'), 'utf8');
-const files = [[ven, 'three.global.js'], [ven, 'three.extras.js'], [ven, 'cannon.global.js'], [src, 'sim3d.js']].concat(fs.existsSync(path.join(src, 'tuning.js')) ? [[src, 'tuning.js']] : [], [[src, 'levels3d.js'], [src, 'game3d.js']]);
+const files = [[ven, 'three.global.js'], [ven, 'three.extras.js'], [ven, 'cannon.global.js'], [src, 'sim3d.js']].concat(fs.existsSync(path.join(src, 'tuning.js')) ? [[src, 'tuning.js']] : [], fs.existsSync(path.join(src, 'gentune.js')) ? [[src, 'gentune.js']] : [], [[src, 'levels3d.js'], [src, 'game3d.js']]);
 const js = files.map(([d, f]) => `<script>\n${fs.readFileSync(path.join(d, f), 'utf8').replace(/<\/script/gi, '<\\/script')}\n</script>`).join('\n');
 html = html.replace('<!--SCRIPTS-->', () => js);
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });

@@ -54,6 +54,6 @@ for (const L of ALL) {
     }
   }
   res[L.name] = { nb, target, win: m.win, close: m.close, band: [lo, hi], id: L.id };
-  console.log(`${L.bonus ? 'E' + (L.id - 100) : 'N' + L.id} ${L.name.padEnd(22)} franja ${lo}-${hi}%  ${hist.join('  ')}`);
+  console.log(`${L.bonus ? 'E' + (L.id - 10000) : 'N' + L.id} ${L.name.padEnd(22)} franja ${lo}-${hi}%  ${hist.join('  ')}`);
   fs.writeFileSync(out, JSON.stringify(res, null, 1));
 }
