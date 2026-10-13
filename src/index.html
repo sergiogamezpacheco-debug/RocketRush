@@ -282,6 +282,41 @@ h1,h2,h3{margin:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 .chestwrap{position:relative;z-index:0;display:flex;align-items:center;justify-content:center}
 .chestname{font-weight:900;font-size:16px}
+
+/* ---- nivel de jugador y misiones ---- */
+.plstrip{position:relative;width:100%;max-width:520px;margin-top:8px;display:flex;align-items:center;gap:8px;padding:6px 10px 6px 6px;border-radius:16px;border:4px solid var(--panel-edge);background:var(--panel);box-shadow:0 4px 0 var(--panel-edge);cursor:pointer;font-family:inherit;color:var(--ink)}
+.plstrip .plb{flex:none;width:34px;height:34px;border-radius:10px;background:linear-gradient(180deg,#8a5cff,#5a2fd6);color:#fff;font-weight:900;font-size:16px;display:flex;align-items:center;justify-content:center;border:3px solid var(--panel-edge)}
+.plstrip .plbar{flex:1;height:12px;border-radius:99px;background:#e6defa;border:2px solid #cbb8ff;overflow:hidden}
+.plstrip .plbar i,.plrow .pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#8a5cff,#3dc8ff)}
+.plstrip .mistx{font-weight:900;font-size:14px;white-space:nowrap}
+.plstrip .dot{position:absolute;top:-7px;right:-7px;width:16px;height:16px;border-radius:50%;background:#ff4f6d;border:3px solid var(--panel-edge)}
+#missions{justify-content:flex-start;padding-top:max(14px,env(safe-area-inset-top));background:linear-gradient(180deg,#24305c,#3a2f8a)}
+.plrow{display:flex;align-items:center;gap:12px}
+.plbadge{flex:none;width:60px;height:60px;border-radius:16px;background:linear-gradient(180deg,#8a5cff,#5a2fd6);color:#fff;border:4px solid var(--panel-edge);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.plbadge small{font-size:9px;font-weight:900;letter-spacing:1px}.plbadge b{font-size:24px;font-weight:900}
+.plinfo{flex:1;text-align:left}.plinfo b{font-size:17px;font-weight:900}.plinfo span{font-size:12px;font-weight:800;color:#6c6390}
+.plrow .pbar{margin:4px 0 2px}
+.friendbox{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:2px dashed #e0d6f6;text-align:left}
+.friendbox small{display:block;font-size:11px;font-weight:800;color:#6c6390}.friendbox b{font-size:18px;font-weight:900;letter-spacing:1px}
+.friendbox .btn{width:auto;margin:0}
+.addfriend{display:flex;gap:8px;margin-top:8px}
+.addfriend input{flex:1;min-width:0;border:3px solid #cbb8ff;border-radius:12px;padding:8px 10px;font:inherit;font-weight:800;font-size:15px;text-transform:uppercase}
+.addfriend .btn{width:auto;margin:0}
+#friendMsg:empty{display:none}#friendMsg{font-size:12.5px;font-weight:800;margin-top:6px}
+#misList{margin-top:10px}
+.mcard{display:flex;align-items:center;gap:10px;background:#fff8ec;border:3px solid #cbb8ff;border-radius:16px;padding:10px;margin-bottom:8px;text-align:left}
+.mcard.ready{border-color:#37c46b;background:#efffe9;animation:pulse 1.4s ease-in-out infinite}
+.mcard.done{opacity:.55}
+.mico{flex:none;width:40px;height:40px;border-radius:12px;background:#efe6ff;display:flex;align-items:center;justify-content:center;font-size:22px}
+.mbody{flex:1;min-width:0}.mbody small{font-size:10.5px;font-weight:900;color:#8a5cff;letter-spacing:.5px;text-transform:uppercase}
+.mbody b{display:block;font-size:14.5px;font-weight:900;line-height:1.2}.mbody em{display:block;font-style:normal;font-size:11px;font-weight:700;color:#6c6390}
+.mbar{height:9px;border-radius:99px;background:#e6defa;overflow:hidden;margin-top:5px}.mbar i{display:block;height:100%;background:linear-gradient(90deg,#ffc83d,#ff7a3d)}
+.mprog{font-size:11px;font-weight:800;color:#6c6390}
+.mrew{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.mrew span{display:flex;align-items:center;gap:3px;font-size:12px;font-weight:900;background:#fff;border:2px solid #e0d6f6;border-radius:9px;padding:1px 6px}
+.mrew .coin{width:14px;height:14px}.mrew .gem{width:14px;height:14px}.mrew .ball{width:14px;height:14px}
+.mrew .xpchip{color:#5a2fd6}
+.mclaim{width:auto!important;margin:0!important;flex:none}
 </style>
 </head>
 <body>
@@ -318,7 +353,8 @@ h1,h2,h3{margin:0}
   <div class="title-btns">
     <button class="dchip" id="btnDailyT" hidden>&#128293; <span id="dailyNT">0</span><span id="dailyTT"></span><i class="dot" id="dailyDotT" hidden></i></button>
     <button class="btn green" id="btnPlay" style="font-size:26px;padding:16px">JUGAR</button>
-    <div class="row"><button class="btn small gold" id="btnPassT">&#9733; Pase</button><button class="btn small purple" id="btnShopT">Tienda</button><button class="btn small gray" id="btnSetT">Ajustes</button></div>
+    <div class="row"><button class="btn small gold" id="btnPassT">&#9733; Pase</button><button class="btn small blue" id="btnMisT">Misiones</button></div>
+    <div class="row"><button class="btn small purple" id="btnShopT">Tienda</button><button class="btn small gray" id="btnSetT">Ajustes</button></div>
   </div>
 </div>
 
@@ -330,6 +366,7 @@ h1,h2,h3{margin:0}
     <button class="iconbtn passbtn" id="btnPass" aria-label="Pase">&#9733;<i class="dot" id="passDot" hidden></i></button>
     <button class="iconbtn" id="btnShop" aria-label="Tienda">+</button>
   </div>
+  <button class="plstrip" id="btnMis" aria-label="Nivel de jugador y misiones"><span class="plb" id="plStripLv">1</span><span class="plbar"><i id="plStripBar"></i></span><span class="mistx" id="misCount">Misiones</span><i class="dot" id="misDot" hidden></i></button>
   <div class="mapscroll" id="mapList"></div>
 </div>
 
@@ -361,6 +398,22 @@ h1,h2,h3{margin:0}
   <div class="pcols"><span>GRATIS</span><span></span><span class="pro">PRO</span></div>
   <div class="mapscroll" id="passList"></div>
   <button class="btn green small" id="passClaimAll" hidden>RECLAMAR TODO</button>
+</div>
+
+<div class="screen" id="missions">
+  <div class="topbar">
+    <button class="iconbtn" id="misBack" aria-label="Volver">&#8592;</button>
+    <span class="wallet"><span class="coins"><i class="coin"></i><span class="coinTxt">0</span></span><span class="coins"><i class="gem"></i><span class="gemTxt">0</span></span></span>
+    <button class="iconbtn" id="misShop" aria-label="Tienda">+</button>
+  </div>
+  <div class="passhead">
+    <div class="plrow"><div class="plbadge"><small>NIVEL</small><b id="plLv">1</b></div>
+      <div class="plinfo"><b>Tu nivel de jugador</b><div class="pbar"><i id="plBar"></i></div><span id="plXp"></span></div></div>
+    <div class="friendbox"><div><small>Tu código de amigo · amigos: <span id="friendCount">0</span></small><b id="myCode">CC-</b></div><button class="btn small blue" id="btnShare">Compartir</button></div>
+    <div class="addfriend"><input id="friendCode" placeholder="Código de un amigo" maxlength="14" autocomplete="off"><button class="btn small green" id="btnAddFriend">Añadir</button></div>
+    <div id="friendMsg"></div>
+  </div>
+  <div class="mapscroll" id="misList"></div>
 </div>
 
 <div class="screen dim" id="win">

@@ -2,6 +2,7 @@ package com.chromacrash.game;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -64,6 +65,17 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void cancelReminder() {
             ReminderReceiver.cancel(MainActivity.this);
+        }
+
+        /** Comparte un texto (invitación con el código de amigo) con las apps del móvil. */
+        @JavascriptInterface
+        public void share(String text) {
+            runOnUiThread(() -> {
+                Intent i = new Intent(Intent.ACTION_SEND);
+                i.setType("text/plain");
+                i.putExtra(Intent.EXTRA_TEXT, text);
+                startActivity(Intent.createChooser(i, "Invitar a un amigo"));
+            });
         }
 
         /** Android 13+ pide permiso para notificar. Se pregunta solo cuando el jugador toca "Avisarme". */

@@ -1346,6 +1346,7 @@
           break;
         }
         case 'pop': {
+          { const st = stats(); st.blocks++; const bd = G.sim.blocks[e.id] && G.sim.blocks[e.id].userData; if (bd && (bd.stripe || bd.bomb || bd.cham || bd.float || bd.ice || bd.kind === 'gold')) st.specials++; }
           const col = COL[e.c] || 0xffffff;
           spawnDebris(e.x, e.y, e.z, col, 12, 6.5, 0.22, 1.1);
           spawnDebris(e.x, e.y, e.z, 0xffffff, 3, 4, 0.12, 0.6);
@@ -1356,7 +1357,7 @@
           break;
         }
         case 'group': if (e.n >= 3) vibe(Math.min(70, 15 + e.n * 5)); floatText(e.x, e.y + 0.8, e.z, '+' + (e.n * 10 * e.chain), '#fff', 20 + Math.min(14, e.n)); if (e.n >= 6) setTimeout(() => floatText(e.x, e.y + 1.8, e.z, '¡' + e.n + ' DE GOLPE!', hexCss(e.c), 26), 150); break;
-        case 'cascade':
+        case 'cascade': stats().cascades++;
           floatText(e.x, e.y + 1, e.z, '¡CASCADA x' + e.chain + '!', hexCss(e.c), 26, e.chain <= 3);
           Audio.cascade(); G.shake = Math.max(G.shake, 0.25); vibe(40);
           break;
@@ -1365,18 +1366,19 @@
           Audio.thud(e.v, e.stone);
           if (e.v > 5) G.shake = Math.max(G.shake, Math.min(0.2, e.v * 0.02));
           break;
-        case 'glass':
+        case 'glass': stats().blocks++; stats().specials++;
           spawnDebris(e.x, e.y, e.z, 0xd8f6ff, 18, 6, 0.2, 1.0, { flat: true });
           Audio.glass(); G.shake = Math.max(G.shake, 0.08);
           break;
         case 'fuse': Audio.fuse(); spawnSprite(e.x, e.y + 0.6, e.z, 0xffe070, 0.5, 1, 0.3, { add: true }); break;
-        case 'gone': break;
-        case 'crumble':
+        case 'gone': stats().blocks++; stats().specials++; break;
+        case 'fall': stats().blocks++; break;
+        case 'crumble': stats().blocks++; stats().specials++;
           spawnDebris(e.x, e.y, e.z, 0xe6bf78, 16, 3, 0.16, 1.0); spawnDebris(e.x, e.y, e.z, 0xc9964a, 8, 2, 0.12, 0.9);
           spawnSprite(e.x, e.y, e.z, 0xf0d8a8, 1.6, 1.4, 0.8, { alpha: 0.8, vy: 0.3 });
           Audio.thud(1.5);
           break;
-        case 'prize': {
+        case 'prize': { stats().blocks++; stats().specials++;
           spawnDebris(e.x, e.y, e.z, 0xd8f4ff, 16, 5, 0.16, 0.9, { flat: true });
           spawnSprite(e.x, e.y, e.z, COL[e.c] || 0xffffff, 1.6, 1.4, 0.5, { add: true, alpha: 1 });
           const nm = { r: 'ROJA', b: 'AZUL', g: 'VERDE', y: 'AMARILLA', p: 'MORADA' };
@@ -1391,7 +1393,7 @@
           break;
         }
         case 'heat': spawnSprite(e.x, e.y, e.z, 0xff7a1a, 1.4, 1, 0.45, { add: true }); Audio.fuse(); break;
-        case 'erupt':
+        case 'erupt': stats().blocks++; stats().specials++;
           for (let i = 0; i < 9; i++) spawnSprite(e.x + rnd(-0.2, 0.2), e.y + i * 0.6, e.z + 0.2, i % 2 ? 0xffd23f : 0xff6a1a, 1.4, 1.2, 0.7, { vy: 4, add: true, alpha: 1 });
           spawnDebris(e.x, e.y, e.z, 0xff7a1a, 18, 6, 0.16, 1.2); spawnDebris(e.x, e.y, e.z, 0x2b2026, 10, 5, 0.18, 1.1);
           flashLight.position.set(e.x, e.y + 1, e.z + 1); flashLight.intensity = 60;
@@ -1410,7 +1412,6 @@
           G.shake = 0.6; vibe([30, 20, 60]);
           Audio.explode();
           break;
-        case 'fall': break;
         case 'splash':
           if (BIOMES[biome].splash) { BIOMES[biome].splash(e); if (biome !== 'space') Audio.thud(1 + e.s); break; }
           for (let i = 0; i < 4; i++) spawnSprite(e.x + rnd(-0.5, 0.5), C.SEA_Y + 0.3, e.z + rnd(-0.5, 0.5), 0xffffff, 1.2 * e.s, 1.6, 0.9, { vy: 1.5, alpha: 0.8 });
@@ -1451,7 +1452,7 @@
             showHint('Pasa un velero con bola ' + e.balls.map(k => nm[k] || k).join(' y bola '), 3000);
           }
           break;
-        case 'moverHit': {
+        case 'moverHit': { stats().movers++;
           const names = { r: 'roja', b: 'azul', g: 'verde', y: 'amarilla', p: 'morada', bomb: 'bomba', rainbow: 'arcoíris' };
           const mv = G.sim && G.sim.movers.find(x => x.id === e.id);
           if (e.kind === 'bird') {
@@ -1629,7 +1630,7 @@
   }
 
   // ---------------- pantallas ----------------
-  const screens = ['title', 'map', 'pass', 'pre', 'win', 'lose', 'pause', 'shop', 'settings'];
+  const screens = ['title', 'map', 'pass', 'missions', 'pre', 'win', 'lose', 'pause', 'shop', 'settings'];
   function show(id) { for (const s of screens) $(s).classList.toggle('on', s === id); }
   function hideAll() { for (const s of screens) $(s).classList.remove('on'); }
   // mensaje sobre la bandeja de bolas (no tapa el cielo ni la estructura)
@@ -1643,7 +1644,7 @@
     document.querySelectorAll('.coinTxt').forEach(el => { el.textContent = save.coins; });
     document.querySelectorAll('.gemTxt').forEach(el => { el.textContent = save.gems || 0; });
     const dot = $('passDot'); if (dot) dot.hidden = !passClaimable();
-    updateDailyBadges();
+    updateDailyBadges(); renderPlayer();
   }
   // ---------------- gemas ----------------
   // Partida normal: 25 % de probabilidad de gema y garantizada si llevas 2 partidas sin ninguna (1 de cada 2-3).
@@ -1817,12 +1818,15 @@
     consumeGemRoll(L);
     // pase: suma las estrellas ganadas (1 si el nivel ya tenía 3 estrellas)
     ensureSeason();
+    // experiencia: más la primera vez, en los difíciles y en los extra
+    const xpWin = (prevStars ? 5 : 10) + stars * (prevStars ? 2 : 5) + (L.hard && !prevStars ? 15 : 0) + (L.bonus && !prevStars ? 20 : 0);
+    const ups = addXp(xpWin); announceUps(ups);
     const passGain = prevStars >= 3 ? 1 : stars, tierBefore = passTier(save.pass.pts);
     save.pass.pts += passGain;
     const tierAfter = passTier(save.pass.pts);
     persist();
     const toNext = tierAfter < 30 ? ` · ${save.pass.pts - (tierAfter ? PASS_NEED[tierAfter - 1] : 0)}/${tierCost(tierAfter + 1)} para el nivel ${tierAfter + 1}` : '';
-    $('winPass').innerHTML = `+${passGain} &#9733; al pase` + (tierAfter > tierBefore ? ` · ¡nivel ${tierAfter} del pase!` : toNext) + (sim.gems ? ` · +${sim.gems} gema${sim.gems > 1 ? 's' : ''}` : '');
+    $('winPass').innerHTML = `+${passGain} &#9733; al pase` + (tierAfter > tierBefore ? ` · ¡nivel ${tierAfter} del pase!` : toNext) + (sim.gems ? ` · +${sim.gems} gema${sim.gems > 1 ? 's' : ''}` : '') + ` · +${xpWin} XP`;
     setCoins();
     $('winScore').textContent = sim.score.toLocaleString('es-ES');
     $('winRes').textContent = 'Demolición del ' + Math.round(sim.progress() * 100) + '%';
@@ -1867,7 +1871,8 @@
     G.casi++; G.sim.addBalls(3); G.ended = false; G.endT = 0;
     hideAll(); centerText('+3 BOLAS', '#fff', 32); lastTray = '';
   }
-  function showRewarded(cb) {
+  function showRewarded(cb0) {
+    const cb = ok => { if (ok) { stats().ads++; persist(); } cb0(ok); };
     if (window.ChromaAndroid && window.ChromaAndroid.showRewarded) { window.__rewardCb = cb; window.ChromaAndroid.showRewarded(); return; }
     const el = $('ad'); el.classList.add('on'); Audio.stopMusic();
     let n = 3; $('adCnt').textContent = n;
@@ -2053,6 +2058,147 @@
     toast('¡Pase Pro activado! Ya puedes reclamar todo lo Pro que hayas alcanzado', 3200);
     openPass();
   }
+
+  // ---------------- nivel de jugador, misiones y amigos ----------------
+  // Experiencia: para pasar del nivel L al L+1 hacen falta 30 + 20·(L-1) XP (curva de "progresión lineal":
+  // cada nivel pide 20 XP más que el anterior). Al principio se sube casi en cada partida; después, más despacio.
+  //   nivel 5 ≈ 8-10 partidas · nivel 10 ≈ 30-35 · nivel 20 ≈ 120 · nivel 50 ≈ 700 (contando las misiones).
+  const xpNeed = L => 30 + 20 * (L - 1);
+  function stats() { if (!save.stats) save.stats = { blocks: 0, specials: 0, movers: 0, cascades: 0, shares: 0, ads: 0, golden: 0, skin: 0 }; return save.stats; }
+  function plState() { if (!save.pl) save.pl = { lv: 1, xp: 0 }; return save.pl; }
+  // da experiencia; devuelve los niveles subidos (con su premio)
+  function addXp(n) {
+    const p = plState(), ups = [];
+    p.xp += n;
+    while (p.xp >= xpNeed(p.lv)) {
+      p.xp -= xpNeed(p.lv); p.lv++;
+      const r = { coins: 40 + 10 * p.lv };
+      if (p.lv % 5 === 0) r.bomb = 1;
+      if (p.lv % 10 === 0) r.gems = 2;
+      grant(r); ups.push({ lv: p.lv, r });
+    }
+    return ups;
+  }
+  function announceUps(ups) {
+    if (!ups.length) return;
+    const last = ups[ups.length - 1];
+    setTimeout(() => { centerText('¡NIVEL ' + last.lv + ' DE JUGADOR!', '#ffe27a', 28); Audio.win(); vibe([30, 30, 60]); }, 700);
+    const coins = ups.reduce((s, u) => s + u.r.coins, 0), gems = ups.reduce((s, u) => s + (u.r.gems || 0), 0), bombs = ups.reduce((s, u) => s + (u.r.bomb || 0), 0);
+    setTimeout(() => toast(`Nivel ${last.lv}: +${coins} monedas` + (bombs ? ` · +${bombs} bomba` : '') + (gems ? ` · +${gems} gemas` : ''), 3200), 1500);
+  }
+  const worldsOpen = () => Math.floor((Math.min(save.unlocked, LEVELS.length) - 1) / 10) + 1;
+  const starsTotal = () => Object.keys(save.stars).reduce((s, k) => s + (save.stars[k] || 0), 0);
+  const countLv = f => LEVELS.reduce((s, L) => s + (f(L, save.stars[L.id] || 0) ? 1 : 0), 0);
+  const fmtN = n => n.toLocaleString('es-ES');
+  // misiones en cadena: al cobrar un escalón aparece el siguiente.
+  // Gemas solo en las de amigos, las de interactuar y las difíciles (y pocas).
+  const MISSIONS = [
+    { id: 'friends', cat: 'Amigos', icon: '👥', tiers: [1, 5, 10, 25], title: n => n === 1 ? 'Añade a tu primer amigo' : `Añade ${n} amigos`, stat: () => (save.friends || []).length,
+      reward: i => [{ xp: 300, coins: 1000, gems: 15, golden: 1 }, { xp: 250, coins: 600, gems: 6 }, { xp: 350, coins: 900, gems: 8 }, { xp: 500, coins: 1500, gems: 12 }][i] },
+    { id: 'share', cat: 'Amigos', icon: '📣', tiers: [1, 5, 15], title: n => n === 1 ? 'Comparte el juego con alguien' : `Comparte el juego ${n} veces`, stat: () => stats().shares,
+      reward: i => [{ xp: 60, coins: 150, gems: 2 }, { xp: 100, coins: 300, gems: 3 }, { xp: 150, coins: 500, gems: 4 }][i] },
+    { id: 'skin', cat: 'Interactuar', icon: '🎨', tiers: [1], title: () => 'Equipa un cañón nuevo', stat: () => stats().skin, reward: () => ({ xp: 60, coins: 200, gems: 2 }) },
+    { id: 'streak', cat: 'Interactuar', icon: '🔥', tiers: [3, 7, 14, 30], title: n => `Consigue una racha diaria de ${n} días`, stat: () => Math.max((save.daily && save.daily.best) || 0, (save.daily && save.daily.n) || 0),
+      reward: i => [{ xp: 60, coins: 200, gems: 1 }, { xp: 120, coins: 400, gems: 2 }, { xp: 200, coins: 600, gems: 3 }, { xp: 400, coins: 1200, gems: 5 }][i] },
+    { id: 'ads', cat: 'Interactuar', icon: '▶', tiers: [1, 10, 30, 100], title: n => n === 1 ? 'Mira un vídeo con premio' : `Mira ${n} vídeos con premio`, stat: () => stats().ads, reward: i => ({ xp: 40 + i * 40, coins: 150 + i * 150 }) },
+    { id: 'level', cat: 'Avanza', icon: '🏁', tiers: [10, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000], title: n => `Supera el nivel ${n}`, stat: () => save.unlocked - 1, reward: i => ({ xp: 60 + i * 40, coins: 200 + i * 120 }) },
+    { id: 'world', cat: 'Avanza', icon: '🗺', tiers: Array.from({ length: 99 }, (_, i) => i + 2), title: n => `Desbloquea el mundo ${n}`, stat: () => worldsOpen(), reward: i => ({ xp: 50 + Math.min(i, 30) * 10, coins: 150 + Math.min(i, 30) * 25 }) },
+    { id: 'stars', cat: 'Avanza', icon: '⭐', tiers: [25, 100, 250, 500, 1000, 1500, 2000, 2500, 3000], title: n => `Consigue ${fmtN(n)} estrellas`, stat: starsTotal, reward: i => ({ xp: 50 + i * 50, coins: 150 + i * 150 }) },
+    { id: 'perfect', cat: 'Avanza', icon: '🌟', tiers: [5, 25, 100, 250, 500, 1000], title: n => `Consigue 3 estrellas en ${n} niveles`, stat: () => countLv((L, s) => s >= 3), reward: i => ({ xp: 60 + i * 60, coins: 200 + i * 200 }) },
+    { id: 'extras', cat: 'Avanza', icon: '♕', tiers: [1, 5, 10, 25, 50, 100], title: n => n === 1 ? 'Supera un nivel extra' : `Supera ${n} niveles extra`, stat: () => Object.keys(save.bonusDone || {}).length, reward: i => ({ xp: 80 + i * 60, coins: 300 + i * 200 }) },
+    { id: 'blocks', cat: 'Derriba', icon: '🧱', tiers: [100, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000], title: n => `Derriba ${fmtN(n)} bloques`, stat: () => stats().blocks, reward: i => ({ xp: 40 + i * 40, coins: 100 + i * 120 }) },
+    { id: 'specials', cat: 'Derriba', icon: '💥', tiers: [10, 50, 150, 400, 1000, 2500, 6000], title: n => `Derriba ${fmtN(n)} bloques especiales`, hint: 'rayados, bomba, TNT, cristal, oro, hielo, arena, congeladas, camaleón, magma o flotantes', stat: () => stats().specials, reward: i => ({ xp: 50 + i * 50, coins: 150 + i * 120 }) },
+    { id: 'cascades', cat: 'Derriba', icon: '🌊', tiers: [10, 100, 500, 2000], title: n => `Haz ${fmtN(n)} cascadas`, stat: () => stats().cascades, reward: i => ({ xp: 50 + i * 60, coins: 150 + i * 150 }) },
+    { id: 'golden', cat: 'Derriba', icon: '🟡', tiers: [1, 10, 30], title: n => n === 1 ? 'Usa una bola dorada' : `Usa ${n} bolas doradas`, stat: () => stats().golden, reward: i => ({ xp: 60 + i * 60, coins: 200 + i * 200 }) },
+    // difíciles: con unas pocas gemas
+    { id: 'movers', cat: 'Difíciles', icon: '🎯', tiers: [1, 10, 30, 75], title: n => n === 1 ? 'Derriba algo que cruce el cielo o el mar' : `Derriba ${n} objetos que crucen el cielo o el mar`, hint: 'pájaro, velero, globo, teleférico, mono, dragón, ovni o satélite', stat: () => stats().movers,
+      reward: i => [{ xp: 80, coins: 250, gems: 1 }, { xp: 150, coins: 500, gems: 2 }, { xp: 250, coins: 800, gems: 3 }, { xp: 400, coins: 1200, gems: 5 }][i] },
+    { id: 'hard', cat: 'Difíciles', icon: '💀', tiers: [1, 5, 10, 25, 50, 100], title: n => n === 1 ? 'Supera un nivel difícil' : `Supera ${n} niveles difíciles`, stat: () => countLv((L, s) => L.hard && s > 0),
+      reward: i => ({ xp: 80 + i * 70, coins: 250 + i * 200, gems: [1, 2, 3, 4, 6, 8][i] }) },
+    { id: 'hard3', cat: 'Difíciles', icon: '👑', tiers: [1, 5, 20, 50], title: n => n === 1 ? 'Consigue 3 estrellas en un nivel difícil' : `Consigue 3 estrellas en ${n} niveles difíciles`, stat: () => countLv((L, s) => L.hard && s >= 3),
+      reward: i => ({ xp: 120 + i * 100, coins: 400 + i * 300, gems: [2, 4, 6, 10][i] }) },
+  ];
+  function misState(m) {
+    save.mis = save.mis || {};
+    const i = save.mis[m.id] || 0, done = i >= m.tiers.length;
+    const goal = done ? m.tiers[m.tiers.length - 1] : m.tiers[i], have = m.stat();
+    return { i, done, goal, have, ready: !done && have >= goal };
+  }
+  const misClaimable = () => MISSIONS.filter(m => misState(m).ready).length;
+  function rewardLine(r) {
+    const c = [];
+    if (r.xp) c.push(`<span class="xpchip">${r.xp} XP</span>`);
+    if (r.coins) c.push(`<span><i class="coin"></i>${fmtN(r.coins)}</span>`);
+    if (r.gems) c.push(`<span><i class="gem"></i>${r.gems}</span>`);
+    if (r.golden) c.push(`<span><i class="ball bGolden"></i>${r.golden}</span>`);
+    return c.join('');
+  }
+  // códigos de amigo: 6 letras + 2 de control (se comprueban sin conexión)
+  const ALPH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const chk = s => { let h = 7; for (const ch of s) h = (h * 31 + ALPH.indexOf(ch) + 1) % 1021; return ALPH[h % 32] + ALPH[(h >> 5) % 32]; };
+  function myCode() {
+    if (!save.pid) { let s = ''; for (let i = 0; i < 6; i++) s += ALPH[Math.floor(Math.random() * 32)]; save.pid = s; persist(); }
+    return 'CC-' + save.pid + chk(save.pid);
+  }
+  function normCode(t) { return (t || '').toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/^CC/, ''); }
+  function addFriend(text) {
+    const c = normCode(text);
+    if (c.length !== 8 || [...c].some(ch => ALPH.indexOf(ch) < 0) || chk(c.slice(0, 6)) !== c.slice(6)) return 'Ese código no es válido. Revisa que esté bien escrito.';
+    if (c.slice(0, 6) === save.pid) return 'Ese es tu propio código.';
+    save.friends = save.friends || [];
+    if (save.friends.includes(c)) return 'Ya tienes a ese amigo.';
+    save.friends.push(c); persist();
+    return null;
+  }
+  function shareGame() {
+    const text = `¡Juega conmigo a Chroma Crash! Añádeme como amigo con mi código ${myCode()} y los dos ganamos premios.`;
+    stats().shares++; persist();
+    try {
+      if (window.ChromaAndroid && window.ChromaAndroid.share) window.ChromaAndroid.share(text);
+      else if (navigator.share) navigator.share({ title: 'Chroma Crash', text }).catch(() => {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast('Mensaje copiado: pégalo donde quieras'), () => toast(text, 5000));
+    } catch (e) { /* sin compartir */ }
+    renderMissions();
+  }
+  function renderPlayer() {
+    const p = plState(), need = xpNeed(p.lv), pct = (100 * p.xp / need).toFixed(1) + '%';
+    if ($('plLv')) { $('plLv').textContent = p.lv; $('plBar').style.width = pct; $('plXp').textContent = `${p.xp} / ${need} XP para el nivel ${p.lv + 1}`; }
+    if ($('plStripLv')) { $('plStripLv').textContent = p.lv; $('plStripBar').style.width = pct; const n = misClaimable(); $('misDot').hidden = !n; $('misCount').textContent = n ? n + ' para cobrar' : 'Misiones'; }
+  }
+  function renderMissions() {
+    renderPlayer();
+    if (!$('missions').classList.contains('on')) return;
+    $('myCode').textContent = myCode();
+    $('friendCount').textContent = (save.friends || []).length;
+    const rows = MISSIONS.map(m => ({ m, s: misState(m) })).sort((a, b) => (b.s.ready - a.s.ready) || (a.s.done - b.s.done));
+    let h = '';
+    for (const { m, s } of rows) {
+      const r = s.done ? null : m.reward(s.i), pct = Math.min(100, 100 * s.have / s.goal);
+      h += `<div class="mcard ${s.ready ? 'ready' : ''} ${s.done ? 'done' : ''}">
+        <div class="mico">${m.icon}</div>
+        <div class="mbody"><small>${m.cat}${m.tiers.length > 1 ? ` · ${Math.min(s.i + 1, m.tiers.length)}/${m.tiers.length}` : ''}</small><b>${s.done ? '¡Completada!' : m.title(s.goal)}</b>
+          ${m.hint && !s.done ? `<em>${m.hint}</em>` : ''}
+          ${s.done ? '' : `<div class="mbar"><i style="width:${pct}%"></i></div><span class="mprog">${fmtN(Math.min(s.have, s.goal))} / ${fmtN(s.goal)}</span>`}
+          ${r ? `<div class="mrew">${rewardLine(r)}</div>` : ''}</div>
+        ${s.ready ? `<button class="btn green small mclaim" data-id="${m.id}">COBRAR</button>` : ''}</div>`;
+    }
+    $('misList').innerHTML = h;
+    $('misList').querySelectorAll('.mclaim').forEach(b => b.addEventListener('click', () => claimMission(b.dataset.id)));
+    setCoins();
+  }
+  function claimMission(id) {
+    const m = MISSIONS.find(x => x.id === id), s = misState(m);
+    if (!s.ready) return;
+    const r = m.reward(s.i);
+    save.mis[id] = s.i + 1;
+    const got = grant(Object.assign({}, r, { xp: undefined }));
+    const ups = addXp(r.xp || 0);
+    persist(); Audio.coin(); vibe(25);
+    toast('Misión cumplida: +' + r.xp + ' XP' + (got.length ? ', ' + got.join(', ') : ''), 2600);
+    announceUps(ups);
+    const sc = $('misList').scrollTop; renderMissions(); $('misList').scrollTop = sc;
+  }
+  function openMissions() { show('missions'); $('friendMsg').textContent = ''; renderMissions(); $('misList').scrollTop = 0; }
 
   // ---------------- racha diaria ----------------
   // Un premio cada día que entras y lo recoges. Cada 5 días toca cofre, y cada cofre es mejor que el anterior:
@@ -2286,6 +2432,7 @@
   // aspecto del cañón
   function applySkin() {
     const k = (save.skins && save.skins.equip) || 'classic', sk = SKINS[k] || SKINS.classic;
+    if (k !== 'classic' && !stats().skin) { stats().skin = 1; persist(); }
     cannonMat.color.set(sk.color); cannonMat.metalness = sk.metal; cannonMat.roughness = sk.rough;
     cannonMat.map = sk.map === 'fire' ? fireTex : sk.map ? rainbowTex : null;
     cannonMat.emissive.set(sk.glow || 0x000000); cannonMat.needsUpdate = true;
@@ -2301,6 +2448,17 @@
   on('btnHome', goTitle);
   on('btnShop', () => openShop()); on('btnShopT', () => openShop());
   on('btnPass', openPass); on('btnPassT', openPass);
+  on('btnMis', openMissions); on('btnMisT', openMissions);
+  on('misBack', () => (G.mode === 'title' ? goTitle() : goMap()));
+  on('misShop', () => openShop('gems'));
+  on('btnShare', shareGame);
+  on('btnAddFriend', () => {
+    const err = addFriend($('friendCode').value);
+    $('friendMsg').style.color = err ? '#d6304a' : '#22914b';
+    $('friendMsg').textContent = err || '¡Amigo añadido! Ya tienes ' + save.friends.length + (save.friends.length === 1 ? ' amigo.' : ' amigos.');
+    if (!err) { $('friendCode').value = ''; Audio.win(); }
+    renderMissions();
+  });
   on('passBack', () => (G.mode === 'title' ? goTitle() : goMap()));
   on('passShop', () => openShop('gems'));
   on('passBuy', buyPro);
@@ -2339,7 +2497,7 @@
     e.stopPropagation(); Audio.init();
     const sim = G.sim;
     if (G.mode !== 'play' || G.paused || !sim || sim.state !== 'play' || !(save.boosters.golden > 0) || sim.queue[0] === 'golden') return;
-    save.boosters.golden--; persist();
+    save.boosters.golden--; stats().golden++; persist();
     sim.queue.unshift('golden'); lastTray = ''; updateTray();
     centerText('BOLA DORADA CARGADA', '#ffe27a', 24); Audio.special(); vibe(25);
   });
@@ -2386,6 +2544,7 @@
     if (open('shop')) { $('shop').classList.remove('on'); return true; }
     if (open('daily')) { if (!$('dBtns').innerHTML) return true; closeDaily(true); return true; }
     if (open('settings')) { $('settings').classList.remove('on'); return true; }
+    if (open('missions')) { G.mode === 'title' ? goTitle() : goMap(); return true; }
     if (open('pre')) { $('pre').classList.remove('on'); if (G.mode !== 'map') goMap(); return true; }
     if (G.mode === 'play') {
       if (open('pause')) { G.paused = false; hideAll(); return true; }
