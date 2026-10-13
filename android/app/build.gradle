@@ -1,0 +1,27 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.chromacrash.game'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.chromacrash.game3d"
+        minSdk 24
+        targetSdk 34
+        versionCode 4
+        versionName "0.4.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

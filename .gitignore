@@ -1,0 +1,19 @@
+# Se genera con: node tools/build.js
+dist/
+# Android: compilación y ajustes locales
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/index.html
+*.apk
+*.aab
+# Claves de firma: NUNCA al repositorio
+*.jks
+*.keystore
+keystore.properties
+# Varios
+node_modules/
+.DS_Store
+.idea/
+*.log
