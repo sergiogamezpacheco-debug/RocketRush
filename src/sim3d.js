@@ -37,6 +37,19 @@
     },
   };
   const isColor = k => C.COLORS.indexOf(k) >= 0;
+  // Bolas de los mundos (una por cada uno de los 10 primeros mundos). 'lv' = nivel de la bola (1-10): sube su poder.
+  const WBALLS = {
+    w1: { name: 'Bola demoledora', world: 1, r: 0.4 },     // atraviesa la estructura rompiendo todo lo que toca
+    w2: { name: 'Bola de fuegos artificiales', world: 2, r: 0.34 }, // estalla en chispas que revientan bloques al azar
+    w3: { name: 'Bola de escarcha', world: 3, r: 0.34 },   // onda helada: rompe todo el piso donde golpea
+    w4: { name: 'Bola ancla', world: 4, r: 0.42 },         // parte la estructura de arriba abajo
+    w5: { name: 'Bola prisma', world: 5, r: 0.34 },        // pinta lo de alrededor de un color y lo revienta junto
+    w6: { name: 'Bola tornado', world: 6, r: 0.34 },       // remolino de arena que lo levanta todo y lo lanza fuera
+    w7: { name: 'Bola de nieve gigante', world: 7, r: 0.62 }, // enorme: rueda arrasando lo que pilla
+    w8: { name: 'Bola camaleón', world: 8, r: 0.34 },      // cada vez que toca un bloque, se vuelve de su color y revienta su grupo
+    w9: { name: 'Bola meteoro', world: 9, r: 0.4 },        // funde las columnas de alrededor del impacto
+    w10: { name: 'Bola agujero negro', world: 10, r: 0.36 }, // remolino que se traga lo que tiene cerca
+  };
   const BALL_CODES = { r: 'r', b: 'b', g: 'g', y: 'y', p: 'p', B: 'bomb', R: 'rainbow', H: 'heavy' };
 
   function rng(seed) {
@@ -115,6 +128,7 @@
       this.score = 0;
       this.queue = level.balls.split('').map(ch => BALL_CODES[ch]);
       if (opts.boosters) for (const k of opts.boosters) this.queue.unshift(k);
+      this.wlv = opts.wlv || {};
       this.balls = []; this.blocks = []; this.pending = [];
       this.rand = rng(level.id * 7919 + 13);
       this.state = 'settle'; this.silent = true; this.armed = false;
@@ -255,7 +269,7 @@
       if (!this.canFire()) return false;
       const kind = this.queue.shift();
       this.spawnBall(kind, tx, ty, tz);
-      this.armed = true; this.chain = 1; this.shotPops = 0; this.shotOpen = true; this.shotGolden = kind === 'golden';
+      this.armed = true; this.chain = 1; this.shotPops = 0; this.shotOpen = true; this.shotGolden = kind === 'golden' || !!WBALLS[kind];
       this.sinceFire = 0; this.idle = 0; this.shots++;
       if (this.chams && this.chams.length) this.chamPending = true;
       this.emit({ type: 'shoot', kind });
@@ -264,14 +278,16 @@
     spawnBall(kind, tx, ty, tz) {
       const L = this.launch(tx, ty, tz);
       const heavy = kind === 'heavy';
-      const r = heavy ? 0.42 : kind === 'golden' ? 0.4 : C.BALL_R;
-      const b = new CANNON.Body({ mass: (heavy ? 12 : 3.4) * (4 / 3) * Math.PI * r * r * r, material: new CANNON.Material({ friction: 0.4, restitution: 0.3 }) });
+      const W = WBALLS[kind];
+      const r = heavy ? 0.42 : kind === 'golden' ? 0.4 : W ? W.r : C.BALL_R;
+      const dens = heavy || kind === 'w1' || kind === 'w4' || kind === 'w7' ? 12 : 3.4;
+      const b = new CANNON.Body({ mass: dens * (4 / 3) * Math.PI * r * r * r, material: new CANNON.Material({ friction: 0.4, restitution: 0.3 }) });
       b.addShape(new CANNON.Sphere(r));
       b.position.set(L.m.x, L.m.y, L.m.z);
       b.velocity.set(L.vx, L.vy, L.vz);
       b.linearDamping = 0.01; b.angularDamping = 0.3;
       b.allowSleep = false;
-      b.userData = { kind: 'ball', ball: kind, c: isColor(kind) ? kind : null, age: 0, slow: 0, dead: false, r };
+      b.userData = { kind: 'ball', ball: kind, c: isColor(kind) ? kind : null, age: 0, slow: 0, dead: false, r, hits: 0, lv: W ? Math.max(1, Math.min(10, this.wlv[kind] || 1)) : 0 };
       this.world.addBody(b); this.balls.push(b);
       return b;
     }
@@ -330,6 +346,7 @@
       const d = ball.userData, od = other.userData;
       if (d.dead) return;
       if (d.ball === 'golden') { this.goldenHit(ball, other); return; }
+      if (WBALLS[d.ball]) { this.worldBallHit(ball, other, v, px, py, pz); return; }
       if (d.ball === 'bomb' && od.kind !== 'island' || d.ball === 'bomb' && v > 2) { this.explode(ball.position.x, ball.position.y, ball.position.z, C.BOMB_R, true); this.killBall(ball, false); return; }
       if (v > 1.5 && this.impactBudget > 0) { this.impactBudget--; this.emit({ type: 'thud', x: px, y: py, z: pz, v }); }
       if (od.kind === 'gold' && !od.popping && !od.destroyed) this.popSingle(other, 0.02);
@@ -341,6 +358,99 @@
         if (d.ball === 'rainbow' && !d.c) d.c = od.c;
         if (d.c && d.c === od.c) this.popGroup(other, false);
       }
+    }
+    // rompe un bloque de cualquier tipo (las bolas de los mundos); la piedra solo la mueven las fuertes
+    smash(o, delay, strong) {
+      const od = o.userData;
+      if (!od.alive || od.destroyed || od.popping) return false;
+      if (od.kind === 'block' || od.kind === 'gold') { this.popSingle(o, delay); return true; }
+      if (od.kind === 'glass') { this.later(delay, () => this.shatter(o)); return true; }
+      if (od.kind === 'sand') { this.later(delay, () => this.crumble(o)); return true; }
+      if (od.kind === 'prize') { this.later(delay, () => this.breakPrize(o)); return true; }
+      if (od.kind === 'tnt') { this.later(delay, () => this.ignite(o)); return true; }
+      if (od.kind === 'magma') { this.heat(o); return true; }
+      if (od.kind === 'stone' && strong) { this.later(delay, () => { if (!od.alive || od.destroyed) return; od.alive = false; od.destroyed = true; this.world.removeBody(o); this.emit({ type: 'glass', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z, stone: true }); this.wakeAll(); }); return true; }
+      return false;
+    }
+    worldBallHit(ball, other, v, px, py, pz) {
+      const d = ball.userData, od = other.userData, lv = d.lv, k = d.ball, p = ball.position;
+      if (od.kind === 'island' && k !== 'w7' && k !== 'w1') {   // si cae en el suelo sin tocar nada, hace su efecto ahí mismo
+        if (d.hits) return;
+      }
+      this.chain = Math.max(this.chain, 2);
+      const near = (R, f) => this.liveBlocks().filter(o => o.position.distanceTo(p) < R && (!f || f(o)));
+      const emit = (extra) => this.emit(Object.assign({ type: 'wball', kind: k, x: p.x, y: p.y, z: p.z, lv }, extra || {}));
+      if (k === 'w1') {            // demoledora: sigue su camino rompiendo hasta 4 + nivel bloques
+        if (od.kind === 'island') return;
+        if (this.smash(other, 0.01, true)) { d.hits++; emit({ hit: true }); }
+        const pv = d._pv; if (pv && d.hits <= 3 + lv) ball.velocity.set(pv[0] * 0.92, pv[1] * 0.92, pv[2] * 0.92);
+        return;
+      }
+      if (k === 'w7') {            // bola de nieve: rueda (es pesada) y rompe lo que toca, hasta 5 + nivel
+        if (od.kind === 'island' || d.hits >= 5 + lv) return;
+        if (this.smash(other, 0.02, false)) { d.hits++; emit({ hit: true }); }
+        return;
+      }
+      if (k === 'w8') {            // camaleón: revienta el grupo de cada bloque de color que toca (hasta 2 + nivel/3 grupos)
+        if (od.kind === 'block' && !od.popping && !od.destroyed) { d.c = od.c; this.popGroup(other, false); d.hits++; emit({ c: od.c, hit: true }); }
+        else if (od.kind !== 'island') this.smash(other, 0.02, false);
+        const pv = d._pv; if (pv && d.hits < 2 + Math.floor(lv / 3)) ball.velocity.set(-pv[0] * 0.5, Math.abs(pv[1]) * 0.6 + 3, -pv[2] * 0.5);
+        if (d.hits >= 2 + Math.floor(lv / 3)) this.killBall(ball, true);
+        return;
+      }
+      // el resto actúa una sola vez, en el primer golpe
+      this.killBall(ball, false);
+      if (k === 'w2') {            // fuegos artificiales: 5 + nivel bloques al azar a su alrededor
+        const pool = near(3.6 + lv * 0.1).sort(() => this.rand() - 0.5).slice(0, 5 + lv);
+        pool.forEach((o, i) => this.smash(o, 0.12 + i * 0.07, false));
+        emit({ targets: pool.map(o => [o.position.x, o.position.y, o.position.z]) });
+      } else if (k === 'w3') {     // escarcha: todo el piso a la altura del golpe, en un radio de 2,4 + nivel·0,12
+        const R = 2.4 + lv * 0.12;
+        near(R + 1, o => Math.abs(o.position.y - py) < 0.62 && Math.hypot(o.position.x - px, o.position.z - pz) < R).forEach(o => this.smash(o, 0.05 + Math.hypot(o.position.x - px, o.position.z - pz) * 0.08, false));
+        emit({ r: R });
+      } else if (k === 'w4') {     // ancla: una franja vertical de arriba abajo (toda la profundidad)
+        const half = 0.62 + lv * 0.05;
+        this.liveBlocks().filter(o => Math.abs(o.position.x - px) < half).forEach(o => this.smash(o, 0.04 + Math.max(0, py - o.position.y) * 0.03 + Math.max(0, o.position.y - py) * 0.03, true));
+        emit({ half });
+      } else if (k === 'w5') {     // prisma: pinta de un color todo lo que hay cerca y lo revienta en un solo grupo
+        const R = 2.1 + lv * 0.12;
+        const area = near(R, o => o.userData.kind === 'block' && !o.userData.popping);
+        let c = od.kind === 'block' ? od.c : null;
+        if (!c) { const cnt = {}; for (const o of area) cnt[o.userData.c] = (cnt[o.userData.c] || 0) + 1; c = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0]; }
+        if (c) { for (const o of area) { o.userData.c = c; o.userData.ice = false; o.userData.hp = 1; this.emit({ type: 'cham', id: o.userData.id, c, x: o.position.x, y: o.position.y, z: o.position.z }); } const start = area.find(o => o === other) || area[0]; if (start) this.later(0.25, () => this.popGroup(start, false)); }
+        emit({ r: R, c });
+      } else if (k === 'w6') {     // tornado: levanta y lanza todo lo de alrededor; revienta 2 + nivel/2 bloques del centro
+        const R = 3.0 + lv * 0.12;
+        this.wakeAll();
+        for (const o of near(R)) {
+          const dx = o.position.x - px, dz = o.position.z - pz, dist = Math.hypot(dx, dz) || 1, f = 3.8 + lv * 0.3;
+          o.velocity.x += dx / dist * f * 0.6 + -dz / dist * f * 0.8; o.velocity.z += dz / dist * f * 0.6 + dx / dist * f * 0.8; o.velocity.y += f * 0.9;
+          o.angularVelocity.set(this.rand() * 6 - 3, this.rand() * 8, this.rand() * 6 - 3);
+        }
+        near(R).sort((a, b) => a.position.distanceTo(p) - b.position.distanceTo(p)).slice(0, 2 + Math.floor(lv / 2)).forEach((o, i) => this.smash(o, 0.2 + i * 0.1, false));
+        emit({ r: R });
+      } else if (k === 'w9') {     // meteoro: funde las columnas en un radio de 1,6 + nivel·0,1, de abajo arriba
+        const R = 1.6 + lv * 0.1;
+        this.liveBlocks().filter(o => Math.hypot(o.position.x - px, o.position.z - pz) < R).forEach(o => this.smash(o, 0.08 + Math.abs(o.position.y - py) * 0.05, true));
+        emit({ r: R });
+        this.explode(px, py, pz, 1.4, true);
+      } else if (k === 'w10') {    // agujero negro: durante 1,8 s atrae lo cercano y se traga hasta 8 + nivel bloques
+        this.vortex = { x: px, y: py, z: pz, t: 1.8, n: 8 + lv, R: 3.6 + lv * 0.1 };
+        emit({ r: this.vortex.R });
+      }
+    }
+    updateVortex(dt) {
+      const V = this.vortex; if (!V) return;
+      V.t -= dt;
+      for (const o of this.liveBlocks()) {
+        const od = o.userData; if (od.popping) continue;
+        const dx = V.x - o.position.x, dy = V.y - o.position.y, dz = V.z - o.position.z, dist = Math.hypot(dx, dy, dz);
+        if (dist > V.R) continue;
+        if (dist < 0.95 && V.n > 0) { if (this.smash(o, 0.01, true)) { V.n--; this.emit({ type: 'swallow', x: o.position.x, y: o.position.y, z: o.position.z }); } continue; }
+        o.wakeUp(); const f = 22 * dt * (1 - dist / V.R + 0.3);
+        o.velocity.x += dx / dist * f; o.velocity.y += dy / dist * f + 0.15; o.velocity.z += dz / dist * f;
+      }
+      if (V.t <= 0 || V.n <= 0) { this.vortex = null; this.emit({ type: 'vortexEnd', x: V.x, y: V.y, z: V.z }); }
     }
     // bola dorada: revienta TODOS los bloques del color que toca, estén donde estén (también el hielo),
     // y suelta una onda expansiva; si toca algo sin color, explota a lo grande
@@ -597,6 +707,7 @@
         const v = b.velocity; b.userData._pv = [v.x, v.y, v.z];
       }
       this.applyFloat();
+      if (this.vortex) this.updateVortex(dt);
       this.world.step(dt);
       this.processContacts();
       if (this.pending.length) {
@@ -776,7 +887,8 @@
       this.state = 'won';
       // la bola dorada sin usar vuelve al inventario del jugador
       this.goldenLeft = this.queue.filter(k => k === 'golden').length;
-      this.queue = this.queue.filter(k => k !== 'golden');
+      this.wLeft = this.queue.filter(k => WBALLS[k]);                 // las bolas de los mundos sin usar también vuelven
+      this.queue = this.queue.filter(k => k !== 'golden' && !WBALLS[k]);
       this.leftover = this.queue.length;
       this.bonus = this.leftover * 300;
       this.score += this.bonus;
@@ -791,13 +903,15 @@
       this.queue = [];
       this.addBalls(n + this.leftover);
       for (let i = 0; i < (this.goldenLeft || 0); i++) this.queue.unshift('golden');
+      for (const k of this.wLeft || []) this.queue.unshift(k);
+      this.wLeft = [];
       this.leftover = 0; this.bonus = 0; this.goldenLeft = 0;
       this.state = 'play'; this.idle = 0; this.sinceFire = 99;
       return true;
     }
   }
 
-  const SimLib = { Sim, C, isColor, obbGap, rng, referenceCam };
+  const SimLib = { Sim, C, isColor, obbGap, rng, referenceCam, WBALLS };
   if (typeof module !== 'undefined' && module.exports) module.exports = SimLib;
   else root.SimLib = SimLib;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

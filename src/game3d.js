@@ -1,7 +1,7 @@
 // Chroma Crash 3D — dibujo (three.js), controles, efectos, sonido, menús y guardado.
 (function () {
   'use strict';
-  const { Sim, C } = SimLib;
+  const { Sim, C, WBALLS } = SimLib;
   const { LEVELS, BONUS, WORLDS, byId } = Levels;
   const $ = id => document.getElementById(id);
   const TAU = Math.PI * 2;
@@ -1079,6 +1079,18 @@
       if (d.kind === 'tnt' && d.lit) { g.userData.body.material.emissive = g.userData.body.material.emissive || new THREE.Color(); }
     }
     syncMovers();
+    // agujero negro: disco oscuro con anillo morado que gira mientras dura
+    if (sim.vortex) {
+      if (!G.vortexMesh) {
+        const gv = new THREE.Group();
+        gv.add(new THREE.Mesh(new THREE.SphereGeometry(0.75, 24, 16), new THREE.MeshBasicMaterial({ color: 0x05020c })));
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.16, 8, 48), new THREE.MeshBasicMaterial({ color: 0xc07bff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
+        ring.rotation.x = 1.2; gv.add(ring); gv.userData.ring = ring; scene.add(gv); G.vortexMesh = gv;
+      }
+      const V = sim.vortex, gv = G.vortexMesh; gv.visible = true; gv.position.set(V.x, V.y, V.z);
+      gv.userData.ring.rotation.z += dt * 8; gv.scale.setScalar(0.8 + Math.min(1, (1.8 - V.t) * 3) * 0.4);
+      if (Math.random() < 0.5) spawnSprite(V.x + rnd(-2.5, 2.5), V.y + rnd(-1.5, 1.5), V.z + rnd(-1, 1), 0xa66bff, 0.5, -0.8, 0.5, { add: true, alpha: 0.8 });
+    } else if (G.vortexMesh) G.vortexMesh.visible = false;
     // bolas
     const live = new Set();
     for (const b of sim.balls) {
@@ -1086,7 +1098,8 @@
       let m = G.ballMeshes.get(b);
       if (!m) { m = makeBallMesh(b.userData.ball, b.userData.r); scene.add(m); G.ballMeshes.set(b, m); }
       m.position.copy(b.position); m.quaternion.copy(b.quaternion);
-      if (Math.random() < 0.6) spawnSprite(b.position.x, b.position.y, b.position.z, 0xffffff, b.userData.r * 1.4, 0.4, 0.25, { alpha: 0.35 });
+      const wt = W_TRAIL[b.userData.ball];
+      if (Math.random() < 0.6) spawnSprite(b.position.x, b.position.y, b.position.z, wt || 0xffffff, b.userData.r * (wt ? 2 : 1.4), 0.4, wt ? 0.4 : 0.25, { alpha: wt ? 0.6 : 0.35, add: !!wt });
     }
     for (const [b, m] of G.ballMeshes) if (!live.has(b)) { scene.remove(m); G.ballMeshes.delete(b); }
   }
@@ -1096,6 +1109,31 @@
     heavy: new THREE.MeshPhysicalMaterial({ color: 0x9d9ab0, roughness: 0.3, metalness: 0.8 }),
     golden: new THREE.MeshPhysicalMaterial({ color: 0xffc83d, roughness: 0.12, metalness: 1, clearcoat: 1, emissive: new THREE.Color(0x7a4a00), envMapIntensity: 1.8 }),
   };
+  // ---------- bolas de los mundos: aspecto ----------
+  const wtex = (draw) => canvasTex(256, 128, draw);
+  const W_TEX = {
+    w1: wtex(g => { g.fillStyle = '#5c6274'; g.fillRect(0, 0, 256, 128); g.fillStyle = '#3a3f4e'; g.fillRect(0, 56, 256, 16); g.fillStyle = '#c8ccd8'; for (let x = 8; x < 256; x += 22) { g.beginPath(); g.arc(x, 64, 4, 0, TAU); g.fill(); } g.strokeStyle = 'rgba(255,255,255,0.15)'; g.lineWidth = 3; for (let x = 0; x < 256; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x + 16, 128); g.stroke(); } }),
+    w2: wtex(g => { g.fillStyle = '#1f1a5a'; g.fillRect(0, 0, 256, 128); const cs = ['#ff4f6d', '#ffd23f', '#5fd45a', '#3dc8ff', '#ff9ad6']; for (let i = 0; i < 14; i++) { const x = rnd(10, 246), y = rnd(10, 118), c = cs[i % 5]; g.strokeStyle = c; g.lineWidth = 2.5; for (let a = 0; a < 8; a++) { const t = a / 8 * TAU; g.beginPath(); g.moveTo(x + Math.cos(t) * 3, y + Math.sin(t) * 3); g.lineTo(x + Math.cos(t) * 11, y + Math.sin(t) * 11); g.stroke(); } } }),
+    w3: wtex(g => { g.fillStyle = '#cfefff'; g.fillRect(0, 0, 256, 128); g.strokeStyle = '#ffffff'; g.lineWidth = 3; for (let i = 0; i < 8; i++) { const x = 16 + i * 32, y = i % 2 ? 40 : 88; for (let a = 0; a < 6; a++) { const t = a / 6 * TAU; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(t) * 13, y + Math.sin(t) * 13); g.stroke(); } } }),
+    w4: wtex(g => { g.fillStyle = '#1f3f8a'; g.fillRect(0, 0, 256, 128); g.fillStyle = '#e8c48a'; g.fillRect(0, 54, 256, 20); g.strokeStyle = '#ffffff'; g.lineWidth = 6; g.lineCap = 'round'; for (const x of [64, 192]) { g.beginPath(); g.moveTo(x, 20); g.lineTo(x, 100); g.moveTo(x - 18, 34); g.lineTo(x + 18, 34); g.moveTo(x - 26, 82); g.quadraticCurveTo(x, 112, x + 26, 82); g.stroke(); } }),
+    w6: wtex(g => { g.fillStyle = '#e2b46e'; g.fillRect(0, 0, 256, 128); g.strokeStyle = '#a8742e'; g.lineWidth = 6; for (let i = 0; i < 6; i++) { g.beginPath(); g.moveTo(0, 10 + i * 22); g.bezierCurveTo(80, i * 22 - 14, 170, 34 + i * 22, 256, 10 + i * 22); g.stroke(); } }),
+    w7: wtex(g => { g.fillStyle = '#f6fbff'; g.fillRect(0, 0, 256, 128); for (let i = 0; i < 200; i++) { g.fillStyle = 'rgba(160,200,235,0.3)'; g.beginPath(); g.arc(rnd(0, 256), rnd(0, 128), rnd(2, 7), 0, TAU); g.fill(); } }),
+    w10: wtex(g => { g.fillStyle = '#05030c'; g.fillRect(0, 0, 256, 128); const gr = g.createLinearGradient(0, 44, 0, 84); gr.addColorStop(0, 'rgba(160,80,255,0)'); gr.addColorStop(0.5, '#c07bff'); gr.addColorStop(1, 'rgba(160,80,255,0)'); g.fillStyle = gr; g.fillRect(0, 44, 256, 40); g.fillStyle = '#fff'; for (let i = 0; i < 30; i++) g.fillRect(rnd(0, 256), rnd(0, 128), 1.5, 1.5); }),
+  };
+  Object.assign(SPECIAL_MAT, {
+    w1: new THREE.MeshPhysicalMaterial({ map: W_TEX.w1, metalness: 0.85, roughness: 0.3, clearcoat: 0.5 }),
+    w2: new THREE.MeshPhysicalMaterial({ map: W_TEX.w2, emissiveMap: W_TEX.w2, emissive: 0xffffff, emissiveIntensity: 0.5, roughness: 0.3, clearcoat: 1 }),
+    w3: new THREE.MeshPhysicalMaterial({ map: W_TEX.w3, roughness: 0.08, clearcoat: 1, transparent: true, opacity: 0.9, envMapIntensity: 1.6 }),
+    w4: new THREE.MeshPhysicalMaterial({ map: W_TEX.w4, roughness: 0.35, metalness: 0.3, clearcoat: 0.8 }),
+    w5: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.05, metalness: 0.2, clearcoat: 1, iridescence: 1, iridescenceIOR: 1.8, iridescenceThicknessRange: [200, 900], envMapIntensity: 2 }),
+    w6: new THREE.MeshPhysicalMaterial({ map: W_TEX.w6, roughness: 0.9 }),
+    w7: new THREE.MeshPhysicalMaterial({ map: W_TEX.w7, roughness: 0.95, sheen: 1, sheenColor: new THREE.Color(0xcfe8ff) }),
+    w8: new THREE.MeshPhysicalMaterial({ color: COL.g, map: scaleTex, roughness: 0.3, clearcoat: 0.9 }),
+    w9: new THREE.MeshStandardMaterial({ map: magmaTex, emissiveMap: magmaGlow, emissive: 0xff6a1a, emissiveIntensity: 1.6, roughness: 0.8 }),
+    w10: new THREE.MeshPhysicalMaterial({ map: W_TEX.w10, emissiveMap: W_TEX.w10, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.15, clearcoat: 1 }),
+  });
+  Object.assign(CSSB, { w1: 'bW1', w2: 'bW2', w3: 'bW3', w4: 'bW4', w5: 'bW5', w6: 'bW6', w7: 'bW7', w8: 'bW8', w9: 'bW9', w10: 'bW10' });
+  const W_TRAIL = { w1: 0xc8ccd8, w2: 0xffd23f, w3: 0xcfefff, w4: 0x3d6bff, w5: 0xffffff, w6: 0xe2b46e, w7: 0xffffff, w8: 0x5fd45a, w9: 0xff7a1a, w10: 0xa66bff };
   // ---------- pájaro y barco ----------
   const birdMats = {
     body: new THREE.MeshStandardMaterial({ color: 0x4fc3ff, roughness: 0.45 }),
@@ -1342,7 +1380,7 @@
     const sim = G.sim;
     for (const e of sim.events) {
       switch (e.type) {
-        case 'shoot': {
+        case 'shoot': if (WBALLS[e.kind]) stats().wballs = (stats().wballs || 0) + 1; {
           Audio.shoot(); G.recoil = 1; vibe(14);
           const m = sim.muzzle();
           spawnSprite(m.x, m.y, m.z - 0.5, 0xffd27a, 0.7, 1.2, 0.14, { add: true, alpha: 0.9 });
@@ -1376,6 +1414,26 @@
           Audio.glass(); G.shake = Math.max(G.shake, 0.08);
           break;
         case 'fuse': Audio.fuse(); spawnSprite(e.x, e.y + 0.6, e.z, 0xffe070, 0.5, 1, 0.3, { add: true }); break;
+        case 'wball': {
+          const k = e.kind, col = W_TRAIL[k] || 0xffffff;
+          if (k === 'w1' || k === 'w7') { spawnDebris(e.x, e.y, e.z, col, 10, 4, 0.14, 0.8); G.shake = Math.max(G.shake, 0.18); Audio.thud(3, true); }
+          else if (k === 'w8') { spawnSprite(e.x, e.y, e.z, COL[e.c] || col, 1.8, 1.4, 0.4, { add: true, alpha: 1 }); SPECIAL_MAT.w8.color.set(COL[e.c] || COL.g); Audio.special(); }
+          else {
+            spawnSprite(e.x, e.y, e.z, col, 3.2, 1.6, 0.5, { add: true, alpha: 1 }); spawnRing(e.x, e.y, e.z, col, e.r || 2.5, 0.6);
+            G.shake = Math.max(G.shake, 0.3); vibe([30, 20, 50]); Audio.special(); Audio.explode();
+            flashLight.position.set(e.x, e.y + 1, e.z + 1); flashLight.color.set(col); flashLight.intensity = 50;
+            if (k === 'w2') (e.targets || []).forEach((t, i) => setTimeout(() => { const c = [0xff4f6d, 0xffd23f, 0x5fd45a, 0x3dc8ff, 0xff9ad6][i % 5]; spawnSprite(t[0], t[1], t[2], c, 1.8, 1.6, 0.6, { add: true, alpha: 1 }); spawnDebris(t[0], t[1], t[2], c, 10, 6, 0.1, 0.9); Audio.pop(i); }, 120 + i * 70));
+            if (k === 'w3') for (let i = 0; i < 16; i++) { const a = i / 16 * TAU; spawnSprite(e.x + Math.cos(a) * e.r * 0.6, e.y, e.z + Math.sin(a) * e.r * 0.6, 0xe0f6ff, 1, 1.5, 0.7, { alpha: 0.9 }); }
+            if (k === 'w4') for (let i = 0; i < 10; i++) spawnSprite(e.x, i * 0.8, e.z, 0x8fb0ff, 1.2, 1.2, 0.6, { add: true, alpha: 0.9 });
+            if (k === 'w5') { for (const c of Object.values(COL)) spawnRing(e.x, e.y, e.z, c, (e.r || 2) * (0.6 + Math.random() * 0.6), 0.7); }
+            if (k === 'w6') for (let i = 0; i < 18; i++) { const a = i / 18 * TAU * 2; spawnSprite(e.x + Math.cos(a) * (0.3 + i * 0.1), e.y + i * 0.25, e.z + Math.sin(a) * (0.3 + i * 0.1), 0xe2b46e, 1.2, 1.2, 0.9, { vy: 2, alpha: 0.8 }); }
+            if (k === 'w9') for (let i = 0; i < 8; i++) spawnSprite(e.x + rnd(-1, 1), e.y + i * 0.5, e.z, i % 2 ? 0xffd23f : 0xff6a1a, 1.4, 1.2, 0.7, { vy: 4, add: true, alpha: 1 });
+          }
+          if (!e.hit) centerText(WBALLS[k].name.toUpperCase().replace('BOLA ', '') + '!', '#' + new THREE.Color(col).getHexString(), 28);
+          break;
+        }
+        case 'swallow': spawnSprite(e.x, e.y, e.z, 0xa66bff, 1.2, 0.2, 0.4, { add: true, alpha: 1 }); Audio.pop(2); break;
+        case 'vortexEnd': spawnRing(e.x, e.y, e.z, 0xc07bff, 3, 0.5); break;
         case 'gone': stats().blocks++; stats().specials++; break;
         case 'fall': stats().blocks++; break;
         case 'crumble': stats().blocks++; stats().specials++;
@@ -1741,16 +1799,31 @@
     $('preGoal').textContent = L.goal || '';
     const free = streakBoosters();
     const defs = [['bomb', 'Bomba'], ['rainbow', 'Arcoíris'], ['extra', '+2 bolas']];
+    // bola del mundo de este nivel (y las demás que ya tengas)
+    const wk = worldBallOf(L.world), wks = [wk].concat(WB_KEYS.filter(k => k !== wk && (save.boosters[k] || 0) > 0));
+    const wdefs = wks.filter(k => wbOpen(k)).map(k => [k, WBALLS[k].name.replace('Bola ', '').replace(/^de /, '')]);
     $('preBoosters').innerHTML = defs.map(([k, n]) => {
       const isFree = free.includes(k);
       return `<div class="boost ${isFree ? 'sel' : ''}" data-k="${k}"><span class="n ${isFree ? 'free' : ''}">${isFree ? 'GRATIS' : (save.boosters[k] || 0)}</span><div class="ball big ${k === 'extra' ? 'bR' : CSSB[k]}" style="margin:2px auto 0;width:44px;height:44px"></div><div>${n}</div></div>`;
+    }).join('') + wdefs.map(([k, n]) => {
+      const have = save.boosters[k] || 0;
+      return `<div class="boost wboost" data-k="${k}"><span class="n ${have ? '' : 'buy'}">${have || ('<i class="gem"></i>' + wbGems(k))}</span><div class="ball big ${CSSB[k]}" style="margin:2px auto 0;width:44px;height:44px"></div><div>${n}<small>nv. ${wbLevel(k)}</small></div></div>`;
     }).join('');
+    $('preWb').innerHTML = wdefs.length ? `<b>${WBALLS[wk].name}:</b> ${WB_DESC[wk]}` : '';
     $('preBoosters').querySelectorAll('.boost').forEach(el => el.addEventListener('click', () => {
       const k = el.dataset.k;
       if (free.includes(k)) return;
       Audio.click();
+      if (WBALLS[k] && !preSel[k] && !(save.boosters[k] > 0)) {      // comprarla con gemas aquí mismo
+        const g = wbGems(k);
+        if ((save.gems || 0) < g) { toast(`Te faltan ${g - (save.gems || 0)} gemas`); openShop('gems'); return; }
+        save.gems -= g; save.boosters[k] = (save.boosters[k] || 0) + 1; persist(); setCoins(); Audio.coin();
+        el.querySelector('.n').className = 'n'; el.querySelector('.n').textContent = save.boosters[k];
+        toast(WBALLS[k].name + ' comprada por ' + g + ' gemas');
+      }
       if (!preSel[k] && !(save.boosters[k] > 0)) { toast('No te quedan. Consíguelos en la tienda.'); return; }
       preSel[k] = !preSel[k]; el.classList.toggle('sel', preSel[k]);
+      if (WBALLS[k]) $('preWb').innerHTML = `<b>${WBALLS[k].name}:</b> ${WB_DESC[k]}`;
     }));
     const st = $('preStreak');
     if (save.streak >= 1) {
@@ -1766,6 +1839,8 @@
     if (!sim || G.demo || sim.state !== 'play') return;
     const n = sim.queue.filter(k => k === 'golden').length;
     if (n) { save.boosters.golden = (save.boosters.golden || 0) + n; sim.queue = sim.queue.filter(k => k !== 'golden'); persist(); }
+    const wl = sim.queue.filter(k => WBALLS[k]);
+    if (wl.length) { for (const k of wl) save.boosters[k] = (save.boosters[k] || 0) + 1; sim.queue = sim.queue.filter(k => !WBALLS[k]); persist(); }
   }
   function startLevel(id, boosters) {
     refundGolden();
@@ -1775,7 +1850,7 @@
     for (const k of boosters || []) { if (k === 'extra') extra += 2; else bl.push(k); }
     const roll = gemRollFor(L);
     G.gemRoll = roll;
-    G.sim = new Sim(L, { boosters: bl, viewTest, gems: Math.max(0, roll.n - roll.got), gemSeed: 1 + Math.floor(Math.random() * 1e9) });
+    G.sim = new Sim(L, { boosters: bl, wlv: wlvAll(), viewTest, gems: Math.max(0, roll.n - roll.got), gemSeed: 1 + Math.floor(Math.random() * 1e9) });
     if (extra) { const cols = G.sim.queue.filter(k => COL[k]); for (let i = 0; i < extra; i++) G.sim.queue.push(cols[i % Math.max(1, cols.length)] || 'heavy'); }
     setTheme(L.world); buildLevelView(); frameCamera();
     G.mode = 'play'; G.paused = false; G.ended = false; G.endT = 0; G.finalT = 0; G.slowT = 0; G.timeScale = 1;
@@ -1810,6 +1885,7 @@
       if (stars >= 3) { save.boosters.golden = (save.boosters.golden || 0) + 1; gifts += ' · +1 bola dorada'; G.gotGolden = true; }
     }
     if (sim.goldenLeft) save.boosters.golden = (save.boosters.golden || 0) + sim.goldenLeft;
+    for (const k of sim.wLeft || []) save.boosters[k] = (save.boosters[k] || 0) + 1;
     coins += sim.coins || 0;
     G.pendingCoins = coins; save.coins += coins;
     save.streak = Math.min(save.streak + 1, 9); save.played++;
@@ -1888,6 +1964,41 @@
   }
   window.onChromaReward = ok => { const cb = window.__rewardCb; window.__rewardCb = null; if (cb) cb(ok); };
 
+
+  // ---------------- bolas de los mundos ----------------
+  // Una bola especial por cada uno de los 10 primeros mundos. Se abre al desbloquear su mundo (tienda: monedas;
+  // antes de la partida: gemas). Los mundos 11-100 no traen bola nueva: cada uno SUBE DE NIVEL la bola de su paisaje
+  // (más poder; máximo nivel 10). En los mundos del mar va rotando entre las 5 bolas del mar.
+  const WB_KEYS = Object.keys(WBALLS);
+  const WB_DESC = {
+    w1: 'Atraviesa la estructura rompiendo todo lo que toca, incluso la piedra.',
+    w2: 'Estalla en fuegos artificiales que revientan bloques al azar.',
+    w3: 'Onda helada: rompe todo el piso a la altura del golpe.',
+    w4: 'Parte la estructura de arriba abajo.',
+    w5: 'Pinta de un color todo lo que hay cerca y lo revienta de golpe.',
+    w6: 'Remolino de arena que levanta la estructura y la lanza fuera.',
+    w7: 'Enorme y pesada: rueda arrasando lo que pilla.',
+    w8: 'Toma el color de cada bloque que toca y revienta su grupo.',
+    w9: 'Cae como un meteoro y funde las columnas de alrededor.',
+    w10: 'Abre un agujero negro que se traga lo que tiene cerca.',
+  };
+  const BIOME_BALL = { desert: 'w6', snow: 'w7', jungle: 'w8', volcano: 'w9', space: 'w10' };
+  function worldBallOf(w) {
+    if (w <= 10) return 'w' + w;
+    const k = w - 11, W = WORLDS[w - 1];
+    return W && W.biome !== 'sea' ? BIOME_BALL[W.biome] : 'w' + (1 + Math.floor(k / 6) % 5);
+  }
+  const wbOpen = k => (TEST_MODE && save.testAll) || worldsOpen() >= WBALLS[k].world;
+  function wbLevel(k) {
+    let lv = 1;
+    const open = (TEST_MODE && save.testAll) ? 100 : worldsOpen();
+    for (let w = 11; w <= open; w++) if (worldBallOf(w) === k) lv++;
+    return Math.min(10, lv);
+  }
+  const wbCoins = k => 300 + 60 * WBALLS[k].world;           // en la tienda
+  const wbGems = k => (WBALLS[k].world <= 5 ? 5 : 8);        // antes de la partida
+  const wlvAll = () => { const o = {}; for (const k of WB_KEYS) o[k] = wbLevel(k); return o; };
+
   // ---------------- tienda ----------------
   const SHOP = [
     { id: 'g1', sec: 'gems', name: 'Puñado de gemas', desc: '30 gemas', gems: 30, price: '0,99 €', grant: () => { save.gems = (save.gems || 0) + 30; } },
@@ -1904,9 +2015,21 @@
   function openShop(focus) {
     const items = SHOP.filter(s => !(s.once && save.starter) && !(s.id === 'noads' && save.adsRemoved));
     const row = s => `<div class="shopitem"><div><b>${s.sec === 'gems' ? '<span class="gemp"><i class="gem"></i>' + s.name + '</span>' : s.name}</b><span>${s.desc}</span></div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : s.price}</button></div>`;
+    const wrow = k => {
+      const open = wbOpen(k), have = save.boosters[k] || 0;
+      return `<div class="shopitem wb ${open ? '' : 'locked'}"><div class="ball ${CSSB[k]}"></div><div><b>${WBALLS[k].name} <small>nv. ${wbLevel(k)}${have ? ' · tienes ' + have : ''}</small></b><span>${open ? WB_DESC[k] : 'Se desbloquea en el mundo ' + WBALLS[k].world}</span></div>` +
+        (open ? `<button class="btn gold" data-wb="${k}"><i class="coin"></i>${wbCoins(k)}</button>` : '<span class="lockico">&#128274;</span>') + '</div>';
+    };
     $('shopList').innerHTML = '<div class="sechead">GEMAS · para el Pase Pro</div>' + items.filter(s => s.sec === 'gems').map(row).join('') +
+      '<div class="sechead">BOLAS DE LOS MUNDOS</div>' + WB_KEYS.map(wrow).join('') +
       '<div class="sechead">MONEDAS Y POTENCIADORES</div>' + items.filter(s => s.sec !== 'gems').map(row).join('');
-    $('shopList').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    $('shopList').querySelectorAll('button[data-wb]').forEach(b => b.addEventListener('click', () => {
+      const k = b.dataset.wb, cost = wbCoins(k);
+      if (save.coins < cost) { toast('No tienes monedas suficientes'); return; }
+      save.coins -= cost; save.boosters[k] = (save.boosters[k] || 0) + 1; persist(); setCoins(); Audio.coin(); toast('¡' + WBALLS[k].name + ' comprada!');
+      const sc = $('shopList').scrollTop; openShop(); $('shopList').scrollTop = sc;
+    }));
+    $('shopList').querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', () => {
       const it = SHOP.find(s => s.id === b.dataset.id);
       if (it.coins) { if (save.coins < it.coins) { toast('No tienes monedas suficientes'); return; } save.coins -= it.coins; }
       it.grant(); persist(); setCoins(); Audio.coin(); toast(it.coins ? '¡Comprado!' : 'Compra de prueba hecha (no se ha cobrado nada)');
@@ -2114,6 +2237,8 @@
     { id: 'blocks', cat: 'Derriba', icon: '🧱', tiers: [100, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000], title: n => `Derriba ${fmtN(n)} bloques`, stat: () => stats().blocks, reward: i => ({ xp: 40 + i * 40, coins: 100 + i * 120 }) },
     { id: 'specials', cat: 'Derriba', icon: '💥', tiers: [10, 50, 150, 400, 1000, 2500, 6000], title: n => `Derriba ${fmtN(n)} bloques especiales`, hint: 'rayados, bomba, TNT, cristal, oro, hielo, arena, congeladas, camaleón, magma o flotantes', stat: () => stats().specials, reward: i => ({ xp: 50 + i * 50, coins: 150 + i * 120 }) },
     { id: 'cascades', cat: 'Derriba', icon: '🌊', tiers: [10, 100, 500, 2000], title: n => `Haz ${fmtN(n)} cascadas`, stat: () => stats().cascades, reward: i => ({ xp: 50 + i * 60, coins: 150 + i * 150 }) },
+    { id: 'wballs', cat: 'Interactuar', icon: '🔮', tiers: [1, 10, 50], title: n => n === 1 ? 'Usa una bola de los mundos' : `Usa ${n} bolas de los mundos`, stat: () => stats().wballs || 0,
+      reward: i => [{ xp: 80, coins: 250, gems: 2 }, { xp: 150, coins: 500, gems: 3 }, { xp: 300, coins: 1000, gems: 5 }][i] },
     { id: 'golden', cat: 'Derriba', icon: '🟡', tiers: [1, 10, 30], title: n => n === 1 ? 'Usa una bola dorada' : `Usa ${n} bolas doradas`, stat: () => stats().golden, reward: i => ({ xp: 60 + i * 60, coins: 200 + i * 200 }) },
     // difíciles: con unas pocas gemas
     { id: 'movers', cat: 'Difíciles', icon: '🎯', tiers: [1, 10, 30, 75], title: n => n === 1 ? 'Derriba algo que cruce el cielo o el mar' : `Derriba ${n} objetos que crucen el cielo o el mar`, hint: 'pájaro, velero, globo, teleférico, mono, dragón, ovni o satélite', stat: () => stats().movers,

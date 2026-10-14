@@ -317,6 +317,26 @@ h1,h2,h3{margin:0}
 .mrew .coin{width:14px;height:14px}.mrew .gem{width:14px;height:14px}.mrew .ball{width:14px;height:14px}
 .mrew .xpchip{color:#5a2fd6}
 .mclaim{width:auto!important;margin:0!important;flex:none}
+
+/* ---- bolas de los mundos ---- */
+.bW1{background:radial-gradient(circle at 35% 30%,#e8ecf6,#6a7084 45%,#2a2e3a 80%)}
+.bW2{background:radial-gradient(circle at 30% 30%,#ffd23f 0 8%,transparent 9%),radial-gradient(circle at 70% 60%,#ff4f6d 0 8%,transparent 9%),radial-gradient(circle at 40% 75%,#5fd45a 0 7%,transparent 8%),radial-gradient(circle at 50% 45%,#3a2f9a,#1a1450)}
+.bW3{background:radial-gradient(circle at 35% 30%,#ffffff,#bfeaff 45%,#6ab8e8 85%)}
+.bW4{background:linear-gradient(180deg,transparent 44%,#e8c48a 44% 56%,transparent 56%),radial-gradient(circle at 35% 30%,#6a8aff,#1f3f8a 75%)}
+.bW5{background:conic-gradient(from 30deg,#ffd6f0,#d6f0ff,#e8ffd6,#fff2c8,#e6d6ff,#ffd6f0);box-shadow:inset -4px -6px 0 rgba(0,0,0,.12),inset 4px 5px 0 rgba(255,255,255,.7),0 0 0 3px rgba(0,0,0,.35),0 0 10px rgba(255,255,255,.8)}
+.bW6{background:repeating-radial-gradient(circle at 50% 50%,#e2b46e 0 4px,#a8742e 4px 7px)}
+.bW7{background:radial-gradient(circle at 35% 30%,#ffffff,#e6f2ff 55%,#a8c8e8 90%)}
+.bW8{background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.5) 0 10%,transparent 11%),conic-gradient(#5fd45a,#ffd23f,#3d9bff,#ff4f6d,#5fd45a)}
+.bW9{background:radial-gradient(circle at 40% 40%,#ffe066,#ff6a1a 35%,#5a1a0a 75%);box-shadow:inset -4px -6px 0 rgba(0,0,0,.25),0 0 0 3px rgba(0,0,0,.35),0 0 12px #ff7a1a}
+.bW10{background:radial-gradient(circle at 50% 50%,#000 0 38%,#c07bff 44%,#3a1060 62%,#05020c 80%);box-shadow:0 0 0 3px rgba(0,0,0,.35),0 0 12px #a66bff}
+.boost .n.buy{background:#3dc8ff;display:flex;align-items:center;gap:2px;padding:0 6px;width:auto}
+.boost .n.buy .gem{width:12px;height:12px}
+.boost small{display:block;font-size:10px;color:#8a5cff;font-weight:900}
+.boosters{flex-wrap:wrap}
+#preWb:empty{display:none}#preWb{margin-top:6px}
+.shopitem.wb{display:flex;align-items:center;gap:10px}.shopitem.wb>div:nth-child(2){flex:1;text-align:left}
+.shopitem.wb small{font-size:11px;color:#8a5cff}
+.shopitem.wb.locked{opacity:.55}.shopitem .lockico{font-size:20px;padding:0 8px}
 </style>
 </head>
 <body>
@@ -378,6 +398,7 @@ h1,h2,h3{margin:0}
     <p class="sub" id="preGoal"></p>
     <div class="reward-box" id="preReward" hidden></div>
     <div class="boosters" id="preBoosters"></div>
+    <div class="note" id="preWb"></div>
     <div class="streak" id="preStreak" style="display:none"></div>
     <div class="row"><button class="btn gray" id="preBack" style="flex:.45">&#10005;</button><button class="btn green" id="preGo">¡A DEMOLER!</button></div>
   </div>

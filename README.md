@@ -98,3 +98,24 @@ Pruebas: `node tools/mechanics.js` (reglas de los bloques nuevos y de los objeto
 ## Modo prueba (quitar al publicar)
 
 En **Ajustes → Modo prueba: desbloquear todo** se abren los 1000 niveles y los 100 niveles extra para probar el juego. El mismo botón devuelve el progreso normal sin perder estrellas. Para publicar, compila con `node tools/build.js --release`: el modo prueba queda desactivado y el botón no aparece.
+
+## Bolas de los mundos
+
+Cada uno de los 10 primeros mundos tiene su bola especial, con su diseño y su superpoder. Se abre al desbloquear el mundo:
+
+| Mundo | Bola | Superpoder |
+|---|---|---|
+| 1 · Plaza mayor | Demoledora (acero) | Atraviesa la estructura rompiendo lo que toca, incluso la piedra |
+| 2 · Feria del castillo | Fuegos artificiales | Estalla en chispas que revientan bloques al azar |
+| 3 · Almacén helado | Escarcha | Onda helada que rompe todo el piso donde golpea |
+| 4 · Puerto | Ancla | Parte la estructura de arriba abajo |
+| 5 · Palacio de cristal | Prisma (irisada) | Pinta de un color lo de alrededor y lo revienta de golpe |
+| 6 · Dunas doradas | Tornado | Remolino de arena que levanta la estructura y la lanza fuera |
+| 7 · Pico helado | Bola de nieve gigante | Enorme y pesada: rueda arrasando |
+| 8 · Templo perdido | Camaleón | Toma el color de cada bloque que toca y revienta su grupo |
+| 9 · Isla de fuego | Meteoro | Funde las columnas de alrededor del impacto |
+| 10 · Base lunar | Agujero negro | Se traga lo que tiene cerca durante casi 2 segundos |
+
+- **Tienda**: con monedas (360 a 900). **Antes de la partida**: la bola del mundo de ese nivel se compra con gemas (5 en los mundos 1-5, 8 en los 6-10) y se elige como las demás ventajas.
+- **Niveles de la bola**: los mundos 11-100 no traen bola nueva; cada uno sube de nivel la bola de su paisaje (más radio o más bloques; máximo nivel 10). Los mundos del mar van rotando entre las 5 bolas del mar.
+- Si una bola de los mundos no se llega a disparar, vuelve al inventario. Prueba: `node tools/wballs.js` y `python3 tools/wballsflow.py`.
