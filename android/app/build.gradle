@@ -10,11 +10,26 @@ android {
         applicationId "com.chromacrash.game3d"
         minSdk 24
         targetSdk 34
-        versionCode 5
-        versionName "1.0.0"
+        // en GitHub Actions cada compilación lleva un número mayor (así el móvil la reconoce como actualización)
+        versionCode 10 + (System.getenv("GITHUB_RUN_NUMBER") ?: "0").toInteger()
+        versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+    }
+
+    // Clave fija para las APK de prueba: todas se firman igual y se instalan encima de la anterior.
+    // (Para Google Play se usará otra clave privada que NO va al repositorio.)
+    signingConfigs {
+        pruebas {
+            storeFile file('rocketrush-test.jks')
+            storePassword 'rocketrush'
+            keyAlias 'rocketrush'
+            keyPassword 'rocketrush'
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.pruebas
+        }
         release {
             minifyEnabled false
         }
@@ -24,4 +39,9 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+// nombre del archivo: RocketRush-1.0.N.apk
+android.applicationVariants.all { variant ->
+    variant.outputs.all { outputFileName = "RocketRush-${variant.versionName}.apk" }
 }

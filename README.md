@@ -26,11 +26,12 @@ Abre `dist/index.html` en el navegador del ordenador o del móvil.
 
 1. Crea un repositorio nuevo en GitHub (puede ser privado).
 2. Sube el contenido de esta carpeta a la rama `main`.
-3. En la pestaña **Actions**, el flujo "Compilar APK" arranca solo y tarda unos 4 minutos.
-4. Descarga el artefacto `chroma-crash-apk`: dentro está `app-debug.apk`.
+3. En la pestaña **Actions**, el flujo "Compilar APK" arranca solo con cada subida y tarda 1-2 minutos.
+4. Entra en la ejecución **más reciente** (la de arriba) y descarga el artefacto `RocketRush-1.0.N`: dentro está `RocketRush-1.0.N.apk`. El número N sube en cada compilación.
 5. Pásala al móvil e instálala (Android pedirá permitir apps de origen desconocido).
+6. En el juego, **Ajustes** muestra abajo «Rocket Rush · versión 1.0.N»: así compruebas que tienes la última.
 
-Es una APK de pruebas firmada con clave de depuración. Para Google Play hace falta firmarla con tu propia clave (fase 3).
+Todas las APK de prueba se firman con la misma clave (`android/app/rocketrush-test.jks`) y cada una lleva un número de versión mayor, así que se instalan encima de la anterior sin perder el progreso. Las APK compiladas antes del 14/10/2026 usaban una clave distinta en cada compilación: si tienes una de esas, desinstálala una vez antes de instalar la nueva. Para Google Play hace falta firmarla con tu propia clave privada, que no va al repositorio (fase 3).
 
 ## Curva de dificultad
 

@@ -32,6 +32,9 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(true);
+        // sin caché: cada versión nueva de la APK carga siempre el juego recién instalado
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        web.clearCache(true);
         web.setWebViewClient(new WebViewClient());
         web.addJavascriptInterface(new Bridge(), "ChromaAndroid");
         setContentView(web);

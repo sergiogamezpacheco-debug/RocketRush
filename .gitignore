@@ -12,6 +12,8 @@ android/app/src/main/assets/index.html
 *.jks
 *.keystore
 keystore.properties
+# excepción: clave de las APK de prueba (no sirve para Google Play)
+!android/app/rocketrush-test.jks
 # Varios
 node_modules/
 .DS_Store
