@@ -139,3 +139,7 @@ Mezcla de dos propuestas: la «Despegue» (C) con el cartel dorado de la «Placa
 - **Botones a los lados**: racha (con su número), pase y misiones a la izquierda, con avisos rojos cuando hay algo que cobrar; tienda y ajustes a la derecha.
 - **Abajo**: «Nivel N · nombre del mundo» y el botón grande **¡A DEMOLER!**, que lleva al mapa.
 - Se adapta a móviles bajos (botones algo más pequeños por debajo de 700 px de alto).
+
+## Mapa con los 100 mundos
+
+El mapa enseña los 100 mundos desde el principio, también los bloqueados: candado en el título, «Se abre al superar el nivel N» y casillas en gris con su número. Cada mundo lleva un fondo del color de su paisaje (mar, desierto, nieve, selva, volcán o espacio). Al tocar un nivel bloqueado sale un aviso. Para que vaya fluido con 1000 casillas, el navegador solo pinta los mundos que están en pantalla (`content-visibility`) y un único escuchador atiende todos los toques.

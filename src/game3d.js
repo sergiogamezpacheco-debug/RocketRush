@@ -1775,13 +1775,16 @@
   function bonusOpen(w) { return (TEST_MODE && save.testAll) || worldStars3(w) >= 10; }
   function renderMap() {
     let h = '';
-    // con 100 mundos solo se pintan los ya abiertos y el siguiente (el mapa sigue siendo ligero)
-    const upto = Math.min(WORLDS.length, Math.floor((Math.min(save.unlocked, LEVELS.length) - 1) / 10) + 2);
-    for (const W of WORLDS.slice(0, upto)) {
-      h += `<div class="world"><h3>Mundo ${W.n} · ${W.name}<small>${W.sub}</small></h3><div class="grid">`;
+    // se ven los 100 mundos, también los bloqueados (el navegador solo pinta los que están en pantalla: content-visibility)
+    for (const W of WORLDS) {
+      const first = (W.n - 1) * 10 + 1, wLocked = first > save.unlocked;
+      h += `<div class="world ${wLocked ? 'wlock' : ''}" data-biome="${W.biome || 'sea'}"><h3>${wLocked ? '<i class="wl">&#128274;</i>' : ''}Mundo ${W.n} · ${W.name}<small>${W.sub}</small></h3>`;
+      if (wLocked) h += `<div class="wnote">Se abre al superar el nivel ${first - 1}</div>`;
+      h += '<div class="grid">';
       for (const L of LEVELS.filter(l => l.world === W.n)) {
         const st = save.stars[L.id] || 0, locked = L.id > save.unlocked, cur = L.id === save.unlocked;
-        h += `<div class="lv ${locked ? 'locked' : ''} ${cur ? 'cur' : ''}" data-id="${L.id}">${locked ? '&#128274;' : L.id}<span class="st">${[0, 1, 2].map(i => starMini(i < st)).join('')}</span></div>`;
+        h += locked ? `<div class="lv locked" data-id="${L.id}"><span class="ln">${L.id}</span></div>`
+          : `<div class="lv ${cur ? 'cur' : ''}" data-id="${L.id}">${L.id}<span class="st">${[0, 1, 2].map(i => starMini(i < st)).join('')}</span></div>`;
       }
       const B = BONUS[W.n - 1], open = bonusOpen(W.n), n3 = worldStars3(W.n), bst = save.stars[B.id] || 0;
       h += `</div><div class="bonus ${open ? 'open' : ''}" data-id="${B.id}">
@@ -1789,9 +1792,14 @@
         <div class="btx"><b>Nivel extra · ${B.name}</b><span>${open ? (bst ? 'Superado con ' + bst + ' &#9733; · vuelve a jugarlo' : '¡Desbloqueado! Premio triple y potenciadores de regalo') : `Consigue 3 &#9733; en los 10 niveles del mundo (${n3}/10)`}</span>
         <div class="bbar"><i style="width:${n3 * 10}%"></i></div></div></div></div>`;
     }
-    if (upto < WORLDS.length) h += `<div class="world more"><h3>Quedan ${WORLDS.length - upto} mundos más<small>hasta el nivel ${LEVELS.length}: se abren al avanzar</small></h3></div>`;
     $('mapList').innerHTML = h;
-    $('mapList').querySelectorAll('.lv').forEach(el => el.addEventListener('click', () => { Audio.init(); Audio.click(); openPre(+el.dataset.id); }));
+    // un solo escuchador para todo el mapa (1000 casillas)
+    $('mapList').onclick = e => {
+      const el = e.target.closest('.lv'); if (!el) return;
+      Audio.init(); Audio.click();
+      if (el.classList.contains('locked')) { toast('Nivel bloqueado: supera el nivel ' + (+el.dataset.id - 1) + ' para abrirlo'); return; }
+      openPre(+el.dataset.id);
+    };
     $('mapList').querySelectorAll('.bonus').forEach(el => el.addEventListener('click', () => {
       Audio.init(); Audio.click();
       const B = byId(+el.dataset.id);

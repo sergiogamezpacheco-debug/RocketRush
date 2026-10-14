@@ -503,6 +503,21 @@ h1,h2,h3{margin:0}
 .tplay::after{content:'';position:absolute;inset:-7px;border-radius:999px;box-shadow:0 0 0 0 rgba(156,242,138,.7);animation:tglow 1.8s ease-out infinite;pointer-events:none}
 @keyframes tglow{0%{box-shadow:0 0 0 0 rgba(156,242,138,.65)}100%{box-shadow:0 0 0 16px rgba(156,242,138,0)}}
 @media (max-height:700px){.tside{top:clamp(290px,44%,400px)}.sb{width:58px;height:58px}.tside{gap:10px}.lvbub{margin-bottom:12px}.tplay{padding:14px 0!important;font-size:27px!important}}
+
+/* mapa: los 100 mundos visibles, bloqueados incluidos; cada mundo con el color de su paisaje */
+.world{content-visibility:auto;contain-intrinsic-size:auto 520px}
+.world[data-biome=sea]{background:linear-gradient(160deg,rgba(80,170,255,.32),rgba(84,60,214,.22))}
+.world[data-biome=desert]{background:linear-gradient(160deg,rgba(255,200,110,.38),rgba(200,120,40,.22))}
+.world[data-biome=snow]{background:linear-gradient(160deg,rgba(220,240,255,.38),rgba(120,170,230,.22))}
+.world[data-biome=jungle]{background:linear-gradient(160deg,rgba(90,210,110,.34),rgba(30,120,70,.24))}
+.world[data-biome=volcano]{background:linear-gradient(160deg,rgba(255,110,60,.36),rgba(120,30,30,.28))}
+.world[data-biome=space]{background:linear-gradient(160deg,rgba(150,110,255,.34),rgba(20,10,60,.4))}
+.world.wlock h3{opacity:.92}
+.world .wl{font-style:normal;margin-right:6px}
+.wnote{margin:-4px 4px 10px;font-size:12.5px;font-weight:800;color:var(--goldtx)}
+.lv.locked{pointer-events:auto;font-size:20px;color:rgba(255,255,255,.55);text-shadow:none}
+.lv.locked::after{content:'\1F512';position:absolute;right:4px;bottom:3px;font-size:11px;opacity:.85}
+.world.wlock .lv.locked{opacity:.8}
 </style>
 </head>
 <body>
