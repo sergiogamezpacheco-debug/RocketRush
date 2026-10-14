@@ -119,3 +119,12 @@ Cada uno de los 10 primeros mundos tiene su bola especial, con su diseño y su s
 - **Tienda**: con monedas (360 a 900). **Antes de la partida**: la bola del mundo de ese nivel se compra con gemas (5 en los mundos 1-5, 8 en los 6-10) y se elige como las demás ventajas.
 - **Niveles de la bola**: los mundos 11-100 no traen bola nueva; cada uno sube de nivel la bola de su paisaje (más radio o más bloques; máximo nivel 10). Los mundos del mar van rotando entre las 5 bolas del mar.
 - Si una bola de los mundos no se llega a disparar, vuelve al inventario. Prueba: `node tools/wballs.js` y `python3 tools/wballsflow.py`.
+
+## Estilo de menús (gominola con borde dorado)
+
+Todas las ventanas y menús usan el mismo estilo, elegido entre varias propuestas (B2 con las estrellas de la B1):
+
+- **Paneles de gelatina morada** con brillo arriba, **borde de oro biselado** y contorno oscuro. El título va encima del borde, con letras con contorno y el **bloque-mascota** asomando (amarillo; naranja en la racha y morado en «¡Casi!»).
+- **Botones de gominola** con aro dorado: verde para jugar o cobrar, rosa para los anuncios, dorado para lo de pago y gris para volver. La X de cerrar es una moneda dorada.
+- **Estrellas de oro clásico con luz** (halo, brillo y destello) en la victoria, en la pantalla previa (tus mejores estrellas en ese nivel) y en las casillas del mapa. Las estrellas que faltan se ven como huecos morados.
+- Se aplica a la racha, la tienda, el pase, las misiones, el mapa, la pausa, la victoria, la derrota y los ajustes. Todo está en un bloque de CSS al final de `src/index.html`, y las estrellas son símbolos SVG (`#starS`, `#starE`, `#starM`). Capturas: `python3 tools/themeshots.py`.

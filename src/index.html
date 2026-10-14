@@ -345,9 +345,133 @@ h1,h2,h3{margin:0}
 .prego{flex:none;padding-top:10px;border-top:2px solid #efe6ff;margin-top:4px}
 .prescroll .boosters{gap:8px;padding-top:6px}
 .prescroll .boost{width:78px}
+
+/* ================= ESTILO B2 · gominola con borde dorado ================= */
+:root{--gl1:#9a72ff;--gl2:#5a3cd6;--gb:#e8b84a;--gbd:#5a3a08;--gbs:#3a2404;--lav:#e3dbff;--lav2:#cfc4ff;--goldtx:#ffe9a8;
+  --gborder:linear-gradient(160deg,#fff4c0,#e8b84a 30%,#a87018 55%,#ffe08a 75%,#b07a20)}
+.panel{border:7px solid transparent;border-radius:34px;color:#fff;padding:26px 20px 20px;
+  background:linear-gradient(160deg,rgba(158,118,255,.97),rgba(84,60,214,.97)) padding-box,var(--gborder) border-box;
+  box-shadow:0 0 0 3px var(--gbd),inset 0 3px 0 rgba(255,255,255,.5),inset 0 -10px 20px rgba(30,10,90,.45),0 14px 0 -2px var(--gbs),0 24px 40px rgba(0,0,0,.45)}
+.panel::before{content:'';position:absolute;left:18px;right:18px;top:8px;height:42px;border-radius:26px;background:linear-gradient(rgba(255,255,255,.32),rgba(255,255,255,0));pointer-events:none}
+.screen.dim .panel{margin-top:46px}
+.ribbon{top:-66px;background:none;border:0;box-shadow:none;padding:0;display:flex;align-items:flex-end;gap:8px;font-size:29px;letter-spacing:.3px;color:#fff;
+  -webkit-text-stroke:6px var(--gbd);paint-order:stroke fill;text-shadow:0 4px 0 var(--gbd);z-index:2;pointer-events:none}
+.ribbon::before{content:'';flex:none;width:58px;height:58px;border-radius:16px;-webkit-text-stroke:0;transform:rotate(-8deg);
+  background:radial-gradient(circle at 30% 45%,#fff 0 6px,transparent 6.5px),radial-gradient(circle at 70% 45%,#fff 0 6px,transparent 6.5px),radial-gradient(circle at 31% 47%,#1d1440 0 3px,transparent 3.5px),radial-gradient(circle at 71% 47%,#1d1440 0 3px,transparent 3.5px),radial-gradient(ellipse at 50% 72%,#1d1440 0 5px,transparent 6px),linear-gradient(160deg,#ffd76a,#ffb41a);
+  box-shadow:inset 0 4px 0 rgba(255,255,255,.6),inset 0 -6px 0 rgba(0,0,0,.15),0 4px 0 #c07800,0 0 0 2px var(--gbd)}
+.ribbon.green,.ribbon.purple,.ribbon.fire{background:none}
+.ribbon.green::before{background:radial-gradient(circle at 30% 42%,#fff 0 6px,transparent 6.5px),radial-gradient(circle at 70% 42%,#fff 0 6px,transparent 6.5px),radial-gradient(circle at 31% 44%,#1d1440 0 3px,transparent 3.5px),radial-gradient(circle at 71% 44%,#1d1440 0 3px,transparent 3.5px),radial-gradient(ellipse 9px 6px at 50% 68%,#1d1440 0 99%,transparent 100%),linear-gradient(160deg,#ffd76a,#ffb41a)}
+.ribbon.purple::before{background:radial-gradient(circle at 30% 45%,#fff 0 6px,transparent 6.5px),radial-gradient(circle at 70% 45%,#fff 0 6px,transparent 6.5px),radial-gradient(circle at 31% 50%,#1d1440 0 3px,transparent 3.5px),radial-gradient(circle at 71% 50%,#1d1440 0 3px,transparent 3.5px),radial-gradient(ellipse 7px 3px at 50% 76%,#1d1440 0 99%,transparent 100%),linear-gradient(160deg,#c9b2ff,#8a5cff)}
+.ribbon.fire::before{background:radial-gradient(circle at 30% 45%,#fff 0 6px,transparent 6.5px),radial-gradient(circle at 70% 45%,#fff 0 6px,transparent 6.5px),radial-gradient(circle at 31% 47%,#1d1440 0 3px,transparent 3.5px),radial-gradient(circle at 71% 47%,#1d1440 0 3px,transparent 3.5px),radial-gradient(ellipse at 50% 72%,#1d1440 0 5px,transparent 6px),linear-gradient(160deg,#ffb27a,#ff6a2a);box-shadow:inset 0 4px 0 rgba(255,255,255,.6),inset 0 -6px 0 rgba(0,0,0,.15),0 4px 0 #a8380a,0 0 0 2px var(--gbd)}
+.ribbon.gold{background:none;color:#ffe27a;text-shadow:0 4px 0 var(--gbd)}
+/* botones de gominola con aro dorado */
+.btn{border:0;border-radius:20px;margin-top:16px;background:linear-gradient(170deg,#ffc29a,#ff7a3d 55%,#e0561a);
+  box-shadow:0 0 0 3px var(--gb),0 0 0 5px var(--gbd),inset 0 5px 0 rgba(255,255,255,.45),inset 0 -6px 10px rgba(0,0,0,.16),0 8px 0 var(--gbd);text-shadow:0 2px 0 rgba(0,0,0,.3)}
+.btn:active{transform:translateY(4px);box-shadow:0 0 0 3px var(--gb),0 0 0 5px var(--gbd),inset 0 5px 0 rgba(255,255,255,.45),0 3px 0 var(--gbd)}
+.btn.green{background:linear-gradient(170deg,#9cf28a,#3fc95a 55%,#22a046);text-shadow:0 2px 0 rgba(0,80,20,.5)}
+.btn.blue{background:linear-gradient(170deg,#9fd8ff,#3d8bff 55%,#2a5fd6)}
+.btn.gray{background:linear-gradient(170deg,#c9c5e0,#8a86a3 55%,#6a6684)}
+.btn.purple{background:linear-gradient(170deg,#ffd6f6,#ff7ad6 55%,#d63aa8);text-shadow:0 2px 0 rgba(120,0,80,.45)}
+.btn.gold{background:linear-gradient(170deg,#fff4c0,#ffd23f 55%,#e09a12);color:#5a3a00;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.row{gap:14px}
+.iconbtn{border:3px solid var(--gb);color:#fff;border-radius:16px;background:linear-gradient(160deg,var(--gl1),var(--gl2));
+  box-shadow:0 0 0 2px var(--gbd),inset 0 3px 0 rgba(255,255,255,.45),inset 0 -4px 8px rgba(30,10,90,.35),0 5px 0 var(--gbs);text-shadow:0 2px 0 rgba(0,0,0,.3)}
+.iconbtn:active{box-shadow:0 0 0 2px var(--gbd),inset 0 3px 0 rgba(255,255,255,.45),0 2px 0 var(--gbs)}
+.passbtn,.firebtn b{color:#ffd23f}
+.xbtn{top:12px;right:12px;width:40px;height:40px;border:2px solid var(--gbd);background:linear-gradient(160deg,#fff4c0,#e8b84a 45%,#a87018);color:var(--gbd);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 3px 0 var(--gbs)}
+/* textos dentro de los paneles */
+.sub,.result,.dmeta span,.dnext,.plinfo span,.ptitle small,.mprog{color:var(--lav)}
+.note{color:var(--lav2)}
+.dnext b{color:#fff}
+.score{color:#fff;text-shadow:0 3px 0 rgba(40,10,90,.55)}
+.tag{background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.35);color:#fff}
+.reward-box,.streak{background:rgba(255,210,63,.16);border:2px solid var(--gb);color:#fff}
+.streak{border-style:dashed}
+.sechead{color:var(--goldtx)}
+.shopitem{background:rgba(255,255,255,.14);border:2px solid #e8c46a;box-shadow:inset 0 2px 0 rgba(255,255,255,.25);color:#fff}
+.shopitem span{color:var(--lav)} .shopitem.wb small,.boost small{color:var(--goldtx)}
+.boost{border:2px solid #e8c46a;border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.32),rgba(255,255,255,.08));color:#fff;box-shadow:inset 0 3px 0 rgba(255,255,255,.4),0 4px 0 rgba(40,10,90,.45)}
+.boost.sel{background:linear-gradient(160deg,rgba(156,242,138,.55),rgba(63,201,90,.35));outline:3px solid #9cf28a;outline-offset:1px}
+.boost .n{border:2px solid #fff;background:#ff4f6d}
+.boost .n.free{background:#37c46b}.boost .n.buy{background:#3dc8ff}
+.prego{border-top:2px solid rgba(255,255,255,.18)}
+.prescroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.4)}
+.prepanel{max-height:calc(100% - 92px)}
+#shop .panel{max-height:calc(100% - 92px)}
+.passline{background:rgba(255,210,63,.18);color:var(--goldtx)}
+#toast{background:linear-gradient(160deg,rgba(158,118,255,.98),rgba(84,60,214,.98)) padding-box,var(--gborder) border-box;border:4px solid transparent;color:#fff;box-shadow:0 0 0 2px var(--gbd),0 6px 0 var(--gbs)}
+/* racha */
+.dday{border:2px solid #e8c46a;background:rgba(255,255,255,.14);box-shadow:inset 0 2px 0 rgba(255,255,255,.3);color:#fff}
+.dday small{color:var(--lav)}
+.dday.today{border-color:#fff2b0;background:linear-gradient(160deg,#ffe680,#ffb41a);color:#5a3a00;box-shadow:0 0 0 3px rgba(255,242,176,.5),0 0 18px rgba(255,200,60,.85)}
+.dday.today small{color:#5a3a00}
+.dday.dchest{background:rgba(255,255,255,.22);border-color:#ffd23f}.dday.dchest small{color:var(--goldtx)}
+.dshield{color:#9fd8ff}
+.dday.done::after{width:17px;height:17px;top:-9px;right:-9px;font-size:10px;border:2px solid #fff}
+.drew span{background:rgba(255,255,255,.16);border:2px solid #e8c46a;color:#fff}
+.dchip{border:3px solid var(--gb);background:linear-gradient(160deg,var(--gl1),var(--gl2));color:#fff;box-shadow:0 0 0 2px var(--gbd),inset 0 3px 0 rgba(255,255,255,.45),0 5px 0 var(--gbs)}
+/* mapa */
+.world{border:3px solid rgba(232,196,106,.55);background:linear-gradient(160deg,rgba(158,118,255,.28),rgba(84,60,214,.22))}
+.lv{border:3px solid var(--gb);color:#fff;background:linear-gradient(160deg,var(--gl1),var(--gl2));text-shadow:0 2px 0 rgba(40,10,90,.55);
+  box-shadow:0 0 0 2px var(--gbd),inset 0 3px 0 rgba(255,255,255,.45),inset 0 -5px 10px rgba(30,10,90,.35),0 5px 0 var(--gbs)}
+.lv:active{box-shadow:0 0 0 2px var(--gbd),inset 0 3px 0 rgba(255,255,255,.45),0 2px 0 var(--gbs)}
+.lv.locked{background:linear-gradient(160deg,#6e6890,#4e4870);border-color:#8f86ad;color:#2e2a48;text-shadow:none;box-shadow:0 0 0 2px #2e2a48,0 4px 0 #2e2a48}
+.lv.cur{background:linear-gradient(160deg,#fff0a0,#ffc83d 55%,#e09a12);color:#5a3a00;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.lv .hard{border:2px solid #fff}
+.lv .st{display:flex;gap:1px;margin-top:2px;line-height:0}
+.bonus{border:3px solid var(--gb);box-shadow:0 0 0 2px var(--gbd),0 5px 0 var(--gbs)}
+.plstrip{border:3px solid var(--gb);color:#fff;background:linear-gradient(160deg,rgba(111,208,255,.97),rgba(47,123,230,.97));box-shadow:0 0 0 2px var(--gbd),inset 0 3px 0 rgba(255,255,255,.45),0 5px 0 var(--gbs)}
+.plstrip .plb{background:linear-gradient(160deg,#ffe680,#ffb41a);color:#5a3a00;border:2px solid var(--gbd)}
+.plstrip .plbar{background:rgba(0,30,90,.35);border:0}
+.plstrip .plbar i{background:linear-gradient(90deg,#ffe066,#ff9a3d)}
+/* pase y misiones */
+.passhead{border:6px solid transparent;border-radius:26px;color:#fff;background:linear-gradient(160deg,rgba(158,118,255,.97),rgba(84,60,214,.97)) padding-box,var(--gborder) border-box;
+  box-shadow:0 0 0 3px var(--gbd),inset 0 3px 0 rgba(255,255,255,.45),0 8px 0 -1px var(--gbs)}
+.pbar{background:rgba(20,8,60,.35);border:0}
+.skin{border:2px solid #e8c46a;background:rgba(255,255,255,.14);color:#fff}.skin.on{border-color:#9cf28a;background:rgba(95,212,90,.35)}
+.pcard{border:2px solid rgba(232,196,106,.45)}
+.pcard.ready{background:linear-gradient(160deg,#fff0a0,#ffc83d);color:#5a3a00;border-color:#fff2b0}
+#passBuy.owned{background:linear-gradient(170deg,#9cf28a,#3fc95a 55%,#22a046)}
+.plbadge{background:linear-gradient(160deg,#ffe680,#ffb41a);color:#5a3a00;border:3px solid var(--gbd)}
+.friendbox{border-top:2px dashed rgba(255,255,255,.3)}.friendbox small{color:var(--lav)}
+.addfriend input{border:2px solid #e8c46a;background:#fff;color:var(--ink)}
+#friendMsg{color:var(--goldtx)}
+.mcard{border:2px solid #e8c46a;color:#fff;background:linear-gradient(160deg,rgba(158,118,255,.95),rgba(84,60,214,.95));box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 4px 0 rgba(20,8,60,.45)}
+.mcard.ready{border-color:#9cf28a;background:linear-gradient(160deg,rgba(158,118,255,.97),rgba(84,60,214,.97));box-shadow:0 0 0 3px rgba(156,242,138,.55),0 0 16px rgba(156,242,138,.55)}
+.mcard{margin-bottom:12px}.mico{background:rgba(255,255,255,.18)}
+.mbody small{color:var(--goldtx)}.mbody em{color:var(--lav)}
+.mbar{background:rgba(20,8,60,.35)}
+.mrew span{background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.3);color:#fff}.mrew .xpchip{color:#d8ccff}
+/* estrellas doradas (oro clásico) con brillo */
+.gst{display:block}
+.stw{position:relative;display:inline-block;flex:none}
+.stw .gst{width:100%;height:100%}
+.stw .gst.gold{position:absolute;inset:0}
+.stw.on::before{content:'';position:absolute;inset:-16%;border-radius:50%;background:radial-gradient(circle,rgba(255,210,63,.95) 0,rgba(255,220,120,0) 64%);filter:blur(4px);opacity:.8}
+.stw.on .gst.gold{filter:drop-shadow(0 4px 0 rgba(60,20,0,.35)) drop-shadow(0 0 10px rgba(255,220,120,.6))}
+.stw:not(.on) .gst.gold{opacity:0}
+.stars{gap:4px;align-items:flex-start}
+.star{width:72px;height:69px;opacity:1;transform:none}
+.star.mid{width:92px;height:88px;margin-top:-12px}
+.star .gst.gold{transform:scale(.3);transition:transform .45s cubic-bezier(.2,1.8,.4,1),opacity .2s}
+.star.on .gst.gold{transform:scale(1)}
+.star::before{opacity:0;transition:opacity .4s}.star.on::before{opacity:.8}
+.prestars{margin:-6px 0 2px}
+.prestars .stw{width:58px;height:56px}.prestars .stw.mid{width:72px;height:69px;margin-top:-10px}
+.lv .st svg{width:14px;height:14px}
+.lv.locked .st{display:none}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<linearGradient id="sgG" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#fffbd0"/><stop offset=".3" stop-color="#ffe066"/><stop offset=".65" stop-color="#ffc21a"/><stop offset="1" stop-color="#d88a00"/></linearGradient>
+<radialGradient id="sgH" cx=".38" cy=".3" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<symbol id="starS" viewBox="0 0 100 96"><path d="M50 4l13 28 30 4-22 21 6 30-27-15-27 15 6-30L7 36l30-4z" fill="url(#sgG)" stroke="#9a5a00" stroke-width="4" stroke-linejoin="round"/><path d="M50 12l10 21 22 3-14 13c-10-5-25-6-37-3l-8-7 22-3z" fill="url(#sgH)" opacity=".85"/><path d="M50 4l13 28 30 4-22 21 6 30-27-15-27 15 6-30L7 36l30-4z" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="1.6" stroke-linejoin="round" transform="translate(50 50) scale(.86) translate(-50 -50)"/><path d="M30 26l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#fff"/></symbol>
+<symbol id="starE" viewBox="0 0 100 96"><path d="M50 4l13 28 30 4-22 21 6 30-27-15-27 15 6-30L7 36l30-4z" fill="rgba(30,10,90,.4)" stroke="rgba(255,255,255,.45)" stroke-width="4" stroke-linejoin="round"/></symbol>
+<symbol id="starM" viewBox="0 0 100 96"><path d="M50 4l13 28 30 4-22 21 6 30-27-15-27 15 6-30L7 36l30-4z" fill="url(#sgG)" stroke="#9a5a00" stroke-width="7" stroke-linejoin="round"/></symbol>
+<symbol id="starME" viewBox="0 0 100 96"><path d="M50 4l13 28 30 4-22 21 6 30-27-15-27 15 6-30L7 36l30-4z" fill="rgba(30,10,90,.35)" stroke="rgba(255,255,255,.5)" stroke-width="7" stroke-linejoin="round"/></symbol>
+</defs></svg>
 <canvas id="game"></canvas>
 
 <div id="hud">
@@ -402,6 +526,7 @@ h1,h2,h3{margin:0}
   <div class="panel prepanel">
     <div class="ribbon" id="preTitle">Nivel 1</div>
     <div class="prescroll" id="preScroll">
+    <div class="stars prestars" id="preStars"></div>
     <h2 id="preName" style="margin-top:10px;font-size:24px">El puente</h2>
     <div style="margin-top:8px"><span class="tag" id="preCrowns">80% de demolición</span><span class="tag" id="preBalls">3 bolas</span></div>
     <p class="sub" id="preGoal"></p>

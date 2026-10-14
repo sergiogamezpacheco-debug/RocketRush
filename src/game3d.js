@@ -1760,7 +1760,7 @@
       h += `<div class="world"><h3>Mundo ${W.n} · ${W.name}<small>${W.sub}</small></h3><div class="grid">`;
       for (const L of LEVELS.filter(l => l.world === W.n)) {
         const st = save.stars[L.id] || 0, locked = L.id > save.unlocked, cur = L.id === save.unlocked;
-        h += `<div class="lv ${locked ? 'locked' : ''} ${cur ? 'cur' : ''}" data-id="${L.id}">${locked ? '&#128274;' : L.id}<span class="st">${[0, 1, 2].map(i => i < st ? '<b>&#9733;</b>' : '&#9733;').join('')}</span></div>`;
+        h += `<div class="lv ${locked ? 'locked' : ''} ${cur ? 'cur' : ''}" data-id="${L.id}">${locked ? '&#128274;' : L.id}<span class="st">${[0, 1, 2].map(i => starMini(i < st)).join('')}</span></div>`;
       }
       const B = BONUS[W.n - 1], open = bonusOpen(W.n), n3 = worldStars3(W.n), bst = save.stars[B.id] || 0;
       h += `</div><div class="bonus ${open ? 'open' : ''}" data-id="${B.id}">
@@ -1779,6 +1779,10 @@
     }));
   }
 
+  // estrellas doradas (oro clásico con brillo): símbolos SVG definidos en index.html
+  const starBig = (on, cls = '') => `<span class="stw ${cls} ${on ? 'on' : ''}"><svg class="gst off" viewBox="0 0 100 96"><use href="#starE"/></svg><svg class="gst gold" viewBox="0 0 100 96"><use href="#starS"/></svg></span>`;
+  const starMini = on => `<svg class="gst" viewBox="0 0 100 96"><use href="#${on ? 'starM' : 'starME'}"/></svg>`;
+
   let preSel = {};
   function openPre(id) {
     const L = byId(id); if (!L) return;
@@ -1794,6 +1798,7 @@
     if (L.bonus) $('preReward').innerHTML += '<br>Gemas escondidas: <b>1 asegurada, hasta 3</b>.';
     $('preGo').innerHTML = replay ? `JUGAR <i class="coin"></i>${L.replayCost}` : '¡A DEMOLER!';
     $('preGo').classList.toggle('gold', !!replay);
+    { const best = save.stars[L.id] || 0; $('preStars').innerHTML = [0, 1, 2].map(i => starBig(i < best, i === 1 ? 'mid' : '')).join(''); }
     $('preName').textContent = L.name;
     $('preCrowns').textContent = 'Derriba el ' + Math.round(L.target * 100) + '%';
     $('preBalls').textContent = L.balls.length + ' bolas';
@@ -1923,7 +1928,7 @@
     if (G.newBonus) setTimeout(() => toast('¡Nivel extra desbloqueado! 3 estrellas en todo el mundo ' + L.world), 1300);
     if (L.bonus && stars >= 3) setTimeout(() => toast('¡Bola dorada! Úsala cuando quieras con el botón dorado durante una partida', 3200), 1300);
     const sw = $('winStars');
-    sw.innerHTML = [0, 1, 2].map(i => `<svg class="star ${i === 1 ? 'mid' : ''}" viewBox="0 0 100 100"><path d="M50 6 L62 37 L95 38 L69 58 L78 91 L50 72 L22 91 L31 58 L5 38 L38 37 Z" fill="#ffc83d" stroke="#2a1d5c" stroke-width="7" stroke-linejoin="round"/></svg>`).join('');
+    sw.innerHTML = [0, 1, 2].map(i => starBig(false, 'star' + (i === 1 ? ' mid' : ''))).join('');
     show('win'); Audio.win(); vibe([20, 40, 20]);
     const els = sw.querySelectorAll('.star');
     for (let i = 0; i < stars; i++) setTimeout(() => { if (els[i]) els[i].classList.add('on'); Audio.star(i); }, 350 + i * 330);
