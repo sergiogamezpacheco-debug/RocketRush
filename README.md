@@ -143,3 +143,11 @@ Mezcla de dos propuestas: la «Despegue» (C) con el cartel dorado de la «Placa
 ## Mapa con los 100 mundos
 
 El mapa enseña los 100 mundos desde el principio, también los bloqueados: candado en el título, «Se abre al superar el nivel N» y casillas en gris con su número. Cada mundo lleva un fondo del color de su paisaje (mar, desierto, nieve, selva, volcán o espacio). Al tocar un nivel bloqueado sale un aviso. Para que vaya fluido con 1000 casillas, el navegador solo pinta los mundos que están en pantalla (`content-visibility`) y un único escuchador atiende todos los toques.
+
+## Icono de la app
+
+Icono elegido: **bloque de gelatina morada** que ocupa todo el icono, con «ROCKET» en naranja fuego, «RUSH» en oro y la bola-cohete con su estela de colores.
+
+- Es un **icono adaptable** de Android 8 o superior (`mipmap-anydpi-v26`): el fondo morado y las letras van en capas separadas (`ic_launcher_background` e `ic_launcher_foreground`), así que se ve bien con cualquier forma de icono (redondo, cuadrado o gota) y las letras nunca se cortan.
+- Para Android 7 hay versiones clásica y redonda (`ic_launcher`, `ic_launcher_round`) en las 5 densidades.
+- En `store/` están el icono de 512 px para Google Play (`icono-play-512.png`) y los SVG originales para retocarlo.
