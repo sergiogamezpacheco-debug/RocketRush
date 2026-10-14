@@ -1830,7 +1830,7 @@
       st.hidden = false; st.style.display = 'block';
       st.textContent = save.streak >= 5 ? `Racha de ${save.streak} victorias: empiezas con bomba y arcoíris gratis` : save.streak >= 3 ? `Racha de ${save.streak} victorias: empiezas con una bomba gratis` : `Racha de ${save.streak} ${save.streak === 1 ? 'victoria' : 'victorias'} · con 3 seguidas, bomba gratis`;
     } else st.style.display = 'none';
-    $('pre').classList.add('on');
+    $('pre').classList.add('on'); $('preScroll').scrollTop = 0;
   }
   function streakBoosters() { return save.streak >= 5 ? ['bomb', 'rainbow'] : save.streak >= 3 ? ['bomb'] : []; }
 

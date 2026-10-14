@@ -337,6 +337,14 @@ h1,h2,h3{margin:0}
 .shopitem.wb{display:flex;align-items:center;gap:10px}.shopitem.wb>div:nth-child(2){flex:1;text-align:left}
 .shopitem.wb small{font-size:11px;color:#8a5cff}
 .shopitem.wb.locked{opacity:.55}.shopitem .lockico{font-size:20px;padding:0 8px}
+
+/* pantalla previa: el contenido se desliza y los botones quedan siempre a la vista */
+.prepanel{display:flex;flex-direction:column;max-height:calc(100% - 44px);padding-bottom:16px}
+.prescroll{overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;min-height:0;flex:1 1 auto;margin:0 -10px;padding:0 10px 6px;-webkit-overflow-scrolling:touch}
+.prescroll::-webkit-scrollbar{width:4px}.prescroll::-webkit-scrollbar-thumb{background:#cbb8ff;border-radius:4px}
+.prego{flex:none;padding-top:10px;border-top:2px solid #efe6ff;margin-top:4px}
+.prescroll .boosters{gap:8px;padding-top:6px}
+.prescroll .boost{width:78px}
 </style>
 </head>
 <body>
@@ -391,8 +399,9 @@ h1,h2,h3{margin:0}
 </div>
 
 <div class="screen dim" id="pre">
-  <div class="panel">
+  <div class="panel prepanel">
     <div class="ribbon" id="preTitle">Nivel 1</div>
+    <div class="prescroll" id="preScroll">
     <h2 id="preName" style="margin-top:10px;font-size:24px">El puente</h2>
     <div style="margin-top:8px"><span class="tag" id="preCrowns">80% de demolición</span><span class="tag" id="preBalls">3 bolas</span></div>
     <p class="sub" id="preGoal"></p>
@@ -400,7 +409,8 @@ h1,h2,h3{margin:0}
     <div class="boosters" id="preBoosters"></div>
     <div class="note" id="preWb"></div>
     <div class="streak" id="preStreak" style="display:none"></div>
-    <div class="row"><button class="btn gray" id="preBack" style="flex:.45">&#10005;</button><button class="btn green" id="preGo">¡A DEMOLER!</button></div>
+    </div>
+    <div class="row prego"><button class="btn gray" id="preBack" style="flex:.45">&#10005;</button><button class="btn green" id="preGo">¡A DEMOLER!</button></div>
   </div>
 </div>
 
