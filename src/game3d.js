@@ -9,6 +9,11 @@
   const lerp = (a, b, t) => a + (b - a) * t;
   const rnd = (a, b) => a + Math.random() * (b - a);
 
+  // ---------------- modo prueba ----------------
+  // Permite desbloquear todos los niveles (y los niveles extra) desde Ajustes para probar el juego.
+  // QUITAR AL PUBLICAR: compila con `node tools/build.js --release` y esto queda en false (sin botón).
+  const TEST_MODE = true;
+
   // ---------------- guardado ----------------
   const SAVE_KEY = 'chromacrash3d.v1';
   const DEFAULT_SAVE = () => ({ unlocked: 1, stars: {}, best: {}, coins: 300, boosters: { bomb: 2, rainbow: 1, extra: 1, golden: 0 }, gems: 0, gemDry: 0, gemRoll: null, bonusGemRoll: {}, pass: null, skins: { owned: ['classic'], equip: 'classic' }, streak: 0, sound: true, vibe: true, music: true, adsRemoved: false, starter: false, played: 0, lastInter: 0 });
@@ -1687,7 +1692,7 @@
   }
   // nivel extra del mundo w: se abre con 3 estrellas en sus 10 niveles
   function worldStars3(w) { return LEVELS.filter(l => l.world === w && (save.stars[l.id] || 0) >= 3).length; }
-  function bonusOpen(w) { return worldStars3(w) >= 10; }
+  function bonusOpen(w) { return (TEST_MODE && save.testAll) || worldStars3(w) >= 10; }
   function renderMap() {
     let h = '';
     // con 100 mundos solo se pintan los ya abiertos y el siguiente (el mapa sigue siendo ligero)
@@ -2466,6 +2471,7 @@
   on('shopClose', () => { $('shop').classList.remove('on'); if ($('pass').classList.contains('on')) openPass(); });
   on('btnSetT', () => { refreshToggles(); $('settings').classList.add('on'); });
   on('sClose', () => $('settings').classList.remove('on'));
+  on('sTest', toggleTest);
   on('sReset', () => {
     const b = $('sReset');
     if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Toca otra vez para borrar todo'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Borrar progreso'; }, 3000); return; }
@@ -2526,7 +2532,19 @@
   on('pSound', () => toggle('sound')); on('sSound', () => toggle('sound'));
   on('pVibe', () => toggle('vibe')); on('sVibe', () => toggle('vibe'));
   on('pMusic', () => toggle('music')); on('sMusic', () => toggle('music'));
+  function refreshTest() {
+    if (!TEST_MODE) return;
+    $('sTest').hidden = false; $('sTestNote').hidden = false;
+    $('sTest').textContent = save.testAll ? 'Modo prueba: volver a mi progreso' : 'Modo prueba: desbloquear todo';
+  }
+  function toggleTest() {
+    if (!TEST_MODE) return;
+    if (!save.testAll) { save.testPrev = save.unlocked; save.testAll = true; save.unlocked = LEVELS.length; toast('Modo prueba: los ' + LEVELS.length + ' niveles y todos los niveles extra están abiertos', 3000); }
+    else { save.testAll = false; save.unlocked = Math.max(1, Math.min(save.testPrev || 1, LEVELS.length)); delete save.testPrev; toast('Has vuelto a tu progreso normal'); }
+    persist(); refreshTest(); if (G.mode === 'map') renderMap();
+  }
   function refreshToggles() {
+    refreshTest();
     for (const [k, ids] of [['sound', ['pSound', 'sSound']], ['vibe', ['pVibe', 'sVibe']], ['music', ['pMusic', 'sMusic']]])
       for (const id of ids) $(id).style.opacity = save[k] ? 1 : 0.35;
     $('sNotif').textContent = 'Aviso de racha: ' + (dailySave().notif === false ? 'no' : 'sí');

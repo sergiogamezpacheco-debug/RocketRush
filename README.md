@@ -94,3 +94,7 @@ Pruebas: `node tools/mechanics.js` (reglas de los bloques nuevos y de los objeto
 - **Gemas**: solo en las misiones de amigos, las de interactuar y las difíciles, y pocas.
 - **Amigos**: cada jugador tiene un código (`CC-XXXXXXYY`, con 2 letras de control). Se añade un amigo escribiendo su código y se comparte con el botón «Compartir» (en Android abre el menú de compartir del móvil). En la versión de Google Play conviene comprobar los códigos con un servidor (por ejemplo, Firebase) para evitar trampas.
 - No hay premios por valorar el juego en Google Play: está prohibido por sus normas.
+
+## Modo prueba (quitar al publicar)
+
+En **Ajustes → Modo prueba: desbloquear todo** se abren los 1000 niveles y los 100 niveles extra para probar el juego. El mismo botón devuelve el progreso normal sin perder estrellas. Para publicar, compila con `node tools/build.js --release`: el modo prueba queda desactivado y el botón no aparece.
