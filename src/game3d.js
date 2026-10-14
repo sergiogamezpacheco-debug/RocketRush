@@ -649,7 +649,7 @@
     const under = new THREE.Group();
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(C.ISLAND_R * 0.8, 1.6, 7, 14), new THREE.MeshStandardMaterial({ map: barkTex, roughness: 0.95 })); trunk.position.y = -4; under.add(trunk);
     for (let i = 0; i < 7; i++) { const a = i / 7 * TAU, r = new THREE.Mesh(new THREE.ConeGeometry(0.55, 6, 6), barkM); r.position.set(Math.cos(a) * 3.2, -4.2, Math.sin(a) * 3.2); r.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); r.rotation.x += Math.PI; under.add(r); }
-    const leaves = crown(0, -1.2, 0, 3.5); leaves.scale.set(1.3, 0.35, 1.3); under.add(leaves);
+    const leaves = crown(0, -1.9, 0, 3.5); leaves.scale.set(1.3, 0.3, 1.3); under.add(leaves);
     const bambooM = M('bamboo', { color: 0xb8c25a, roughness: 0.6 });
     const platform = makePlatform({ top: new THREE.MeshStandardMaterial({ map: mossTiles, roughness: 0.95 }), side: M('jside', { color: 0x6a7a5a, roughness: 0.95 }), trim: M('jtrim', { color: 0x3fa34a, roughness: 0.7 }), under,
       flags: [0xff4f6d, 0xffd23f, 0xff7a3d, 0x3fa34a], line: 0x2f5a2a,
@@ -722,9 +722,10 @@
     scene.add(env); env.visible = false;
     const regolith = canvasTex(256, 256, (g) => { g.fillStyle = '#a7a3b8'; g.fillRect(0, 0, 256, 256); for (let i = 0; i < 400; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(60,58,80,0.15)' : 'rgba(255,255,255,0.15)'; g.fillRect(rnd(0, 256), rnd(0, 256), 3, 3); } for (let i = 0; i < 16; i++) { const x = rnd(0, 256), y = rnd(0, 256), r = rnd(6, 22); g.fillStyle = 'rgba(70,66,90,0.35)'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 2; g.beginPath(); g.arc(x - 1, y - 1, r, Math.PI, TAU * 0.9); g.stroke(); } });
     const rockGeo = new THREE.IcosahedronGeometry(C.ISLAND_R * 0.95, 1);
-    const pos = rockGeo.attributes.position; for (let i = 0; i < pos.count; i++) { const y = pos.getY(i); if (y > 0) pos.setY(i, y * 0.15); pos.setX(i, pos.getX(i) * rnd(0.9, 1.05)); pos.setZ(i, pos.getZ(i) * rnd(0.9, 1.05)); }
+    const pos = rockGeo.attributes.position; for (let i = 0; i < pos.count; i++) { const y = pos.getY(i); if (y > 0) pos.setY(i, 0);   // cara de arriba plana: nada asoma por encima de la plataforma
+      pos.setX(i, pos.getX(i) * rnd(0.9, 1.05)); pos.setZ(i, pos.getZ(i) * rnd(0.9, 1.05)); }
     rockGeo.computeVertexNormals();
-    const under = new THREE.Mesh(rockGeo, M('astbig', { color: 0x77748a, roughness: 0.95, flatShading: true })); under.scale.y = 1.2; under.position.y = -0.6;
+    const under = new THREE.Mesh(rockGeo, M('astbig', { color: 0x77748a, roughness: 0.95, flatShading: true })); under.scale.y = 1.2; under.position.y = -0.52;
     const metalM = M('ant', { color: 0xd0d4e0, metalness: 0.8, roughness: 0.3 }), lights = [];
     const platform = makePlatform({ top: new THREE.MeshStandardMaterial({ map: regolith, roughness: 0.95 }), side: M('spside', { color: 0x8a8aa0, roughness: 0.9 }), trim: new THREE.MeshStandardMaterial({ color: 0x5ff7ff, emissive: 0x2ad8ff, emissiveIntensity: 1.2 }), under,
       post: (i) => { const p = new THREE.Group(); const c = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.07, 3, 6), metalM); c.position.y = 1.5; p.add(c); const d = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 8, 0, TAU, 0, Math.PI / 2), metalM); d.rotation.x = Math.PI * 0.8; d.position.y = 2.8; p.add(d); const l = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xff4f6d : 0x5fff8a })); l.position.y = 3.1; p.add(l); lights.push(l); return p; } });
