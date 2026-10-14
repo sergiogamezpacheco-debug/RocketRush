@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#1d1440">
-<title>Chroma Crash 3D</title>
+<title>Rocket Rush</title>
 <style>
 :root{
   color-scheme:dark;
@@ -461,6 +461,48 @@ h1,h2,h3{margin:0}
 .prestars .stw{width:58px;height:56px}.prestars .stw.mid{width:72px;height:69px;margin-top:-10px}
 .lv .st svg{width:14px;height:14px}
 .lv.locked .st{display:none}
+
+/* ================= PANTALLA INICIAL (C con el cartel dorado de la B) ================= */
+#title{justify-content:flex-start;padding-top:max(14px,env(safe-area-inset-top));background:linear-gradient(180deg,rgba(30,10,60,.45),rgba(30,10,60,0) 38%,rgba(30,10,60,0) 62%,rgba(20,8,50,.55))}
+.thud{display:flex;justify-content:center;width:100%}
+.thud .coins{box-shadow:inset 0 0 0 2px rgba(232,184,74,.6);background:rgba(20,8,50,.55)}
+.twrap{position:relative;width:min(100%,380px);margin-top:clamp(34px,6vh,60px)}
+.tplaque{position:relative;z-index:1;padding:clamp(18px,3vh,26px) 10px clamp(12px,2vh,18px);border-radius:34px;border:7px solid transparent;text-align:center;
+  background:linear-gradient(160deg,rgba(158,118,255,.96),rgba(84,60,214,.96)) padding-box,var(--gborder) border-box;
+  box-shadow:0 0 0 3px var(--gbd),inset 0 3px 0 rgba(255,255,255,.5),inset 0 -10px 20px rgba(30,10,90,.45),0 14px 0 -2px var(--gbs),0 24px 40px rgba(0,0,0,.45);animation:tin .6s cubic-bezier(.2,1.5,.4,1)}
+.tplaque::before{content:'';position:absolute;left:18px;right:18px;top:8px;height:42px;border-radius:26px;background:linear-gradient(rgba(255,255,255,.32),rgba(255,255,255,0));pointer-events:none}
+@keyframes tin{from{transform:scale(.7) rotate(-4deg);opacity:0}to{transform:none;opacity:1}}
+.tlogo .lt{position:relative;font:900 min(17.5vw,70px)/0.95 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:1px;color:transparent}
+.tlogo .lt::before{content:attr(data-t);position:absolute;inset:0;-webkit-text-stroke:12px #3a1f6a;color:#3a1f6a;text-shadow:0 7px 0 #2a1458,0 12px 18px rgba(0,0,0,.35)}
+.tlogo .lt::after{content:attr(data-t);position:absolute;inset:0;-webkit-background-clip:text;background-clip:text;color:transparent;
+  background-image:linear-gradient(180deg,#fff3c0 0%,#ffb84a 38%,#ff6a1a 70%,#d8300a 100%)}
+.tlogo .lt.l2::after{background-image:linear-gradient(180deg,#fffbd0 0%,#ffe066 35%,#ffc21a 62%,#d88a00 100%)}
+.tsub{margin-top:clamp(6px,1.4vh,12px);font-weight:900;font-size:14px;letter-spacing:3px;color:var(--goldtx)}
+.tmascot{position:absolute;top:-40px;left:-16px;width:66px;height:66px;border-radius:17px;transform:rotate(-12deg);z-index:3;animation:bob 2.2s ease-in-out infinite;
+  background:radial-gradient(circle at 30% 45%,#fff 0 7px,transparent 7.5px),radial-gradient(circle at 70% 45%,#fff 0 7px,transparent 7.5px),radial-gradient(circle at 32% 47%,#1d1440 0 3.5px,transparent 4px),radial-gradient(circle at 72% 47%,#1d1440 0 3.5px,transparent 4px),radial-gradient(ellipse 10px 7px at 50% 70%,#1d1440 0 99%,transparent 100%),linear-gradient(160deg,#ffd76a,#ffb41a);
+  box-shadow:inset 0 4px 0 rgba(255,255,255,.6),inset 0 -6px 0 rgba(0,0,0,.15),0 5px 0 #c07800,0 0 0 3px var(--gbd)}
+.trocket{position:absolute;right:-18px;top:-46px;width:104px;z-index:2;transform:rotate(-40deg);filter:drop-shadow(0 0 12px rgba(120,200,255,.75));animation:rkt 1.6s ease-in-out infinite}
+@keyframes rkt{0%,100%{transform:rotate(-40deg) translate(0,0)}50%{transform:rotate(-40deg) translate(6px,-2px)}}
+.ttrail{position:absolute;left:0;top:0;height:22px;border-radius:20px;transform-origin:left center;z-index:0;opacity:.92;pointer-events:none;
+  background:linear-gradient(180deg,#ff4f6d 0 20%,#ffd23f 20% 40%,#5fd45a 40% 60%,#3d9bff 60% 80%,#a66bff 80%);
+  -webkit-mask:linear-gradient(90deg,transparent,#000 55%);mask:linear-gradient(90deg,transparent,#000 55%)}
+.tside{position:absolute;top:clamp(330px,47%,440px);display:flex;flex-direction:column;gap:14px;z-index:2}
+.tside.left{left:max(12px,env(safe-area-inset-left))}.tside.right{right:max(12px,env(safe-area-inset-right))}
+.sb{position:relative;width:66px;height:66px;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#fff;border:3px solid var(--gb);cursor:pointer;font-family:inherit;padding:0;
+  background:linear-gradient(160deg,var(--gl1),var(--gl2));box-shadow:0 0 0 2px var(--gbd),inset 0 3px 0 rgba(255,255,255,.45),inset 0 -4px 8px rgba(30,10,90,.35),0 5px 0 var(--gbs)}
+.sb:active{transform:translateY(3px);box-shadow:0 0 0 2px var(--gbd),inset 0 3px 0 rgba(255,255,255,.45),0 2px 0 var(--gbs)}
+.sb span{font-size:24px;line-height:1}.sb b{font-size:10.5px;font-weight:900;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.sb .sstar{color:#ffd23f;font-size:27px;text-shadow:0 2px 0 #9a5a00}
+.sb.fire{background:linear-gradient(160deg,#ffb27a,#ff6a2a)}.sb.fire b{font-size:16px}
+.sb.fire.ready{animation:pulse 1.2s ease-in-out infinite}
+.sb .bdg{position:absolute;top:-8px;right:-8px;min-width:22px;height:22px;border-radius:11px;background:#ff4f6d;color:#fff;font-size:12px;font-weight:900;font-style:normal;line-height:18px;text-align:center;border:2px solid #fff;padding:0 4px}
+.tbottom{position:absolute;left:24px;right:24px;bottom:max(26px,calc(env(safe-area-inset-bottom) + 14px));display:flex;flex-direction:column;align-items:center;z-index:2}
+.lvbub{margin-bottom:16px;font-weight:900;font-size:15px;color:#fff;padding:7px 16px;border-radius:999px;background:rgba(20,8,50,.65);box-shadow:inset 0 0 0 2px rgba(232,184,74,.7);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tplay{max-width:380px;border-radius:999px!important;padding:18px 0!important;font-size:31px!important;letter-spacing:.5px;margin-top:0!important;
+  box-shadow:0 0 0 4px var(--gb),0 0 0 7px var(--gbd),inset 0 6px 0 rgba(255,255,255,.5),inset 0 -8px 12px rgba(0,80,20,.3),0 10px 0 var(--gbd),0 18px 26px rgba(0,0,0,.4)!important;position:relative}
+.tplay::after{content:'';position:absolute;inset:-7px;border-radius:999px;box-shadow:0 0 0 0 rgba(156,242,138,.7);animation:tglow 1.8s ease-out infinite;pointer-events:none}
+@keyframes tglow{0%{box-shadow:0 0 0 0 rgba(156,242,138,.65)}100%{box-shadow:0 0 0 16px rgba(156,242,138,0)}}
+@media (max-height:700px){.tside{top:clamp(290px,44%,400px)}.sb{width:58px;height:58px}.tside{gap:10px}.lvbub{margin-bottom:12px}.tplay{padding:14px 0!important;font-size:27px!important}}
 </style>
 </head>
 <body>
@@ -497,16 +539,30 @@ h1,h2,h3{margin:0}
 <div id="ftexts"></div>
 
 <div class="screen" id="title">
-  <div class="logo">
-    <span class="l1"><span style="color:#ff4f6d">C</span><span style="color:#ffd23f;animation-delay:.1s">H</span><span style="color:#5fd45a;animation-delay:.2s">R</span><span style="color:#3d9bff;animation-delay:.3s">O</span><span style="color:#a66bff;animation-delay:.4s">M</span><span style="color:#ff4f6d;animation-delay:.5s">A</span></span>
-    <span class="l2">CRASH</span>
-    <span class="l3">DEMOLICIONES 3D</span>
+  <div class="thud"><span class="wallet"><span class="coins"><i class="coin"></i><span class="coinTxt">0</span></span><span class="coins"><i class="gem"></i><span class="gemTxt">0</span></span></span></div>
+  <div class="twrap" id="tWrap">
+    <div class="ttrail" id="tTrail"></div>
+    <div class="tplaque">
+      <div class="tmascot"></div>
+      <div class="tlogo"><div class="lt" data-t="ROCKET">ROCKET</div><div class="lt l2" data-t="RUSH">RUSH</div></div>
+      <div class="tsub">DEMOLICIONES 3D</div>
+    </div>
+    <svg class="trocket" viewBox="0 0 160 90" aria-hidden="true"><defs><radialGradient id="trB" cx=".38" cy=".32" r=".7"><stop offset="0" stop-color="#fff"/><stop offset=".25" stop-color="#8fd0ff"/><stop offset="1" stop-color="#2560c8"/></radialGradient></defs>
+      <path d="M98 20 L84 6 L106 14Z M98 70 L84 84 L106 76Z" fill="#ffd23f" stroke="#5a3a08" stroke-width="3" stroke-linejoin="round"/>
+      <circle cx="118" cy="45" r="34" fill="url(#trB)" stroke="#3a1f6a" stroke-width="4"/><ellipse cx="106" cy="31" rx="10" ry="6" fill="#fff" opacity=".75" transform="rotate(-25 106 31)"/></svg>
   </div>
-  <div class="title-btns">
-    <button class="dchip" id="btnDailyT" hidden>&#128293; <span id="dailyNT">0</span><span id="dailyTT"></span><i class="dot" id="dailyDotT" hidden></i></button>
-    <button class="btn green" id="btnPlay" style="font-size:26px;padding:16px">JUGAR</button>
-    <div class="row"><button class="btn small gold" id="btnPassT">&#9733; Pase</button><button class="btn small blue" id="btnMisT">Misiones</button></div>
-    <div class="row"><button class="btn small purple" id="btnShopT">Tienda</button><button class="btn small gray" id="btnSetT">Ajustes</button></div>
+  <div class="tside left">
+    <button class="sb fire" id="btnDailyT" hidden aria-label="Racha diaria"><span>&#128293;</span><b id="dailyNT">0</b><i id="dailyTT" hidden></i><i class="bdg" id="dailyDotT" hidden>!</i></button>
+    <button class="sb" id="btnPassT" aria-label="Pase"><span class="sstar">&#9733;</span><b>Pase</b><i class="bdg" id="passDotT" hidden>!</i></button>
+    <button class="sb" id="btnMisT" aria-label="Misiones"><span>&#127919;</span><b>Misiones</b><i class="bdg" id="misDotT" hidden>0</i></button>
+  </div>
+  <div class="tside right">
+    <button class="sb" id="btnShopT" aria-label="Tienda"><span>&#128722;</span><b>Tienda</b></button>
+    <button class="sb" id="btnSetT" aria-label="Ajustes"><span>&#9881;&#65039;</span><b>Ajustes</b></button>
+  </div>
+  <div class="tbottom">
+    <div class="lvbub" id="titleLv">Nivel 1</div>
+    <button class="btn green tplay" id="btnPlay">¡A DEMOLER!</button>
   </div>
 </div>
 

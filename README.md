@@ -129,3 +129,13 @@ Todas las ventanas y menús usan el mismo estilo, elegido entre varias propuesta
 - **Botones de gominola** con aro dorado: verde para jugar o cobrar, rosa para los anuncios, dorado para lo de pago y gris para volver. La X de cerrar es una moneda dorada.
 - **Estrellas de oro clásico con luz** (halo, brillo y destello) en la victoria, en la pantalla previa (tus mejores estrellas en ese nivel) y en las casillas del mapa. Las estrellas que faltan se ven como huecos morados.
 - Se aplica a la racha, la tienda, el pase, las misiones, el mapa, la pausa, la victoria, la derrota y los ajustes. Todo está en un bloque de CSS al final de `src/index.html`, y las estrellas son símbolos SVG (`#starS`, `#starE`, `#starM`). Capturas: `python3 tools/themeshots.py`.
+
+## Pantalla inicial de Rocket Rush
+
+Mezcla de dos propuestas: la «Despegue» (C) con el cartel dorado de la «Placa dorada» (B).
+
+- **Cartel**: panel de gelatina morada con borde de oro. Dentro pone «ROCKET» en naranja fuego y «RUSH» en oro, con «DEMOLICIONES 3D» debajo. La mascota asoma por la esquina y una bola-cohete sale por la otra, dejando una estela con los 5 colores de los bloques.
+- **Fondo**: el paisaje y la estructura del nivel en el que vas. La cámara baja la vista para que el cartel no tape la estructura.
+- **Botones a los lados**: racha (con su número), pase y misiones a la izquierda, con avisos rojos cuando hay algo que cobrar; tienda y ajustes a la derecha.
+- **Abajo**: «Nivel N · nombre del mundo» y el botón grande **¡A DEMOLER!**, que lleva al mapa.
+- Se adapta a móviles bajos (botones algo más pequeños por debajo de 700 px de alto).

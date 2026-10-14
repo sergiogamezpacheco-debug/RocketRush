@@ -1708,7 +1708,7 @@
     document.querySelectorAll('.coinTxt').forEach(el => { el.textContent = save.coins; });
     document.querySelectorAll('.gemTxt').forEach(el => { el.textContent = save.gems || 0; });
     const dot = $('passDot'); if (dot) dot.hidden = !passClaimable();
-    updateDailyBadges(); renderPlayer();
+    updateDailyBadges(); renderPlayer(); if (G.mode === 'title' && G.titleReady) updateTitle();
   }
   // ---------------- gemas ----------------
   // Partida normal: 25 % de probabilidad de gema y garantizada si llevas 2 partidas sin ninguna (1 de cada 2-3).
@@ -1738,8 +1738,29 @@
     setTheme(L.world); buildLevelView(); frameCamera(); lastTray = '';
   }
   function goTitle() {
-    G.mode = 'title'; G.paused = false; loadDemo(1);
-    $('hud').classList.remove('on'); show('title');
+    G.mode = 'title'; G.paused = false; loadDemo(Math.min(save.unlocked, LEVELS.length));   // de fondo, el paisaje del mundo en el que vas
+    $('hud').classList.remove('on'); show('title'); G.titleReady = true; updateTitle();
+  }
+  // pantalla inicial: nivel en curso, avisos y estela de la bola-cohete
+  function updateTitle() {
+    if (!$('titleLv')) return;
+    const L = byId(Math.min(save.unlocked, LEVELS.length)), W = WORLDS[L.world - 1];
+    $('titleLv').textContent = 'Nivel ' + L.id + (W ? ' · ' + W.name : '');
+    $('passDotT').hidden = !passClaimable();
+    const n = misClaimable(); $('misDotT').hidden = !n; $('misDotT').textContent = n;
+    layoutTrail();
+  }
+  function layoutTrail() {
+    const w = $('tWrap'), t = $('tTrail'); if (!w || !t || !w.offsetWidth) return;
+    const W = w.offsetWidth, H = w.offsetHeight, x0 = -60, y0 = H + 190, x1 = W - 34, y1 = -12;
+    const len = Math.hypot(x1 - x0, y1 - y0), ang = Math.atan2(y1 - y0, x1 - x0);
+    t.style.width = len + 'px'; t.style.transform = `translate(${x0}px,${y0 - 11}px) rotate(${ang}rad)`;
+  }
+  addEventListener('resize', layoutTrail);
+  // en la portada la estructura baja un poco para que el cartel no la tape
+  function titleView() {
+    if (G.mode === 'title') camera.setViewOffset(W, H, 0, -H * 0.16, W, H);
+    else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   }
   function goMap() {
     refundGolden();
@@ -2431,6 +2452,7 @@
       $('btnDailyT').hidden = !ok; $('dailyNT').textContent = n;
       $('dailyTT').textContent = s.st === 'risk' ? ' · ¡racha en peligro!' : ready ? ' · premio listo' : n === 1 ? ' día' : ' días';
       $('dailyDotT').hidden = !ready; $('btnDailyT').classList.toggle('ready', ready);
+      $('btnDailyT').setAttribute('aria-label', 'Racha diaria: ' + n + $('dailyTT').textContent);
     }
   }
   // pinta un premio como fichas (icono + texto)
@@ -2763,7 +2785,7 @@
       cannonG.visible = false;
     }
     drawAim();
-    if (!noRender) renderer.render(scene, camera);
+    if (!noRender) { titleView(); renderer.render(scene, camera); }
   }
 
   // inicio
@@ -2772,5 +2794,5 @@
   goTitle(); setCoins(); scheduleReminder();
   requestAnimationFrame(() => requestAnimationFrame(autoDailySoon));   // cuenta desde que la portada ya se ve
   requestAnimationFrame(frame);
-  window.ChromaGame = { G, startLevel, tick, manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => renderer.render(scene, camera), save: () => save, camera, renderer, LEVELS };
+  window.ChromaGame = { G, startLevel, tick, manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, LEVELS };
 })();
