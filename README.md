@@ -155,3 +155,12 @@ Icono elegido: **bloque de gelatina morada** que ocupa todo el icono, con «ROCK
 ## Nombre: Rocket Rush
 
 Todo lo que ve el jugador dice **Rocket Rush**: nombre de la app, portada, icono, versión en Ajustes, texto para compartir y archivo de la APK. Los códigos de amigo ahora empiezan por `RR-`, y los antiguos `CC-` siguen valiendo. Por dentro se mantienen tres nombres internos que no se ven: la clave del guardado (`chromacrash3d.v1`), para no perder el progreso; el puente con Android (`ChromaAndroid`); y el identificador de la app (`com.chromacrash.game3d`). Ese identificador se puede cambiar antes de publicar en Google Play, porque después ya no se puede, pero cambiarlo obliga a desinstalar la app de prueba una vez.
+
+## Iconos del juego (estilo «caramelo brillante»)
+
+Bolas, monedas, gemas, cofres, escudo de racha, llama de la racha, estrella del pase y XP tienen dibujos con volumen de gominola: degradado, brillo arriba y sombra suave. Los cofres de cristal, épico y leyenda llevan además halo de luz y joya.
+
+- Se generan con `python3 tools/iconset.py`, que reescribe el bloque `/*ICONOS:INI … ICONOS:FIN*/` de `src/index.html` con SVG incrustados (unos 100 KB, sin archivos externos).
+- Las clases son las mismas de siempre (`.ball.bR`, `.coin`, `.gem`, `.chest.gold`, `.shieldi`…), así que salen igual en la tienda, la racha, el pase, las misiones, la victoria y la bandeja de bolas durante la partida. También hay clases nuevas: `.ball.bPlus2` (+2 bolas), `.gems2` (montón de gemas) e `.ico-fire`, `.ico-star`, `.ico-xp` e `.ico-golden`, que sustituyen a los emojis.
+- El cofre tiene la tapa en una pieza aparte, así que al abrirlo se levanta de verdad.
+- El mismo archivo guarda los otros dos estilos que se propusieron (pegatina y medalla dorada) por si se quieren recuperar.

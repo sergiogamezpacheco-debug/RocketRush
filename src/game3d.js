@@ -1839,7 +1839,7 @@
     const wdefs = wks.filter(k => wbOpen(k)).map(k => [k, WBALLS[k].name.replace('Bola ', '').replace(/^de /, '')]);
     $('preBoosters').innerHTML = defs.map(([k, n]) => {
       const isFree = free.includes(k);
-      return `<div class="boost ${isFree ? 'sel' : ''}" data-k="${k}"><span class="n ${isFree ? 'free' : ''}">${isFree ? 'GRATIS' : (save.boosters[k] || 0)}</span><div class="ball big ${k === 'extra' ? 'bR' : CSSB[k]}" style="margin:2px auto 0;width:44px;height:44px"></div><div>${n}</div></div>`;
+      return `<div class="boost ${isFree ? 'sel' : ''}" data-k="${k}"><span class="n ${isFree ? 'free' : ''}">${isFree ? 'GRATIS' : (save.boosters[k] || 0)}</span><div class="ball big ${k === 'extra' ? 'bPlus2' : CSSB[k]}" style="margin:2px auto 0;width:44px;height:44px"></div><div>${n}</div></div>`;
     }).join('') + wdefs.map(([k, n]) => {
       const have = save.boosters[k] || 0;
       return `<div class="boost wboost" data-k="${k}"><span class="n ${have ? '' : 'buy'}">${have || ('<i class="gem"></i>' + wbGems(k))}</span><div class="ball big ${CSSB[k]}" style="margin:2px auto 0;width:44px;height:44px"></div><div>${n}<small>nv. ${wbLevel(k)}</small></div></div>`;
@@ -2049,7 +2049,8 @@
   ];
   function openShop(focus) {
     const items = SHOP.filter(s => !(s.once && save.starter) && !(s.id === 'noads' && save.adsRemoved));
-    const row = s => `<div class="shopitem"><div><b>${s.sec === 'gems' ? '<span class="gemp"><i class="gem"></i>' + s.name + '</span>' : s.name}</b><span>${s.desc}</span></div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : s.price}</button></div>`;
+    const SIC = { g1: '<i class="gem"></i>', g2: '<i class="gems2"></i>', g3: '<i class="chest crystal"></i>', starter: '<i class="chest gold"></i>', c1: '<i class="coin"></i>', c2: '<i class="chest wood"></i>', b1: '<i class="ball bBomb"></i>', b2: '<i class="ball bRainbow"></i>', b3: '<i class="ball bPlus2"></i>' };
+    const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}</b><span>${s.desc}</span></div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : s.price}</button></div>`;
     const wrow = k => {
       const open = wbOpen(k), have = save.boosters[k] || 0;
       return `<div class="shopitem wb ${open ? '' : 'locked'}"><div class="ball ${CSSB[k]}"></div><div><b>${WBALLS[k].name} <small>nv. ${wbLevel(k)}${have ? ' · tienes ' + have : ''}</small></b><span>${open ? WB_DESC[k] : 'Se desbloquea en el mundo ' + WBALLS[k].world}</span></div>` +
@@ -2158,7 +2159,7 @@
     if (r.gems) { parts.push('<i class="gem"></i>'); txt.push(r.gems + ' gemas'); }
     if (r.bomb) { parts.push('<i class="ball bBomb"></i>'); txt.push(r.bomb > 1 ? r.bomb + ' bombas' : 'Bomba'); }
     if (r.rainbow) { parts.push('<i class="ball bRainbow"></i>'); txt.push(r.rainbow > 1 ? r.rainbow + ' arcoíris' : 'Arcoíris'); }
-    if (r.extra) { parts.push('<i class="ball bR"></i>'); txt.push(r.extra + ' × +2 bolas'); }
+    if (r.extra) { parts.push('<i class="ball bPlus2"></i>'); txt.push(r.extra + ' × +2 bolas'); }
     if (r.shield) { parts.push('<i class="shieldi"></i>'); txt.push('Escudo de racha'); }
     if (r.coins) { parts.push('<i class="coin"></i>'); txt.push(r.coins + ' monedas'); }
     return `<div class="ric">${parts.slice(0, 3).join('')}</div><div class="rtx">${txt.join(' + ')}</div>`;
@@ -2261,12 +2262,12 @@
     { id: 'share', cat: 'Amigos', icon: '📣', tiers: [1, 5, 15], title: n => n === 1 ? 'Comparte el juego con alguien' : `Comparte el juego ${n} veces`, stat: () => stats().shares,
       reward: i => [{ xp: 60, coins: 150, gems: 2 }, { xp: 100, coins: 300, gems: 3 }, { xp: 150, coins: 500, gems: 4 }][i] },
     { id: 'skin', cat: 'Interactuar', icon: '🎨', tiers: [1], title: () => 'Equipa un cañón nuevo', stat: () => stats().skin, reward: () => ({ xp: 60, coins: 200, gems: 2 }) },
-    { id: 'streak', cat: 'Interactuar', icon: '🔥', tiers: [3, 7, 14, 30], title: n => `Consigue una racha diaria de ${n} días`, stat: () => Math.max((save.daily && save.daily.best) || 0, (save.daily && save.daily.n) || 0),
+    { id: 'streak', cat: 'Interactuar', icon: '<i class="ico ico-fire"></i>', tiers: [3, 7, 14, 30], title: n => `Consigue una racha diaria de ${n} días`, stat: () => Math.max((save.daily && save.daily.best) || 0, (save.daily && save.daily.n) || 0),
       reward: i => [{ xp: 60, coins: 200, gems: 1 }, { xp: 120, coins: 400, gems: 2 }, { xp: 200, coins: 600, gems: 3 }, { xp: 400, coins: 1200, gems: 5 }][i] },
     { id: 'ads', cat: 'Interactuar', icon: '▶', tiers: [1, 10, 30, 100], title: n => n === 1 ? 'Mira un vídeo con premio' : `Mira ${n} vídeos con premio`, stat: () => stats().ads, reward: i => ({ xp: 40 + i * 40, coins: 150 + i * 150 }) },
     { id: 'level', cat: 'Avanza', icon: '🏁', tiers: [10, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000], title: n => `Supera el nivel ${n}`, stat: () => save.unlocked - 1, reward: i => ({ xp: 60 + i * 40, coins: 200 + i * 120 }) },
     { id: 'world', cat: 'Avanza', icon: '🗺', tiers: Array.from({ length: 99 }, (_, i) => i + 2), title: n => `Desbloquea el mundo ${n}`, stat: () => worldsOpen(), reward: i => ({ xp: 50 + Math.min(i, 30) * 10, coins: 150 + Math.min(i, 30) * 25 }) },
-    { id: 'stars', cat: 'Avanza', icon: '⭐', tiers: [25, 100, 250, 500, 1000, 1500, 2000, 2500, 3000], title: n => `Consigue ${fmtN(n)} estrellas`, stat: starsTotal, reward: i => ({ xp: 50 + i * 50, coins: 150 + i * 150 }) },
+    { id: 'stars', cat: 'Avanza', icon: '<i class="ico ico-star"></i>', tiers: [25, 100, 250, 500, 1000, 1500, 2000, 2500, 3000], title: n => `Consigue ${fmtN(n)} estrellas`, stat: starsTotal, reward: i => ({ xp: 50 + i * 50, coins: 150 + i * 150 }) },
     { id: 'perfect', cat: 'Avanza', icon: '🌟', tiers: [5, 25, 100, 250, 500, 1000], title: n => `Consigue 3 estrellas en ${n} niveles`, stat: () => countLv((L, s) => s >= 3), reward: i => ({ xp: 60 + i * 60, coins: 200 + i * 200 }) },
     { id: 'extras', cat: 'Avanza', icon: '♕', tiers: [1, 5, 10, 25, 50, 100], title: n => n === 1 ? 'Supera un nivel extra' : `Supera ${n} niveles extra`, stat: () => Object.keys(save.bonusDone || {}).length, reward: i => ({ xp: 80 + i * 60, coins: 300 + i * 200 }) },
     { id: 'blocks', cat: 'Derriba', icon: '🧱', tiers: [100, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000], title: n => `Derriba ${fmtN(n)} bloques`, stat: () => stats().blocks, reward: i => ({ xp: 40 + i * 40, coins: 100 + i * 120 }) },
@@ -2274,7 +2275,7 @@
     { id: 'cascades', cat: 'Derriba', icon: '🌊', tiers: [10, 100, 500, 2000], title: n => `Haz ${fmtN(n)} cascadas`, stat: () => stats().cascades, reward: i => ({ xp: 50 + i * 60, coins: 150 + i * 150 }) },
     { id: 'wballs', cat: 'Interactuar', icon: '🔮', tiers: [1, 10, 50], title: n => n === 1 ? 'Usa una bola de los mundos' : `Usa ${n} bolas de los mundos`, stat: () => stats().wballs || 0,
       reward: i => [{ xp: 80, coins: 250, gems: 2 }, { xp: 150, coins: 500, gems: 3 }, { xp: 300, coins: 1000, gems: 5 }][i] },
-    { id: 'golden', cat: 'Derriba', icon: '🟡', tiers: [1, 10, 30], title: n => n === 1 ? 'Usa una bola dorada' : `Usa ${n} bolas doradas`, stat: () => stats().golden, reward: i => ({ xp: 60 + i * 60, coins: 200 + i * 200 }) },
+    { id: 'golden', cat: 'Derriba', icon: '<i class="ico ico-golden"></i>', tiers: [1, 10, 30], title: n => n === 1 ? 'Usa una bola dorada' : `Usa ${n} bolas doradas`, stat: () => stats().golden, reward: i => ({ xp: 60 + i * 60, coins: 200 + i * 200 }) },
     // difíciles: con unas pocas gemas
     { id: 'movers', cat: 'Difíciles', icon: '🎯', tiers: [1, 10, 30, 75], title: n => n === 1 ? 'Derriba algo que cruce el cielo o el mar' : `Derriba ${n} objetos que crucen el cielo o el mar`, hint: 'pájaro, velero, globo, teleférico, mono, dragón, ovni o satélite', stat: () => stats().movers,
       reward: i => [{ xp: 80, coins: 250, gems: 1 }, { xp: 150, coins: 500, gems: 2 }, { xp: 250, coins: 800, gems: 3 }, { xp: 400, coins: 1200, gems: 5 }][i] },
@@ -2292,7 +2293,7 @@
   const misClaimable = () => MISSIONS.filter(m => misState(m).ready).length;
   function rewardLine(r) {
     const c = [];
-    if (r.xp) c.push(`<span class="xpchip">${r.xp} XP</span>`);
+    if (r.xp) c.push(`<span class="xpchip"><i class="ico ico-xp"></i>${r.xp} XP</span>`);
     if (r.coins) c.push(`<span><i class="coin"></i>${fmtN(r.coins)}</span>`);
     if (r.gems) c.push(`<span><i class="gem"></i>${r.gems}</span>`);
     if (r.golden) c.push(`<span><i class="ball bGolden"></i>${r.golden}</span>`);
@@ -2473,14 +2474,14 @@
     if (r.shield) c.push('<i class="shieldi"></i>Escudo');
     if (r.bomb) c.push(`<i class="ball bBomb"></i>${r.bomb > 1 ? r.bomb + ' bombas' : 'Bomba'}`);
     if (r.rainbow) c.push(`<i class="ball bRainbow"></i>${r.rainbow > 1 ? r.rainbow + ' arcoíris' : 'Arcoíris'}`);
-    if (r.extra) c.push(`<i class="ball bR"></i>${r.extra > 1 ? r.extra + ' × +2 bolas' : '+2 bolas'}`);
+    if (r.extra) c.push(`<i class="ball bPlus2"></i>${r.extra > 1 ? r.extra + ' × +2 bolas' : '+2 bolas'}`);
     if (r.coins) c.push(`<i class="coin"></i>${r.coins}`);
     return c.map((x, i) => `<span style="animation-delay:${(i * 0.12).toFixed(2)}s">${x}</span>`).join('');
   }
   function dayCell(day, cls) {
     const r = dailyReward(day);
     if (isChest(day)) return `<div class="dday dchest ${cls}"><small>DÍA ${day}</small><div class="chest ${chestOf(day).cls}"><i></i></div><em>${chestOf(day).name.replace('Cofre ', '')}</em></div>`;
-    const k = r.bomb ? ['<i class="ball bBomb"></i>', r.bomb > 1 ? '×' + r.bomb : ''] : r.rainbow ? ['<i class="ball bRainbow"></i>', r.rainbow > 1 ? '×' + r.rainbow : ''] : r.extra ? ['<i class="ball bR"></i>', '+' + 2 * r.extra] : ['<i class="coin"></i>', r.coins];
+    const k = r.bomb ? ['<i class="ball bBomb"></i>', r.bomb > 1 ? '×' + r.bomb : ''] : r.rainbow ? ['<i class="ball bRainbow"></i>', r.rainbow > 1 ? '×' + r.rainbow : ''] : r.extra ? ['<i class="ball bPlus2"></i>', '+' + 2 * r.extra] : ['<i class="coin"></i>', r.coins];
     return `<div class="dday ${cls}"><small>DÍA ${day}</small><div class="ric">${k[0]}${r.rainbow && r.bomb ? '<i class="ball bRainbow"></i>' : ''}</div><em>${k[1]}</em></div>`;
   }
   // próximos cofres: la meta a largo plazo
