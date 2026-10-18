@@ -2613,17 +2613,128 @@
       $('dX').hidden = false;
       Audio.coin(); vibe(25); updateDailyBadges();
     };
-    if (chest) {
-      rv.innerHTML = `<div class="chestwrap"><div class="chest big shake ${chestOf(res.day).cls}"><i></i></div></div><div class="chestname">${chestOf(res.day).name}</div>`;
-      $('dWeek').style.display = 'none';
-      vibe(15);
-      setTimeout(() => {
-        const c = rv.querySelector('.chest'); c.classList.remove('shake'); c.classList.add('open');
-        c.parentNode.insertAdjacentHTML('afterbegin', '<div class="rays"></div>');
-        Audio.special(); vibe([30, 30, 60]); finish();
-      }, 900);
-    } else finish();
+    if (chest) openChestFX(chestOf(res.day).cls, res.r, finish);   // apertura a pantalla completa; al terminar, el resumen en la racha
+    else finish();
   }
+  // ---------------- apertura de cofre (estilo Brawl Stars) ----------------
+  // 1) cae el cofre · 2) tres toques: tiembla, se agrieta y brilla · 3) estalla (único fogonazo) y los premios caen al suelo
+  // 4) un toque por premio: carta con el número subiendo y las piezas del suelo vuelan al contador (sin destellos) · 5) resumen
+  const CHEST_SFX = 'arcade';            // juego de sonido: 'arcade' | 'magia' | 'feria'
+  const TIER_COL = { wood: '#ffb84a', silver: '#cfe6ff', gold: '#ffd23f', crystal: '#7fe0ff', epic: '#c06bff', legend: '#ff7a3d' };
+  const sfx = (ev, a) => { if (save.sound) { SFX.pack = CHEST_SFX; SFX.play(ev, a); } };
+  const imgCache = {};
+  function cssImg(cls, pseudo) {                // la imagen de un icono del juego (sale del CSS) para dibujarla en el lienzo
+    const key = cls + (pseudo || ''); if (imgCache[key]) return imgCache[key];
+    const el = document.createElement('i'); el.className = cls; el.style.cssText = 'position:absolute;left:-999px;top:0'; document.body.appendChild(el);
+    const m = /url\("?(.*?)"?\)$/.exec(getComputedStyle(el, pseudo || null).backgroundImage || ''); el.remove();
+    const im = new Image(); if (m) im.src = m[1]; return (imgCache[key] = im);
+  }
+  function chestItems(r) {
+    const L = [], pl = (n, a, b) => n === 1 ? a : b;
+    if (r.coins) L.push({ cls: 'coin', n: r.coins, t: 'monedas', pile: 16, to: 'c' });
+    if (r.gems) L.push({ cls: 'gem', n: r.gems, t: pl(r.gems, 'gema', 'gemas'), pile: Math.min(10, r.gems + 2), to: 'g' });
+    if (r.bomb) L.push({ cls: 'ball bBomb', n: r.bomb, t: pl(r.bomb, 'bomba', 'bombas'), pile: Math.min(4, r.bomb) });
+    if (r.rainbow) L.push({ cls: 'ball bRainbow', n: r.rainbow, t: 'arcoíris', pile: Math.min(4, r.rainbow) });
+    if (r.extra) L.push({ cls: 'ball bPlus2', n: r.extra, t: '+2 bolas', pile: Math.min(4, r.extra) });
+    if (r.golden) L.push({ cls: 'ball bGolden', n: r.golden, t: pl(r.golden, 'bola dorada', 'bolas doradas'), pile: Math.min(4, r.golden), special: true });
+    if (r.shield) L.push({ cls: 'shieldi', n: r.shield, t: 'escudo de racha', pile: 1, special: true });
+    if (r.skin) L.push({ cls: 'ico ico-fire', n: 1, t: SKINS[r.skin] ? SKINS[r.skin].name : 'Cañón', pile: 1, special: true, skin: true });
+    return L;
+  }
+  function openChestFX(tier, r, done) {
+    const st = $('cStage'), list = chestItems(r), run = ++openChestFX.run;
+    const fmt = n => n.toLocaleString('es-ES');
+    let coins = save.coins - (r.coins || 0), gems = (save.gems || 0) - (r.gems || 0), state = 'busy', hits = 0, onNext = null, skip = null, parts = [];
+    st.style.setProperty('--tc', TIER_COL[tier] || '#ffd23f');
+    st.innerHTML = `<div class="chud"><span><i class="coin"></i><b id="cfC">${fmt(coins)}</b></span><span><i class="gem"></i><b id="cfG">${gems}</b></span></div>
+      <div class="crays"></div><div class="cfloor"></div>
+      <div class="cbox"><div class="cglow"></div><i class="chest ${tier}"><i></i></i><div class="ccrack"></div></div>
+      <canvas></canvas><div class="cflash"></div><div class="chint"></div>`;
+    $('chestOpen').classList.add('on');
+    const q = s => st.querySelector(s), E = { box: q('.cbox'), chest: q('.chest'), glow: q('.cglow'), crack: q('.ccrack'), rays: q('.crays'), flash: q('.cflash'), hint: q('.chint'), cv: q('canvas'), c: $('cfC'), g: $('cfG') };
+    const R = st.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1), W = R.width, H = R.height;
+    E.cv.width = W * dpr; E.cv.height = H * dpr; const ctx = E.cv.getContext('2d'); ctx.scale(dpr, dpr);
+    const wait = ms => new Promise(res => setTimeout(res, ms));
+    const hint = t => { E.hint.textContent = t; E.hint.hidden = !t; };
+    const anim = c => { E.box.classList.remove('drop', 'hit', 'idle'); void E.box.offsetWidth; E.box.classList.add(c); };
+    const center = () => { const c = E.box.getBoundingClientRect(); return { x: c.left - R.left + c.width / 2, y: c.top - R.top + c.height * .5, w: c.width }; };
+    const bump = el => { const p = el.parentElement; p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump'); };
+    const sparks = (x, y, n, cols, sp, life, conf) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = sp * (.4 + Math.random()); parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - (conf ? 3 : 1), g: conf ? .12 : .08, c: cols[i % cols.length], s: conf ? 4 + Math.random() * 5 : 2 + Math.random() * 3, life: life * (60 + Math.random() * 30), rot: Math.random() * 6, conf }); } };
+    const loop = () => {
+      if (run !== openChestFX.run) return;
+      ctx.clearRect(0, 0, W, H); parts = parts.filter(p => p.life > 0);
+      for (const p of parts) {
+        if (p.fly) { if (p.delay > 0) p.delay--; else { p.x += (p.fly.x - p.x) * .2; p.y += (p.fly.y - p.y) * .2; p.s *= .985; if (Math.abs(p.fly.x - p.x) + Math.abs(p.fly.y - p.y) < 8) p.life = 0; } }
+        else { p.vy += p.g; p.x += p.vx; p.y += p.vy; if (p.floor && p.y > p.floor) { p.y = p.floor; if (Math.abs(p.vy) > 2) sfx('clink'); p.vy *= -.42; p.vx *= .7; if (Math.abs(p.vy) < .8) p.vy = 0; } if (p.img) { if (p.x < 14 || p.x > W - 14) p.vx *= -1; } else p.life--; }
+        if (p.img) { if (p.img.complete && p.img.naturalWidth) ctx.drawImage(p.img, p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
+        else { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot += .2); ctx.globalAlpha = Math.min(1, p.life / 30); ctx.fillStyle = p.c; if (p.conf) ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); else { ctx.beginPath(); ctx.arc(0, 0, p.s, 0, 7); ctx.fill(); } ctx.restore(); }
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+    const close = () => { if (run !== openChestFX.run) return; openChestFX.run++; $('chestOpen').classList.remove('on'); st.innerHTML = ''; openChestFX.tap = null; done(); };
+    openChestFX.skip = close;
+    const countUp = (el, it) => new Promise(res => {
+      state = 'count'; const t0 = performance.now(), dur = it.n > 5 ? 900 : 350; let lt = 0, fin = false;
+      const end = () => { if (fin) return; fin = true; skip = null; el.textContent = '×' + fmt(it.n); state = 'busy'; res(); };
+      skip = end;
+      const step = now => { if (fin || run !== openChestFX.run) return; const k = Math.min(1, (now - t0) / dur); el.textContent = '×' + fmt(Math.round(it.n * (1 - (1 - k) * (1 - k)))); if (now - lt > 55 && k < 1) { lt = now; sfx('tick'); } if (k < 1) requestAnimationFrame(step); else end(); };
+      requestAnimationFrame(step);
+    });
+    openChestFX.tap = async () => {
+      if (state === 'done') return close();
+      if (state === 'count' && skip) return skip();
+      if (state === 'next' && onNext) { const f = onNext; onNext = null; return f(); }
+      if (state !== 'tap') return;
+      hits++; anim('hit'); sfx('hit', hits); vibe(10 + hits * 10);
+      const c = center(); sparks(c.x, c.y, 8 + hits * 6, [TIER_COL[tier], '#fff'], 3 + hits, .7);
+      E.glow.style.opacity = hits * .3; E.crack.style.opacity = hits >= 2 ? 1 : .5;
+      if (hits < 3) { hint(hits === 1 ? '¡Otra vez!' : '¡Una más!'); return; }
+      state = 'busy'; hint('');
+      // estallido: el único fogonazo
+      E.flash.classList.add('on'); E.box.classList.remove('idle'); E.chest.classList.add('open'); E.rays.classList.add('on'); E.glow.style.opacity = 1; E.crack.style.opacity = 0;
+      sfx('explode'); vibe([30, 30, 60]);
+      sparks(c.x, c.y, 60, [TIER_COL[tier], '#ff4f6d', '#ffd23f', '#5fd45a', '#3d9bff', '#a66bff', '#fff'], 8, 1.4, true);
+      const floorY = H * .78;
+      for (const it of list) {
+        const im = cssImg(it.cls), big = !/coin|gem/.test(it.cls);
+        for (let i = 0; i < it.pile; i++) parts.push({ img: im, kind: it.cls, x: c.x + (Math.random() - .5) * 20, y: c.y - 10, vx: (Math.random() - .5) * 10, vy: -9 - Math.random() * 7, g: .42, s: big ? 44 : it.cls === 'coin' ? 26 : 24, floor: floorY - Math.random() * 18, life: 1e9 });
+        await wait(110); if (run !== openChestFX.run) return;
+      }
+      await wait(900); if (run !== openChestFX.run) return;
+      E.glow.style.opacity = .4; E.box.classList.add('faded');
+      for (let i = 0; i < list.length; i++) {
+        state = 'next'; hint(i === 0 ? 'Toca para recoger' : 'Toca para el siguiente');
+        await new Promise(res => { onNext = res; }); if (run !== openChestFX.run) return;
+        hint('');
+        const old = st.querySelector('.ccard'); if (old) { old.classList.remove('in'); old.classList.add('out'); setTimeout(() => old.remove(), 350); }
+        const it = list[i], card = document.createElement('div');
+        card.className = 'ccard in'; card.innerHTML = `<i class="${it.cls}"></i><b>${it.skin ? '¡Nuevo!' : '×0'}</b><small>${it.t}</small>`;
+        st.appendChild(card); sfx(it.special ? 'special' : 'card', i); vibe(15);
+        const tgtEl = it.to === 'c' ? E.c : it.to === 'g' ? E.g : card, tr = tgtEl.getBoundingClientRect();
+        const tgt = { x: tr.left - R.left + (tgtEl === card ? tr.width / 2 : 0), y: tr.top - R.top + (tgtEl === card ? tr.height * .35 : 10) };
+        let k = 0; for (const p of parts) if (p.kind === it.cls) { p.fly = tgt; p.delay = 8 + k++ * 2; }
+        if (!it.skin) { await countUp(card.querySelector('b'), it); if (run !== openChestFX.run) return; } else await wait(300);
+        if (it.to === 'c') { coins += it.n; E.c.textContent = fmt(coins); bump(E.c); sfx('collect', 'coin'); }
+        if (it.to === 'g') { gems += it.n; E.g.textContent = gems; bump(E.g); sfx('collect', 'gem'); }
+      }
+      state = 'next'; hint('Toca para terminar');
+      await new Promise(res => { onNext = res; }); if (run !== openChestFX.run) return;
+      const old = st.querySelector('.ccard'); if (old) old.remove();
+      const d = document.createElement('div'); d.className = 'csum';
+      d.innerHTML = `<h3>${CHESTS.find(x => x.cls === tier).name}</h3><div class="g">${list.map(it => `<div><i class="${it.cls}"></i>${it.skin ? 'Cañón' : '×' + fmt(it.n)}</div>`).join('')}</div><span class="ok">¡Genial!</span>`;
+      st.appendChild(d); sfx('done'); state = 'done';
+    };
+    (async () => {
+      anim('drop'); await wait(420); if (run !== openChestFX.run) return;
+      sfx('land'); vibe(20); const c = center(); sparks(c.x, c.y + c.w * .45, 14, ['#d8c8f5', '#fff', '#b9a6f0'], 2.2, .5);
+      await wait(380); if (run !== openChestFX.run) return;
+      E.box.classList.add('idle'); state = 'tap'; hint('¡Toca el cofre!');
+    })();
+  }
+  openChestFX.run = 0;
+  $('chestOpen').addEventListener('pointerdown', e => { e.preventDefault(); Audio.init(); if (openChestFX.tap) openChestFX.tap(); });
+
   function closeDaily(skipCb) {
     $('daily').classList.remove('on'); $('dWeek').style.display = '';
     updateDailyBadges();
@@ -2775,6 +2886,7 @@
   // integración con la app Android
   window.ChromaBack = () => {
     const open = id => $(id).classList.contains('on');
+    if (open('chestOpen')) { if (openChestFX.skip) openChestFX.skip(); return true; }
     if (open('shop')) { $('shop').classList.remove('on'); return true; }
     if (open('daily')) { if (!$('dBtns').innerHTML) return true; closeDaily(true); return true; }
     if (open('settings')) { $('settings').classList.remove('on'); return true; }

@@ -7,6 +7,17 @@ def ev(pg,js): return pg.evaluate(js)
 def on(pg,id): return ev(pg,f"() => document.getElementById('{id}').classList.contains('on')")
 def txt(pg,id): return ev(pg,f"() => document.getElementById('{id}').textContent")
 def st(pg): return ev(pg,"() => JSON.stringify(ChromaGame.dailyStatus())")
+
+def claim(pg, shots=None):
+    """Recoge el premio; si es un cofre, juega la apertura entera (3 toques, recoger cada premio y resumen)."""
+    pg.click('#dClaim'); pg.wait_for_timeout(250)
+    if not pg.evaluate("() => document.getElementById('chestOpen').classList.contains('on')"): return
+    pg.wait_for_timeout(900)
+    for i in range(40):
+        if not pg.evaluate("() => document.getElementById('chestOpen').classList.contains('on')"): break
+        pg.locator('#chestOpen').dispatch_event('pointerdown'); pg.wait_for_timeout(260 if i < 3 else 700)
+        if shots and i in shots: pg.screenshot(path=OUT+shots[i])
+    pg.wait_for_timeout(200)
 def d(pg): return ev(pg,"() => JSON.stringify(ChromaGame.save().daily)")
 FAKE = "window.ChromaAndroid={scheduleReminder:(a,t,x)=>{window.__rem=[new Date(+a).toString().slice(0,21),t,x]},cancelReminder:()=>{window.__rem='cancelado'},askNotifications:()=>{window.__asked=true},vibrate:()=>{}};"
 with sync_playwright() as p:
@@ -31,7 +42,7 @@ with sync_playwright() as p:
     pg.click('#dX'); ticks(pg,1)
     print('cerrar con la X: ventana', on(pg,'daily'), '· sigue en', ev(pg,"() => ChromaGame.G.mode"), '· punto en la portada', not ev(pg,"() => document.getElementById('dailyDotT').hidden"))
     pg.click('#btnDailyT', force=True); pg.wait_for_timeout(200)
-    pg.click('#dClaim'); pg.wait_for_timeout(500); pg.screenshot(path=OUT+'d2_recogido.png')
+    claim(pg); pg.wait_for_timeout(500); pg.screenshot(path=OUT+'d2_recogido.png')
     print('día 1 →', txt(pg,'dTitle'), '|', txt(pg,'dSub'), '| premios:', ev(pg,"() => document.querySelector('.drew').innerText.replace(/\\n/g,' ')"), '| monedas', ev(pg,"() => ChromaGame.save().coins"))
     pg.click('#dNotify2'); print('permiso pedido:', ev(pg,"() => window.__asked"), '· aviso:', ev(pg,"() => JSON.stringify(window.__rem)"))
     pg.click('#dClose2'); ticks(pg,1,True); pg.screenshot(path=OUT+'d3_mapa.png')
@@ -48,22 +59,21 @@ with sync_playwright() as p:
     pg.click('#dClose2')
     # 3) días 3 y 4, y el cofre del día 5
     for k in range(2):
-        ev(pg,"() => ChromaGame.shiftDays(1)"); pg.click('#btnDaily'); pg.click('#dClaim'); pg.wait_for_timeout(200); pg.click('#dClose2')
+        ev(pg,"() => ChromaGame.shiftDays(1)"); pg.click('#btnDaily'); claim(pg); pg.wait_for_timeout(200); pg.click('#dClose2')
     ev(pg,"() => ChromaGame.shiftDays(1)"); pg.click('#btnDaily'); pg.wait_for_timeout(300); pg.screenshot(path=OUT+'d4_dia5.png')
     print('día 5:', txt(pg,'dTitle'), '|', ev(pg,"() => document.getElementById('dNext').innerText"))
-    pg.click('#dClaim'); pg.wait_for_timeout(450); pg.screenshot(path=OUT+'d5_cofre_agita.png')
-    print('X oculta mientras se abre el cofre:', ev(pg,"() => document.getElementById('dX').hidden"))
-    pg.wait_for_timeout(1100); pg.screenshot(path=OUT+'d6_cofre_abierto.png')
+    claim(pg, {1:'d5_cofre_agita.png', 2:'d5b_estallido.png', 3:'d6_premio.png', 6:'d6b_resumen.png'})
+    pg.screenshot(path=OUT+'d6_cofre_abierto.png')
     print('cofre →', txt(pg,'dTitle'), '| premios:', ev(pg,"() => document.querySelector('.drew').innerText.replace(/\\n/g,' ')"), '| aviso:', ev(pg,"() => JSON.stringify(window.__rem)"))
     pg.click('#dClose2')
     # 4) saltar al día 10 (cofre de plata con escudo) y faltar un día con escudo
     ev(pg,"() => { const s=ChromaGame.save(); s.daily.n=9; s.daily.last=ChromaGame.shiftDays(1)-1; }")
-    pg.click('#btnDaily'); pg.click('#dClaim'); pg.wait_for_timeout(1300)
+    pg.click('#btnDaily'); claim(pg); pg.wait_for_timeout(1300)
     print('día 10 →', ev(pg,"() => document.querySelector('.drew').innerText.replace(/\\n/g,' ')"), '· escudos', ev(pg,"() => ChromaGame.save().daily.shields"))
     pg.click('#dClose2')
     ev(pg,"() => ChromaGame.shiftDays(2)"); pg.click('#btnDaily'); pg.wait_for_timeout(300); pg.screenshot(path=OUT+'d7_escudo.png')
     print('falta 1 día con escudo:', txt(pg,'dTitle'), '|', txt(pg,'dSub'))
-    pg.click('#dClaim'); pg.wait_for_timeout(200); print('   → racha', ev(pg,"() => ChromaGame.save().daily.n"), '· escudos', ev(pg,"() => ChromaGame.save().daily.shields")); pg.click('#dClose2')
+    claim(pg); pg.wait_for_timeout(200); print('   → racha', ev(pg,"() => ChromaGame.save().daily.n"), '· escudos', ev(pg,"() => ChromaGame.save().daily.shields")); pg.click('#dClose2')
     # 5) falta 1 día sin escudo: racha en peligro y rescate con gemas (sin gemas suficientes -> tienda)
     ev(pg,"() => { ChromaGame.save().gems = 5; ChromaGame.shiftDays(2); }"); pg.click('#btnDaily'); pg.wait_for_timeout(300); pg.screenshot(path=OUT+'d8_peligro.png')
     print('peligro:', txt(pg,'dTitle'), '| botones:', ev(pg,"() => [...document.querySelectorAll('#dBtns button')].map(b=>b.innerText).join(' / ')"))
@@ -71,15 +81,15 @@ with sync_playwright() as p:
     pg.click('button[data-id="g1"]'); pg.click('#shopClose')
     pg.click('#dSaveGem'); pg.wait_for_timeout(200)
     print('   salvada:', txt(pg,'dSub'), '· gemas', ev(pg,"() => ChromaGame.save().gems"), '·', st(pg))
-    pg.click('#dClaim'); pg.wait_for_timeout(200); pg.click('#dClose2')
+    claim(pg); pg.wait_for_timeout(200); pg.click('#dClose2')
     # 6) faltar 3 días: se pierde
     ev(pg,"() => ChromaGame.shiftDays(4)"); pg.click('#btnDaily'); pg.wait_for_timeout(300); pg.screenshot(path=OUT+'d9_perdida.png')
     print('perdida:', txt(pg,'dTitle'), '|', txt(pg,'dSub'), '| aviso:', ev(pg,"() => JSON.stringify(window.__rem)"))
-    pg.click('#dClaim'); pg.wait_for_timeout(200); print('   nueva racha', ev(pg,"() => ChromaGame.save().daily.n"), '· mejor', ev(pg,"() => ChromaGame.save().daily.best")); pg.click('#dClose2')
+    claim(pg); pg.wait_for_timeout(200); print('   nueva racha', ev(pg,"() => ChromaGame.save().daily.n"), '· mejor', ev(pg,"() => ChromaGame.save().daily.best")); pg.click('#dClose2')
     # 7) día 30: cofre legendario con el Cañón de Fuego
     ev(pg,"() => { const s=ChromaGame.save(); s.daily.n=29; s.daily.last=ChromaGame.shiftDays(1)-1; }")
     pg.click('#btnDaily'); pg.wait_for_timeout(300); pg.screenshot(path=OUT+'d10_dia30.png')
-    pg.click('#dClaim'); pg.wait_for_timeout(1400); pg.screenshot(path=OUT+'d11_legendario.png')
+    claim(pg); pg.wait_for_timeout(1400); pg.screenshot(path=OUT+'d11_legendario.png')
     print('día 30 →', ev(pg,"() => document.querySelector('.drew').innerText.replace(/\\n/g,' ')"), '· cañón', ev(pg,"() => ChromaGame.save().skins.equip"))
     pg.click('#dClose2')
     ev(pg,"() => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.startLevel(4, []); }"); ticks(pg,40,True)
@@ -92,7 +102,7 @@ with sync_playwright() as p:
         if on(pg,'win'): break
     pg.wait_for_timeout(1300); pg.click('#winNext'); ticks(pg,1)
     print('tras ganar y SIGUIENTE: racha', on(pg,'daily'), txt(pg,'dTitle'))
-    pg.click('#dClaim'); pg.wait_for_timeout(200); pg.click('#dClose2'); ticks(pg,1)
+    claim(pg); pg.wait_for_timeout(200); pg.click('#dClose2'); ticks(pg,1)
     print('   después se abre el nivel siguiente:', on(pg,'pre'), txt(pg,'preTitle'))
     # ajustes
     pg.click('#preBack'); pg.click('#btnHome'); pg.click('#btnSetT'); pg.click('#sNotif')

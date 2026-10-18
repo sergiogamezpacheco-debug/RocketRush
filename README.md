@@ -189,3 +189,16 @@ En la partida, cambiar la bola del cañón por otra de la bandeja (con el icono 
 
 - Mientras estás en el mapa, el pase o las misiones, el paisaje 3D de fondo se pinta a 20 imágenes por segundo y se para del todo mientras deslizas, para dejar el móvil libre para el desplazamiento.
 - Cada mundo tiene una altura fija (nombres largos en una línea con «…»), y el juego mide ese tamaño y se lo pasa al navegador. Así, al pintar los mundos que entran en pantalla, la lista no da saltos (antes daba unos 45 saltos al recorrer el mapa; ahora ninguno).
+
+## Apertura de cofres
+
+Al recoger un cofre de la racha se abre una pantalla completa:
+
+1. El cofre cae rebotando y levanta polvo.
+2. Se toca tres veces: cada golpe lo aplasta, saltan chispas y se agrieta y brilla del color de su categoría (madera, plata, oro, cristal, épico o leyenda).
+3. Al tercer golpe revienta: un único fogonazo blanco, la tapa sale volando, rayos girando y confeti. Los premios saltan del cofre y caen al suelo rebotando: monedas, gemas, bolas, escudo y cañón.
+4. Con cada toque se recoge un premio. Sale una carta con el número subiendo y las piezas del suelo vuelan al contador de arriba (monedas y gemas) o a la carta (lo demás). Aquí no hay destellos. Si tocas mientras sube el número, se completa al momento.
+5. Al final hay un resumen y se vuelve a la ventana de la racha.
+
+- El botón atrás de Android cierra la animación y entrega los premios igual (ya se habían dado al recoger).
+- Sonidos sintetizados en `src/sfx.js`, sin archivos de audio. Hay tres juegos (`arcade`, `magia`, `feria`) y se elige con `CHEST_SFX` en `game3d.js`. Respetan el botón de sonido de Ajustes.

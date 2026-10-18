@@ -5,7 +5,7 @@ let html = fs.readFileSync(path.join(src, 'index.html'), 'utf8');
 // versión visible en Ajustes (en GitHub Actions: 1.0.<número de compilación>)
 const version = process.env.APP_VERSION || ('pruebas ' + new Date().toISOString().slice(0, 16).replace('T', ' '));
 html = html.replace('<!--VERSION-->', version);
-const files = [[ven, 'three.global.js'], [ven, 'three.extras.js'], [ven, 'cannon.global.js'], [src, 'sim3d.js']].concat(fs.existsSync(path.join(src, 'tuning.js')) ? [[src, 'tuning.js']] : [], fs.existsSync(path.join(src, 'gentune.js')) ? [[src, 'gentune.js']] : [], [[src, 'levels3d.js'], [src, 'game3d.js']]);
+const files = [[ven, 'three.global.js'], [ven, 'three.extras.js'], [ven, 'cannon.global.js'], [src, 'sim3d.js']].concat(fs.existsSync(path.join(src, 'tuning.js')) ? [[src, 'tuning.js']] : [], fs.existsSync(path.join(src, 'gentune.js')) ? [[src, 'gentune.js']] : [], [[src, 'levels3d.js'], [src, 'sfx.js'], [src, 'game3d.js']]);
 // --release: versión para publicar, sin el modo prueba
 const release = process.argv.includes('--release');
 const read = (d, f) => { let t = fs.readFileSync(path.join(d, f), 'utf8'); if (release && f === 'game3d.js') t = t.replace('const TEST_MODE = true;', 'const TEST_MODE = false;'); return t; };
