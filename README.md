@@ -176,3 +176,16 @@ Todas las ventanas (nivel, racha, tienda, pausa, victoria, derrota, ajustes) son
 - **Racha**: fila de próximos cofres, con los 5 siguientes.
 - **Monedero** del mapa, el pase y las misiones: lleva un «+» verde que abre la tienda en monedas o en gemas.
 - La cabecera del pase, la de misiones y el cartel de la portada también llevan bombillas.
+
+## Cambiar de bola cuesta 10 monedas
+
+En la partida, cambiar la bola del cañón por otra de la bandeja (con el icono ⇄, la bola grande o cualquier bola de la cola) cuesta **10 monedas** (`SWAP_COST` en `game3d.js`).
+
+- El precio sale bajo el icono ⇄. Se pone en rojo si no te llega, y en ese caso el cambio no se hace y sale un aviso. Al pagar aparece «-10» flotando.
+- El primer cambio del tutorial del nivel 2 es gratis (pone «GRATIS»), para que el jugador lo aprenda sin pagar.
+- Tocar una bola del mismo color que la del cañón no hace nada ni cobra.
+
+## Mapa más fluido
+
+- Mientras estás en el mapa, el pase o las misiones, el paisaje 3D de fondo se pinta a 20 imágenes por segundo y se para del todo mientras deslizas, para dejar el móvil libre para el desplazamiento.
+- Cada mundo tiene una altura fija (nombres largos en una línea con «…»), y el juego mide ese tamaño y se lo pasa al navegador. Así, al pintar los mundos que entran en pantalla, la lista no da saltos (antes daba unos 45 saltos al recorrer el mapa; ahora ninguno).

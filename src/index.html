@@ -505,7 +505,7 @@ h1,h2,h3{margin:0}
 @media (max-height:700px){.tside{top:clamp(290px,44%,400px)}.sb{width:58px;height:58px}.tside{gap:10px}.lvbub{margin-bottom:12px}.tplay{padding:14px 0!important;font-size:27px!important}}
 
 /* mapa: los 100 mundos visibles, bloqueados incluidos; cada mundo con el color de su paisaje */
-.world{content-visibility:auto;contain-intrinsic-size:auto 520px}
+.world{content-visibility:auto;contain-intrinsic-size:auto var(--wh,470px)}.world.wlock{contain-intrinsic-size:auto var(--whl,490px)}
 .world[data-biome=sea]{background:linear-gradient(160deg,rgba(80,170,255,.32),rgba(84,60,214,.22))}
 .world[data-biome=desert]{background:linear-gradient(160deg,rgba(255,200,110,.38),rgba(200,120,40,.22))}
 .world[data-biome=snow]{background:linear-gradient(160deg,rgba(220,240,255,.38),rgba(120,170,230,.22))}
@@ -655,6 +655,22 @@ h1,h2,h3{margin:0}
 /* portada: el cartel también lleva bombillas */
 .tplaque::after{content:'';position:absolute;inset:-6px;border-radius:38px;pointer-events:none;z-index:2;background:var(--bulbs);filter:drop-shadow(0 0 4px rgba(255,220,100,.95));animation:bulbs 1.4s steps(2) infinite}
 #toast{background:linear-gradient(180deg,#3a148a,#1d0a5a);color:#ffe680;box-shadow:0 0 0 3px #ffd23f,0 0 14px rgba(255,210,63,.6),0 6px 0 #5a3a08;border:0}
+
+/* cambiar de bola: precio en monedas bajo el icono ⇄ */
+.swapico{display:flex;flex-direction:column;align-items:center;line-height:1;gap:2px}
+.swapico span{font-size:26px}
+.swapico small{display:flex;align-items:center;gap:2px;font-size:12px;font-weight:900;color:#fff;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 6px 2px 3px;box-shadow:inset 0 0 0 1.5px rgba(255,210,63,.7)}
+.swapico small .coin{width:14px;height:14px}
+.swapico.poor small{color:#ff8fa1;box-shadow:inset 0 0 0 1.5px #ff4f6d}
+.swapico.nope{animation:nope .35s}
+@keyframes nope{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.swapft{color:#ffe680;display:flex;align-items:center;gap:3px}.swapft .coin{width:18px;height:18px}
+.mapscroll{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;will-change:scroll-position;transform:translateZ(0)}
+/* mundos con altura fija: el mapa no da saltos al deslizar */
+.world h3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wnote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:16px}
+.bonus .btx span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;height:2.5em;line-height:1.25}
+.bonus .btx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -680,7 +696,7 @@ h1,h2,h3{margin:0}
   </div>
   <div class="tray" id="tray" role="button" aria-label="Cambiar de bola">
     <div class="ball big" id="trayCur"></div>
-    <div class="swapico" id="traySwap" data-i="1">&#8644;</div>
+    <div class="swapico" id="traySwap" data-i="1"><span>&#8644;</span><small id="swapCost"><i class="coin"></i>10</small></div>
     <div class="trayq" id="trayNext"></div>
     <div class="traycount"><small>BOLAS</small><b id="trayCount">0</b></div>
   </div>

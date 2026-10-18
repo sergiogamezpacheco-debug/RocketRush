@@ -127,6 +127,7 @@
 
   // ---------------- paleta ----------------
   const COL = { r: 0xff4f6d, b: 0x3d9bff, g: 0x5fd45a, y: 0xffd23f, p: 0xa66bff };
+  const SWAP_COST = 10;   // precio de cambiar la bola del cañón por otra de la bandeja
   const CSSB = { r: 'bR', b: 'bB', g: 'bG', y: 'bY', p: 'bP', bomb: 'bBomb', rainbow: 'bRainbow', heavy: 'bHeavy', golden: 'bGolden' };
   const THEMES = {
     1: { top: 0x48a8ff, mid: 0x9fd8ff, hor: 0xffe8c4, fog: 0xcfe9ff, sea: 0x1f8fd6, sun: 0xfff0d0, hemi: [0xcfe9ff, 0x8a6a4a] },
@@ -1614,8 +1615,23 @@
     if (G.mode !== 'play' || G.paused || !G.sim) return;
     const el = e.target.closest('[data-i]');
     const i = el ? +el.dataset.i : 1;           // la bola del cañón o el icono ⇄ cambian con la siguiente
-    if (G.sim.select(i > 0 ? i : 1)) { G.swapped = true; handleEvents(); updateTray(); updateCannon(0); }
+    const q = G.sim.queue, j = i > 0 ? i : 1;
+    if (G.sim.state !== 'play' || j >= q.length || q[j] === q[0]) return;   // misma bola: no hay cambio ni cobro
+    // cambiar de bola cuesta 10 monedas (el primer cambio del tutorial del nivel 2 es gratis)
+    const free = G.level.id === 2 && !save.swapTaught;
+    if (!free && save.coins < SWAP_COST) { Audio.click(); toast(`Cambiar de bola cuesta ${SWAP_COST} monedas y no tienes suficientes`); $('traySwap').classList.add('nope'); setTimeout(() => $('traySwap').classList.remove('nope'), 400); return; }
+    if (G.sim.select(j)) {
+      if (free) save.swapTaught = true; else { save.coins -= SWAP_COST; floatSwapCost(); }
+      persist(); setCoins();
+      G.swapped = true; handleEvents(); updateTray(); updateCannon(0);
+    }
   });
+  function floatSwapCost() {
+    const r = $('traySwap').getBoundingClientRect(), f = document.createElement('div');
+    f.className = 'ft swapft'; f.innerHTML = `-${SWAP_COST} <i class="coin"></i>`;
+    f.style.left = (r.left + r.width / 2) + 'px'; f.style.top = (r.top - 6) + 'px'; f.style.fontSize = '20px';
+    $('ftexts').appendChild(f); setTimeout(() => f.remove(), 1000);
+  }
 
   function drawAim() {
     const sim = G.sim;
@@ -1657,12 +1673,15 @@
   let lastTray = '';
   function updateTray() {
     const q = G.sim ? G.sim.queue : [];
-    const key = q.join(',') + '|' + G.swapped + '|' + (G.level && G.level.id);
+    const key = q.join(',') + '|' + G.swapped + '|' + (G.level && G.level.id) + '|' + (save.coins >= SWAP_COST) + '|' + !!save.swapTaught;
     if (key === lastTray) return; lastTray = key;
     $('trayCur').className = 'ball big ' + (q[0] ? CSSB[q[0]] : '');
     $('trayCur').dataset.i = 0;
     $('trayCur').style.visibility = q[0] ? 'visible' : 'hidden';
     $('traySwap').style.visibility = q.length > 1 ? 'visible' : 'hidden';
+    { const free = G.level && G.level.id === 2 && !save.swapTaught;
+      $('swapCost').innerHTML = free ? 'GRATIS' : `<i class="coin"></i>${SWAP_COST}`;
+      $('traySwap').classList.toggle('poor', !free && save.coins < SWAP_COST); }
     $('traySwap').classList.toggle('pulse', G.level && G.level.id === 2 && !G.swapped);
     $('trayNext').innerHTML = q.slice(1, 6).map((k, i) => `<button class="tslot" data-i="${i + 1}" aria-label="Cargar esta bola"><span class="ball ${CSSB[k]}"></span></button>`).join('') + (q.length > 6 ? `<span class="tmore">+${q.length - 6}</span>` : '');
     $('trayCount').textContent = q.length;
@@ -1682,7 +1701,7 @@
     const hint = $('hint');
     let txt = '';
     if (G.mode === 'play' && !G.firstShot && G.level.id === 1) txt = 'Toca un bloque azul para disparar';
-    else if (G.mode === 'play' && !G.swapped && G.level.id === 2 && !G.firstShot) txt = 'Toca la bandeja de abajo para cambiar de bola';
+    else if (G.mode === 'play' && !G.swapped && G.level.id === 2 && !G.firstShot) txt = 'Toca la bandeja de abajo para cambiar de bola (la primera vez es gratis; luego cuesta ' + SWAP_COST + ' monedas)';
     else if (G.mode === 'play' && G.sim.goalReached && G.sim.state === 'play' && !G.aim) txt = 'Sigue disparando para más estrellas, o pulsa Terminar';
     else if (G.mode === 'play' && G.aim) txt = '';
     if (performance.now() < hintUntil) txt = hintMsg;
@@ -1767,7 +1786,7 @@
     $('btnFinish').hidden = true;
     G.mode = 'map'; G.paused = false; $('hud').classList.remove('on');
     loadDemo(Math.min(save.unlocked, LEVELS.length));
-    renderMap(); setCoins(); show('map');
+    renderMap(); setCoins(); show('map'); measureWorlds();
     const cur = document.querySelector('.lv.cur'); if (cur) cur.scrollIntoView({ block: 'center' });
   }
   // nivel extra del mundo w: se abre con 3 estrellas en sus 10 niveles
@@ -1793,6 +1812,7 @@
         <div class="bbar"><i style="width:${n3 * 10}%"></i></div></div></div></div>`;
     }
     $('mapList').innerHTML = h;
+    measureWorlds();
     // un solo escuchador para todo el mapa (1000 casillas)
     $('mapList').onclick = e => {
       const el = e.target.closest('.lv'); if (!el) return;
@@ -1812,6 +1832,16 @@
   const starBig = (on, cls = '') => `<span class="stw ${cls} ${on ? 'on' : ''}"><svg class="gst off" viewBox="0 0 100 96"><use href="#starE"/></svg><svg class="gst gold" viewBox="0 0 100 96"><use href="#starS"/></svg></span>`;
   const starMini = on => `<svg class="gst" viewBox="0 0 100 96"><use href="#${on ? 'starM' : 'starME'}"/></svg>`;
 
+  // tamaño real de un mundo (abierto y bloqueado): el navegador reserva el hueco exacto y no da saltos al deslizar
+  function measureWorlds() {
+    const L = $('mapList'); if (!L.offsetParent) return;
+    for (const [sel, v] of [['.world:not(.wlock)', '--wh'], ['.world.wlock', '--whl']]) {
+      const ws = L.querySelectorAll(sel), w = ws[ws.length > 2 ? 1 : 0]; if (!w) continue;
+      w.style.contentVisibility = 'visible'; const cs = getComputedStyle(w), hh = w.offsetHeight; w.style.contentVisibility = '';
+      if (hh > 100) L.style.setProperty(v, (hh - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth)) + 'px');
+    }
+  }
+  addEventListener('resize', measureWorlds);
   let preSel = {};
   function openPre(id) {
     const L = byId(id); if (!L) return;
@@ -2772,10 +2802,18 @@
     const avg = perfAcc / perfN; perfAcc = 0; perfN = 0;
     if (avg > 0.022 && pixelRatio > 1) { pixelRatio = Math.max(1, pixelRatio - 0.25); renderer.setPixelRatio(pixelRatio); renderer.setSize(W, H, false); }
   }
+  // menús a pantalla completa (mapa, pase, misiones): el 3D de fondo se pinta a 20 fps y se para mientras deslizas,
+  // para que el desplazamiento vaya fluido en móviles modestos
+  let scrollBusy = 0, liteN = 0;
+  const busy = () => { scrollBusy = performance.now() + 350; };
+  for (const id of ['mapList', 'passList', 'misList']) for (const ev of ['scroll', 'touchstart', 'touchmove', 'wheel']) $(id).addEventListener(ev, busy, { passive: true });
+  const liteMenu = () => $('map').classList.contains('on') || $('pass').classList.contains('on') || $('missions').classList.contains('on');
   function frame(now) {
     if (manual) { last = now; requestAnimationFrame(frame); return; }
+    const lite = liteMenu();
+    if (lite && (now < scrollBusy || (liteN = (liteN + 1) % 3) !== 0)) { requestAnimationFrame(frame); return; }
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    adaptQuality(dt);
+    if (!lite) adaptQuality(dt);
     tick(dt);
     requestAnimationFrame(frame);
   }
