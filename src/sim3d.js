@@ -1,4 +1,4 @@
-// Chroma Crash 3D — reglas y física (cannon-es). Sin dibujo: sirve al juego y al validador.
+// Rocket Rush — reglas y física (cannon-es). Sin dibujo: sirve al juego y al validador.
 (function (root) {
   'use strict';
   const CANNON = root.CANNON || (typeof require !== 'undefined' ? require('../vendor/cannon-es.cjs.js') : null);

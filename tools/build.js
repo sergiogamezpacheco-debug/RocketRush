@@ -16,5 +16,5 @@ fs.writeFileSync(path.join(root, 'dist', 'index.html'), html);
 let art = html.replace(/<!doctype html>\s*/i, '').replace(/<html[^>]*>\s*/i, '').replace(/<\/html>\s*$/i, '')
   .replace(/<head>\s*/i, '').replace(/<\/head>\s*/i, '').replace(/<body>\s*/i, '').replace(/<\/body>\s*(?=$)/i, '')
   .replace(/<meta charset="utf-8">\s*/i, '').replace(/<meta name="viewport"[^>]*>\s*/i, '').replace(/<meta name="theme-color"[^>]*>\s*/i, '');
-fs.writeFileSync(path.join(root, 'dist', 'chroma-crash-3d.html'), art);
+fs.writeFileSync(path.join(root, 'dist', 'rocket-rush.html'), art);
 console.log('ok', (html.length / 1024).toFixed(0) + ' KB' + (release ? ' · versión para publicar (sin modo prueba)' : ' · con modo prueba'));

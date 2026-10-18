@@ -1,4 +1,4 @@
-// Chroma Crash 3D — niveles. Isla de radio 5,6 con la superficie en y = 0. Bloque básico: cubo de 1 m.
+// Rocket Rush — niveles. Isla de radio 5,6 con la superficie en y = 0. Bloque básico: cubo de 1 m.
 // 1000 niveles en 100 mundos + 100 niveles extra (uno por mundo, se abren con 3 estrellas en sus 10 niveles).
 // Los niveles 1-100 están hechos a mano; del 101 al 1000 los crea un generador determinista (ver genLevel).
 // Los mundos 6-10 tienen paisaje propio (desierto, nieve, selva, volcán y espacio) y un bloque nuevo cada uno.

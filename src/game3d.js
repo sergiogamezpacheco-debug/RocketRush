@@ -1,4 +1,4 @@
-// Chroma Crash 3D — dibujo (three.js), controles, efectos, sonido, menús y guardado.
+// Rocket Rush — dibujo (three.js), controles, efectos, sonido, menús y guardado.
 (function () {
   'use strict';
   const { Sim, C, WBALLS } = SimLib;
@@ -2303,9 +2303,10 @@
   const chk = s => { let h = 7; for (const ch of s) h = (h * 31 + ALPH.indexOf(ch) + 1) % 1021; return ALPH[h % 32] + ALPH[(h >> 5) % 32]; };
   function myCode() {
     if (!save.pid) { let s = ''; for (let i = 0; i < 6; i++) s += ALPH[Math.floor(Math.random() * 32)]; save.pid = s; persist(); }
-    return 'CC-' + save.pid + chk(save.pid);
+    return 'RR-' + save.pid + chk(save.pid);
   }
-  function normCode(t) { return (t || '').toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/^CC/, ''); }
+  // los códigos antiguos (CC-) siguen valiendo
+  function normCode(t) { const c = (t || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return c.length === 10 && /^(RR|CC)/.test(c) ? c.slice(2) : c; }
   function addFriend(text) {
     const c = normCode(text);
     if (c.length !== 8 || [...c].some(ch => ALPH.indexOf(ch) < 0) || chk(c.slice(0, 6)) !== c.slice(6)) return 'Ese código no es válido. Revisa que esté bien escrito.';
@@ -2316,11 +2317,11 @@
     return null;
   }
   function shareGame() {
-    const text = `¡Juega conmigo a Chroma Crash! Añádeme como amigo con mi código ${myCode()} y los dos ganamos premios.`;
+    const text = `¡Juega conmigo a Rocket Rush! Añádeme como amigo con mi código ${myCode()} y los dos ganamos premios.`;
     stats().shares++; persist();
     try {
       if (window.ChromaAndroid && window.ChromaAndroid.share) window.ChromaAndroid.share(text);
-      else if (navigator.share) navigator.share({ title: 'Chroma Crash', text }).catch(() => {});
+      else if (navigator.share) navigator.share({ title: 'Rocket Rush', text }).catch(() => {});
       else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast('Mensaje copiado: pégalo donde quieras'), () => toast(text, 5000));
     } catch (e) { /* sin compartir */ }
     renderMissions();

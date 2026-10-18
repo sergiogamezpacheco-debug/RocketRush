@@ -1,4 +1,4 @@
-# Chroma Crash 3D
+# Rocket Rush
 
 Puzle de física en 3D para Android, en primera persona desde detrás de un cañón. Disparas bolas de colores contra castillos de bloques de gominola: si la bola toca un bloque de su color, revienta todo el grupo conectado de ese color y la estructura se derrumba con física real. Hay que derribar un porcentaje de la estructura con las bolas disponibles.
 
@@ -93,7 +93,7 @@ Pruebas: `node tools/mechanics.js` (reglas de los bloques nuevos y de los objeto
 - **Experiencia**: subir del nivel L al L+1 cuesta `30 + 20·(L−1)` XP (cada nivel pide 20 XP más que el anterior). Se gana jugando (10 XP + 5 por estrella la primera vez, más en difíciles y extra; menos al repetir) y con las misiones. Ritmo: nivel 5 en unas 8 partidas, nivel 10 en unas 33, nivel 20 en unas 130 y nivel 50 en unas 800. Cada nivel da monedas; cada 5, una bomba; cada 10, 2 gemas.
 - **Misiones en cadena** (al cobrar una aparece la siguiente): amigos (1, 5, 10, 25; la de 1 amigo da más que ninguna: 300 XP, 1.000 monedas, 15 gemas y una bola dorada), compartir el juego, equipar un cañón, racha diaria, vídeos con premio, superar el nivel 10, 25, 50... hasta 1000, desbloquear los mundos 2 a 100, estrellas, 3 estrellas, niveles extra, derribar bloques y bloques especiales, cascadas, bolas doradas y las difíciles (objetos del cielo, niveles difíciles y 3 estrellas en difíciles).
 - **Gemas**: solo en las misiones de amigos, las de interactuar y las difíciles, y pocas.
-- **Amigos**: cada jugador tiene un código (`CC-XXXXXXYY`, con 2 letras de control). Se añade un amigo escribiendo su código y se comparte con el botón «Compartir» (en Android abre el menú de compartir del móvil). En la versión de Google Play conviene comprobar los códigos con un servidor (por ejemplo, Firebase) para evitar trampas.
+- **Amigos**: cada jugador tiene un código (`RR-XXXXXXYY`, con 2 letras de control). Se añade un amigo escribiendo su código y se comparte con el botón «Compartir» (en Android abre el menú de compartir del móvil). En la versión de Google Play conviene comprobar los códigos con un servidor (por ejemplo, Firebase) para evitar trampas.
 - No hay premios por valorar el juego en Google Play: está prohibido por sus normas.
 
 ## Modo prueba (quitar al publicar)
@@ -151,3 +151,7 @@ Icono elegido: **bloque de gelatina morada** que ocupa todo el icono, con «ROCK
 - Es un **icono adaptable** de Android 8 o superior (`mipmap-anydpi-v26`): el fondo morado y las letras van en capas separadas (`ic_launcher_background` e `ic_launcher_foreground`), así que se ve bien con cualquier forma de icono (redondo, cuadrado o gota) y las letras nunca se cortan.
 - Para Android 7 hay versiones clásica y redonda (`ic_launcher`, `ic_launcher_round`) en las 5 densidades.
 - En `store/` están el icono de 512 px para Google Play (`icono-play-512.png`) y los SVG originales para retocarlo.
+
+## Nombre: Rocket Rush
+
+Todo lo que ve el jugador dice **Rocket Rush**: nombre de la app, portada, icono, versión en Ajustes, texto para compartir y archivo de la APK. Los códigos de amigo ahora empiezan por `RR-`, y los antiguos `CC-` siguen valiendo. Por dentro se mantienen tres nombres internos que no se ven: la clave del guardado (`chromacrash3d.v1`), para no perder el progreso; el puente con Android (`ChromaAndroid`); y el identificador de la app (`com.chromacrash.game3d`). Ese identificador se puede cambiar antes de publicar en Google Play, porque después ya no se puede, pero cambiarlo obliga a desinstalar la app de prueba una vez.
