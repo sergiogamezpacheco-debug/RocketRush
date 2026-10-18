@@ -164,3 +164,15 @@ Bolas, monedas, gemas, cofres, escudo de racha, llama de la racha, estrella del 
 - Las clases son las mismas de siempre (`.ball.bR`, `.coin`, `.gem`, `.chest.gold`, `.shieldi`…), así que salen igual en la tienda, la racha, el pase, las misiones, la victoria y la bandeja de bolas durante la partida. También hay clases nuevas: `.ball.bPlus2` (+2 bolas), `.gems2` (montón de gemas) e `.ico-fire`, `.ico-star`, `.ico-xp` e `.ico-golden`, que sustituyen a los emojis.
 - El cofre tiene la tapa en una pieza aparte, así que al abrirlo se levanta de verdad.
 - El mismo archivo guarda los otros dos estilos que se propusieron (pegatina y medalla dorada) por si se quieren recuperar.
+
+## Menús «Feria luminosa»
+
+Todas las ventanas (nivel, racha, tienda, pausa, victoria, derrota, ajustes) son casetas de feria:
+
+- **Panel**: fondo morado con confeti, toldo de rayas rojas y blancas arriba y bombillas encendidas alrededor que parpadean. El título va en un letrero de neón con la mascota al lado.
+- **Tickets**: las filas de la tienda, las misiones y los días de la racha son tickets con muescas a los lados. En la racha, los tickets van unidos por un camino de puntos. Los precios son etiquetas colgantes.
+- **Ventajas** antes de jugar: casetas con aro rojo y blanco; la elegida, con aro verde.
+- **Tienda**: monedero arriba y pestañas (Ofertas, Gemas, Bolas, Monedas) que bajan a su sección. El Pack de inicio sale como oferta destacada, con rayos girando, y hay etiquetas «MÁS POPULAR» y «MEJOR VALOR». No hay descuentos inventados ni cuentas atrás falsas: en Google Play no están permitidos.
+- **Racha**: fila de próximos cofres, con los 5 siguientes.
+- **Monedero** del mapa, el pase y las misiones: lleva un «+» verde que abre la tienda en monedas o en gemas.
+- La cabecera del pase, la de misiones y el cartel de la portada también llevan bombillas.

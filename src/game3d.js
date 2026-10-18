@@ -2056,9 +2056,28 @@
       return `<div class="shopitem wb ${open ? '' : 'locked'}"><div class="ball ${CSSB[k]}"></div><div><b>${WBALLS[k].name} <small>nv. ${wbLevel(k)}${have ? ' · tienes ' + have : ''}</small></b><span>${open ? WB_DESC[k] : 'Se desbloquea en el mundo ' + WBALLS[k].world}</span></div>` +
         (open ? `<button class="btn gold" data-wb="${k}"><i class="coin"></i>${wbCoins(k)}</button>` : '<span class="lockico">&#128274;</span>') + '</div>';
     };
-    $('shopList').innerHTML = '<div class="sechead">GEMAS · para el Pase Pro</div>' + items.filter(s => s.sec === 'gems').map(row).join('') +
-      '<div class="sechead">BOLAS DE LOS MUNDOS</div>' + WB_KEYS.map(wrow).join('') +
-      '<div class="sechead">MONEDAS Y POTENCIADORES</div>' + items.filter(s => s.sec !== 'gems').map(row).join('');
+    // pestañas: Ofertas, Gemas, Bolas y Monedas (cada una baja a su sección)
+    const TAG = { g2: 'MÁS POPULAR', g3: 'MEJOR VALOR' };
+    const st = items.find(s => s.id === 'starter');
+    const feat = st ? `<div class="feat"><div class="frays"></div><div class="ftag">OFERTA ÚNICA</div><div class="fic"><i class="chest gold"></i></div>
+      <div class="ftx"><b>${st.name}</b><div class="fit"><span><i class="coin"></i>1.000</span><span><i class="ball bBomb"></i>×3</span><span><i class="ball bRainbow"></i>×3</span></div></div>
+      <div class="fbuy"><button class="btn green" data-id="starter">${st.price}</button><small>solo una vez</small></div></div>` : '';
+    const rowT = s => TAG[s.id] ? row(s).replace('<div class="shopitem">', `<div class="shopitem hot"><i class="rtag">${TAG[s.id]}</i>`) : row(s);
+    const by = ids => items.filter(s => ids.includes(s.id)).map(rowT).join('');
+    $('shopTabs').innerHTML = [['sOff', 'ico ico-fire', 'Ofertas'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
+      .map(([id, ic, t]) => `<button data-to="${id}"><i class="${ic}"></i>${t}</button>`).join('');
+    $('shopList').innerHTML = `<div class="sechead" id="sOff"><span>Ofertas</span></div>${feat}${by(['noads'])}` +
+      `<div class="sechead" id="sGem"><span>Gemas · para el Pase Pro</span></div>${by(['g1', 'g2', 'g3'])}` +
+      `<div class="sechead" id="sBall"><span>Potenciadores</span></div>${by(['b1', 'b2', 'b3'])}` +
+      `<div class="sechead"><span>Bolas de los mundos</span></div>${WB_KEYS.map(wrow).join('')}` +
+      `<div class="sechead" id="sCoin"><span>Monedas</span></div>${by(['c1', 'c2'])}`;
+    const goTab = id => {
+      const el = $(id), L = $('shopList'); if (!el) return;
+      L.scrollTop = el.offsetTop - L.offsetTop - 4;
+      $('shopTabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.to === id));
+    };
+    $('shopTabs').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { Audio.click(); goTab(b.dataset.to); }));
+    $('shopTabs').querySelector('button').classList.add('on');
     $('shopList').querySelectorAll('button[data-wb]').forEach(b => b.addEventListener('click', () => {
       const k = b.dataset.wb, cost = wbCoins(k);
       if (save.coins < cost) { toast('No tienes monedas suficientes'); return; }
@@ -2072,6 +2091,7 @@
       openShop();
     }));
     setCoins(); $('shop').classList.add('on');
+    if (focus) goTab({ gems: 'sGem', coins: 'sCoin', balls: 'sBall' }[focus] || 'sOff');
   }
 
   // ---------------- pase de temporada ----------------
@@ -2517,6 +2537,8 @@
     if (note) sub = note;
     $('dTitle').textContent = title; $('dSub').textContent = sub;
     $('dNext').innerHTML = nextInfo(s, d);
+    { const from = s.st === 'done' ? d.n + 1 : s.day; let c = Math.ceil(from / 5) * 5; if (c === from && s.st !== 'done') c += 5;
+      $('dNexts').innerHTML = [0, 1, 2, 3, 4].map(i => `<div class="nc"><i class="chest ${chestOf(c + 5 * i).cls}"><i></i></i><small>Día ${c + 5 * i}</small></div>`).join(''); }
     $('dShield').innerHTML = d.shields || d.n >= 5 ? `<i class="shieldi" style="vertical-align:-4px"></i> Escudos de racha: ${d.shields}/${SHIELD_MAX} · cada uno cubre un día que no entres` : '';
     // botones
     const B = [];
@@ -2615,6 +2637,7 @@
   on('sNotif', () => { const d = dailySave(); d.notif = d.notif === false; persist(); refreshToggles(); scheduleReminder(); });
   on('btnHome', goTitle);
   on('btnShop', () => openShop()); on('btnShopT', () => openShop());
+  document.querySelectorAll('.wallet .coins').forEach(el => el.addEventListener('click', () => { Audio.init(); Audio.click(); openShop(el.querySelector('.gem') ? 'gems' : 'coins'); }));
   on('btnPass', openPass); on('btnPassT', openPass);
   on('btnMis', openMissions); on('btnMisT', openMissions);
   on('misBack', () => (G.mode === 'title' ? goTitle() : goMap()));

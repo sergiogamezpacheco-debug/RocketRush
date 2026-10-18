@@ -11,7 +11,7 @@ with sync_playwright() as p:
     pg.add_init_script("if(!sessionStorage.x){sessionStorage.x=1;localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:131, coins:5000, gems:20, seen:{bird:true,ship:true}, daily:{n:0,last:null,best:0,shields:0,adRescue:-99,auto:Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)}}))}")
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(1500); ev(pg,"() => ChromaGame.manual(true)")
     pg.click('#btnShopT'); pg.wait_for_timeout(200)
-    ev(pg,"() => { const h=[...document.querySelectorAll('.sechead')].find(x=>x.textContent.includes('MUNDOS')); h.scrollIntoView(); }"); pg.wait_for_timeout(100)
+    ev(pg,"() => { const h=[...document.querySelectorAll('.sechead')].find(x=>x.textContent.toLowerCase().includes('mundos')); h.scrollIntoView(); }"); pg.wait_for_timeout(100)
     pg.screenshot(path=OUT+'wb_tienda.png')
     print('tienda:', ev(pg,"() => [...document.querySelectorAll('.shopitem.wb b')].map(x=>x.textContent).join(' | ')"))
     pg.click('button[data-wb="w1"]'); print('comprada demoledora: tienes', ev(pg,"() => ChromaGame.save().boosters.w1"), '· monedas', ev(pg,"() => ChromaGame.save().coins"))

@@ -569,6 +569,92 @@ h1,h2,h3{margin:0}
 .shopitem.wb>.ball{width:42px;height:42px}
 .gems2{display:inline-block;width:30px;height:30px}
 
+
+/* ================= FERIA LUMINOSA ================= */
+.chest{display:inline-block}
+:root{--bulbs:radial-gradient(circle,#fffbe0 0 2.6px,#ffd23f 3px 4.4px,transparent 4.8px) 12px 0/22px 10px repeat-x,radial-gradient(circle,#fffbe0 0 2.6px,#ffd23f 3px 4.4px,transparent 4.8px) 12px 100%/22px 10px repeat-x,radial-gradient(circle,#fffbe0 0 2.6px,#ffd23f 3px 4.4px,transparent 4.8px) 0 12px/10px 22px repeat-y,radial-gradient(circle,#fffbe0 0 2.6px,#ffd23f 3px 4.4px,transparent 4.8px) 100% 12px/10px 22px repeat-y;
+  --confeti:radial-gradient(circle,rgba(255,79,109,.5) 0 2px,transparent 2.5px) 0 0/46px 46px,radial-gradient(circle,rgba(255,210,63,.5) 0 2px,transparent 2.5px) 23px 17px/46px 46px,radial-gradient(circle,rgba(95,212,90,.45) 0 1.6px,transparent 2px) 11px 31px/46px 46px,radial-gradient(circle,rgba(61,200,255,.45) 0 1.6px,transparent 2px) 35px 6px/46px 46px;
+  --ticket:radial-gradient(circle 7px at 0 50%,transparent 96%,#000) left/51% 100% no-repeat,radial-gradient(circle 7px at 100% 50%,transparent 96%,#000) right/51% 100% no-repeat}
+/* panel: fondo de feria con confeti, bombillas y toldo */
+.panel{padding-top:64px;background:var(--confeti),linear-gradient(180deg,#6a34e0,#2c0f8a) padding-box,var(--gborder) border-box;background-clip:padding-box,padding-box,padding-box,padding-box,padding-box,border-box}
+.panel::before{left:-7px;right:-7px;top:-7px;height:54px;border-radius:32px 32px 0 0;z-index:1;filter:drop-shadow(0 5px 0 rgba(20,5,60,.45));
+  background:repeating-linear-gradient(90deg,#ff4f6d 0 29px,#fff4f6 29px 58px);
+  -webkit-mask:linear-gradient(#000,#000) top/100% 40px no-repeat,radial-gradient(circle 14.5px at 50% 0,#000 97%,transparent 100%) 0 40px/29px 15px repeat-x;
+  mask:linear-gradient(#000,#000) top/100% 40px no-repeat,radial-gradient(circle 14.5px at 50% 0,#000 97%,transparent 100%) 0 40px/29px 15px repeat-x}
+.panel::after{content:'';position:absolute;inset:-6px;border-radius:38px;pointer-events:none;z-index:2;background:var(--bulbs);filter:drop-shadow(0 0 4px rgba(255,220,100,.95));animation:bulbs 1.4s steps(2) infinite}
+@keyframes bulbs{50%{filter:drop-shadow(0 0 7px rgba(255,230,120,1)) brightness(1.15)}}
+#daily .panel{padding-top:64px}
+.screen.dim .panel{margin-top:40px}
+/* título: letrero de neón con la mascota al lado */
+.ribbon{top:-44px;z-index:4;font-size:24px;color:#ffe680;-webkit-text-stroke:0;letter-spacing:.5px;padding:8px 20px;border-radius:16px;
+  background:linear-gradient(180deg,#3a148a,#1d0a5a);text-shadow:0 0 8px #ffb84a,0 0 16px #ff7a1a,0 3px 0 #5a1a00;
+  box-shadow:0 0 0 4px #ffd23f,0 0 0 7px #5a3a08,0 0 18px rgba(255,210,63,.7),0 7px 0 #5a3a08;outline:3px dotted #fff6c0;outline-offset:-8px}
+.ribbon::before{position:absolute;left:-56px;top:-16px;width:54px;height:54px}
+.ribbon.gold{color:#fff3a0}
+.xbtn{top:-14px;right:-12px;z-index:5}
+/* botones grandes: un poco de brillo de feria */
+.panel .btn{position:relative;z-index:1}
+/* secciones con líneas de puntos */
+.sechead,.dnexthead{display:flex;align-items:center;justify-content:center;gap:10px;margin:16px 0 8px;font-weight:900;font-size:15px;letter-spacing:.3px;color:#ffe680;text-shadow:0 0 8px rgba(255,184,74,.8);text-transform:none}
+.sechead::before,.sechead::after,.dnexthead::before,.dnexthead::after{content:'';flex:1;border-top:3px dotted rgba(255,230,128,.8)}
+/* tickets: filas de la tienda, misiones y días de la racha */
+.shopitem,.mcard{position:relative;z-index:0;background:none;border:0;box-shadow:none;color:#4a1a6a;padding-left:16px}
+.shopitem::before,.mcard::before{content:'';position:absolute;inset:0;border-radius:12px;z-index:-1;background:#fff8e8;filter:drop-shadow(0 4px 0 rgba(20,5,60,.45));-webkit-mask:var(--ticket);mask:var(--ticket)}
+.shopitem span,.shopitem.wb small,.mbody em,.mprog{color:#8a5a9a}.shopitem b{color:#4a1a6a}
+.sic{background:#f0e6ff;box-shadow:none}
+.shopitem .btn{border-radius:6px 16px 16px 6px;padding-left:20px;background:linear-gradient(170deg,#ffe680,#ffc23a);color:#7a2a00;text-shadow:none;box-shadow:0 0 0 2px #7a2a00,0 4px 0 #7a2a00}
+.shopitem .btn::before{content:'';position:absolute;left:7px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:#fff8e8;box-shadow:inset 0 0 0 1.5px #7a2a00}
+.shopitem .btn.green{background:linear-gradient(170deg,#c8ffb8,#5fd45a);color:#0a4a1a;box-shadow:0 0 0 2px #0a4a1a,0 4px 0 #0a4a1a}.shopitem .btn.green::before{box-shadow:inset 0 0 0 1.5px #0a4a1a}
+.shopitem.hot{margin-top:16px}
+.rtag{position:absolute;top:-10px;right:16px;z-index:2;font-style:normal;font-size:10px;font-weight:900;letter-spacing:.5px;color:#fff;padding:3px 8px;border-radius:8px;background:#3dc8ff;box-shadow:0 2px 0 #1f4fb8}
+.mcard{border-radius:12px}.mcard.ready{background:none;box-shadow:none}.mcard.ready::before{background:#efffe0;filter:drop-shadow(0 0 8px rgba(156,242,138,.9)) drop-shadow(0 4px 0 rgba(20,5,60,.45))}
+.mbody b{color:#4a1a6a}.mbody small{color:#d8306a}.mbar{background:#e6dcf5}.mico{background:#f0e6ff}
+.mrew span{background:#fff;border:1.5px solid #e0d0f0;color:#4a1a6a}.mrew .xpchip{color:#6a3ad6}
+.dweek{position:relative}
+.dweek::before{content:'';position:absolute;left:8px;right:8px;top:50%;height:8px;margin-top:-4px;border-radius:4px;background:repeating-linear-gradient(90deg,#ffd23f 0 12px,transparent 12px 20px);opacity:.75}
+.dday{border:0;border-radius:10px;background:#fff8e8;color:#4a1a6a;box-shadow:none;filter:drop-shadow(0 4px 0 rgba(20,5,60,.45));-webkit-mask:var(--ticket);mask:var(--ticket)}
+.dday small{color:#8a5a9a}
+.dday.done{opacity:.85;background:repeating-linear-gradient(-45deg,#e8e0f0 0 8px,#f6f0ff 8px 16px)}.dday.done::after{display:none}
+.dday.today{-webkit-mask:none;mask:none;border-radius:14px;background:linear-gradient(180deg,#fff3a0,#ffc23a);color:#5a3a00;filter:drop-shadow(0 0 10px rgba(255,200,60,.9))}
+.dday.dchest{background:#ffe0ea}.dday.dchest small{color:#a8143a}
+.dnexts{display:flex;justify-content:space-between;padding:8px 6px 6px;border-radius:16px;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 2px rgba(255,230,128,.5)}
+.dnexts .nc{display:flex;flex-direction:column;align-items:center;gap:2px}.dnexts .chest{width:40px;height:40px;margin:0}.dnexts small{font-size:11px;font-weight:800;color:#ffe9a8}
+.dnexthead{margin-top:12px}
+.dnext{color:#e3dbff}
+/* ventajas: casetas con aro rojo y blanco */
+.boost{border:0;border-radius:22px;background:radial-gradient(circle at 50% 35%,#fff,#efe6ff 60%,#d6c8f5);color:#4a1a6a;box-shadow:0 0 0 4px #ff4f6d,0 0 0 7px #fff,0 0 0 9px #5a1a00,0 6px 0 3px #5a1a00}
+.boost.sel{background:radial-gradient(circle at 50% 35%,#fff,#dfffd6 60%,#b8f0a8);outline:0;box-shadow:0 0 0 4px #37c46b,0 0 0 7px #fff,0 0 0 9px #0a5a20,0 0 18px 6px rgba(156,242,138,.7)}
+.boost small{color:#d8306a}
+.prescroll .boosters{gap:16px;padding:10px 4px 6px}
+.tag{background:rgba(255,255,255,.14);border:2px dotted rgba(255,230,128,.7)}
+.reward-box,.streak{background:rgba(255,79,109,.18);border:2px dashed #ffd23f}
+.passline{background:rgba(255,210,63,.18);border:2px dotted rgba(255,230,128,.6)}
+/* tienda: monedero, pestañas y oferta destacada */
+.shopwal{display:flex;justify-content:center;gap:8px;margin-top:2px}.shopwal .coins{background:#1d0a5a;box-shadow:inset 0 0 0 2px rgba(255,230,128,.6)}
+.stabs{display:flex;gap:5px;justify-content:center;margin:10px 0 2px}
+.stabs button{display:flex;align-items:center;gap:4px;font:inherit;font-weight:800;font-size:12.5px;color:#fff;padding:7px 8px;border-radius:12px;border:0;cursor:pointer;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 2px rgba(255,230,128,.4)}
+.stabs button.on{background:#ffe680;color:#7a2a00}
+.stabs .gem,.stabs .coin,.stabs .ball,.stabs .ico{width:17px;height:17px}
+#shopList{padding-top:2px}
+.feat{position:relative;overflow:hidden;margin:6px 2px 8px;border-radius:20px;padding:12px 10px;display:flex;align-items:center;gap:8px;text-align:left;color:#fff;
+  background:repeating-linear-gradient(-45deg,#ff4f6d 0 18px,#ff6f88 18px 36px);box-shadow:0 0 0 3px #fff,0 0 0 6px #ffd23f,0 0 16px rgba(255,210,63,.7)}
+.frays{position:absolute;left:-40px;top:-46px;width:170px;height:170px;border-radius:50%;background:repeating-conic-gradient(rgba(255,255,255,.25) 0 10deg,transparent 10deg 25deg);animation:spin 9s linear infinite}
+.ftag{position:absolute;top:7px;left:7px;z-index:2;font-size:10.5px;font-weight:900;padding:3px 7px;border-radius:8px;background:#ffd23f;color:#8a1a00;transform:rotate(-6deg);box-shadow:0 2px 0 #8a1a00}
+.fic{position:relative;flex:none;padding-top:10px}.fic .chest{width:66px;height:66px;margin:0}
+.ftx{position:relative;flex:1;min-width:0}.ftx small{font-size:10px;font-weight:900;letter-spacing:1px;color:#fff3c4}.ftx b{display:block;font-size:19px;font-weight:900;text-shadow:0 2px 0 rgba(120,0,40,.5)}
+.fit{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}.fit span{display:flex;align-items:center;gap:3px;font-size:12px;font-weight:900;background:rgba(0,0,0,.2);border-radius:8px;padding:2px 6px}
+.fit .coin,.fit .ball{width:16px;height:16px}
+.fbuy{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;flex:none}.fbuy .btn{width:auto;margin:0;padding:10px 14px;font-size:17px}.fbuy small{font-size:10.5px;font-weight:800}
+/* monedero con «+»: lleva a la tienda */
+.wallet .coins{cursor:pointer;position:relative;padding-right:30px}
+.wallet .coins::after{content:'+';position:absolute;right:5px;top:50%;margin-top:-9px;width:18px;height:18px;border-radius:50%;background:linear-gradient(#9cf28a,#2fa046);color:#fff;font-size:14px;font-weight:900;line-height:18px;text-align:center;box-shadow:0 1px 0 #0a5a20}
+/* pase y misiones: cabecera de feria */
+.passhead{position:relative;background:var(--confeti),linear-gradient(180deg,#6a34e0,#2c0f8a) padding-box,var(--gborder) border-box;background-clip:padding-box,padding-box,padding-box,padding-box,padding-box,border-box}
+.passhead::after{content:'';position:absolute;inset:-5px;border-radius:30px;pointer-events:none;background:var(--bulbs);filter:drop-shadow(0 0 4px rgba(255,220,100,.95))}
+.passhead>*{position:relative;z-index:1}
+/* portada: el cartel también lleva bombillas */
+.tplaque::after{content:'';position:absolute;inset:-6px;border-radius:38px;pointer-events:none;z-index:2;background:var(--bulbs);filter:drop-shadow(0 0 4px rgba(255,220,100,.95));animation:bulbs 1.4s steps(2) infinite}
+#toast{background:linear-gradient(180deg,#3a148a,#1d0a5a);color:#ffe680;box-shadow:0 0 0 3px #ffd23f,0 0 14px rgba(255,210,63,.6),0 6px 0 #5a3a08;border:0}
 </style>
 </head>
 <body>
@@ -734,9 +820,10 @@ h1,h2,h3{margin:0}
 <div class="screen dim" id="shop">
   <div class="panel">
     <div class="ribbon purple">TIENDA</div>
-    <div style="margin-top:12px"><span class="coins" style="background:var(--panel-edge)"><i class="coin"></i><span class="coinTxt">0</span></span></div>
+    <div class="shopwal"><span class="coins"><i class="coin"></i><span class="coinTxt">0</span></span><span class="coins"><i class="gem"></i><span class="gemTxt">0</span></span></div>
+    <div class="stabs" id="shopTabs"></div>
     <div id="shopList"></div>
-    <div class="note">Prototipo: las compras son de prueba y no cobran nada. En la versión de Google Play usarán Google Play Billing.</div>
+    <div class="note">Compras de prueba: no se cobra nada.</div>
     <button class="btn gray" id="shopClose">CERRAR</button>
   </div>
 </div>
@@ -761,6 +848,8 @@ h1,h2,h3{margin:0}
     <button class="xbtn" id="dX" aria-label="Cerrar">&#10005;</button>
     <div class="dhead"><div class="dflame" id="dFlame"><span id="dNum">0</span><small id="dUnit">días</small></div><div class="dmeta"><b id="dTitle"></b><span id="dSub"></span></div></div>
     <div class="dweek" id="dWeek"></div>
+    <div class="dnexthead"><span>Próximos cofres</span></div>
+    <div class="dnexts" id="dNexts"></div>
     <div id="dReveal"></div>
     <div class="dnext" id="dNext"></div>
     <div class="dshield" id="dShield"></div>
