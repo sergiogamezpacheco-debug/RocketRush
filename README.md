@@ -202,3 +202,13 @@ Al recoger un cofre de la racha se abre una pantalla completa:
 
 - El botón atrás de Android cierra la animación y entrega los premios igual (ya se habían dado al recoger).
 - Sonidos sintetizados en `src/sfx.js`, sin archivos de audio. Hay tres juegos (`arcade`, `magia`, `feria`) y se elige con `CHEST_SFX` en `game3d.js`: el elegido es **magia** (campanillas, soplo de aire al estallar, destellos al recoger y coro suave en los premios especiales). Respetan el botón de sonido de Ajustes.
+
+## Portada en 3D: demolición en bucle
+
+En la portada se ve la estructura del nivel en el que vas, con el motor 3D y la física del propio juego:
+
+- La cámara se balancea un poco delante de la estructura. Cada 3 segundos llega una bola dorada desde delante y la revienta: los bloques estallan en pedazos con anillos de luz y un pequeño temblor, y el resto sale volando.
+- A los 3,6 segundos la estructura vuelve a aparecer bloque a bloque, de abajo arriba, con un pequeño rebote, y el ciclo empieza otra vez.
+- Es solo decoración: no da premios, no cuenta para las misiones ni para las estadísticas y no suena. Se detiene mientras haya una ventana abierta (racha, tienda, ajustes…).
+- El cartel del nombre va sin bombillas.
+- Código: `titleDemo()` y `titleEvents()` en `game3d.js`.
