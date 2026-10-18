@@ -1756,7 +1756,50 @@
     G.level = L; G.sim = new Sim(L); G.demo = true;
     setTheme(L.world); buildLevelView(); frameCamera(); lastTray = '';
   }
+  // ---------- portada: demolición en bucle con la física del juego ----------
+  // espera · dispara una bola dorada desde delante · todo vuela por los aires · la estructura vuelve a aparecer bloque a bloque
+  const TD = { phase: 'idle', t: 0 };
+  function titleDemo(dt) {
+    if (!G.sim || !$('title').classList.contains('on') || document.querySelector('.screen.dim.on') || $('daily').classList.contains('on')) return;
+    TD.t += dt;
+    if (TD.phase === 'idle' && TD.t > 3.2) {
+      const sim = G.sim, sil = sim.silhouette();
+      sim.queue.unshift('golden'); sim.sinceFire = 1; sim.state = 'play';
+      if (sim.fire(0, Math.max(1, sil.top * 0.45), 0)) { TD.phase = 'shot'; TD.t = 0; sim.events.length = 0; }
+      else sim.queue.shift();
+    } else if (TD.phase === 'shot' && TD.t > 3.6) {
+      TD.phase = 'grow'; TD.t = 0;
+      loadDemo(G.level.id);
+      for (const g of G.meshes) if (g) { g.userData.grow = g.position.y * 0.09 + Math.random() * 0.12; g.scale.set(0.01, 0.01, 0.01); }
+    } else if (TD.phase === 'grow') {
+      let all = true;
+      for (const g of G.meshes) {
+        if (!g || g.userData.grow === undefined) continue;
+        const k = (TD.t - g.userData.grow) / 0.35;
+        if (k <= 0) { all = false; continue; }
+        if (k >= 1) { g.scale.set(1, 1, 1); delete g.userData.grow; spawnSprite(g.position.x, g.position.y, g.position.z + 0.5, 0xfff2b0, 0.5, 0.8, 0.25, { add: true, alpha: 0.7 }); continue; }
+        const e = 1 + 1.7 * Math.pow(k - 1, 3) + 0.7 * Math.pow(k - 1, 2);   // sale con un pequeño rebote
+        g.scale.set(e, e, e); all = false;
+      }
+      if (all) { TD.phase = 'idle'; TD.t = 0; }
+    }
+  }
+  // efectos de la demolición de la portada: solo lo visual (no cuenta estadísticas ni da premios)
+  function titleEvents() {
+    const sim = G.sim;
+    for (const e of sim.events) {
+      if (e.type === 'shoot') { const m = sim.muzzle(); spawnSprite(m.x, m.y, m.z - 0.5, 0xffd27a, 0.7, 1.2, 0.14, { add: true, alpha: 0.9 }); }
+      else if (e.x !== undefined && ['pop', 'golden', 'glass', 'explode', 'stripe', 'crumble', 'poof', 'special'].includes(e.type)) {
+        const col = COL[e.c] || 0xffd23f;
+        spawnDebris(e.x, e.y, e.z, col, 10, 6.5, 0.22, 1.1); spawnDebris(e.x, e.y, e.z, 0xffffff, 3, 4, 0.12, 0.6);
+        spawnSprite(e.x, e.y, e.z, col, 1.4, 1.2, 0.3, { add: true, alpha: 0.9 }); spawnRing(e.x, e.y, e.z, col, 1.2, 0.35);
+        G.shake = Math.min(0.5, G.shake + 0.08);
+      } else if (e.type === 'impact' || e.type === 'thud') spawnSprite(e.x || 0, (e.y || 0) + 0.1, e.z || 0, 0xf2eefc, 0.5, 1.6, 0.5, { alpha: 0.5 });
+    }
+    sim.events.length = 0;
+  }
   function goTitle() {
+    TD.phase = 'idle'; TD.t = 0;
     G.mode = 'title'; G.paused = false; loadDemo(Math.min(save.unlocked, LEVELS.length));   // de fondo, el paisaje del mundo en el que vas
     $('hud').classList.remove('on'); show('title'); G.titleReady = true; updateTitle();
   }
@@ -2943,7 +2986,8 @@
         if (sim.state === 'won' && !G.winShown && G.t - G.winAt > 1.6) finishWin();
         if (sim.state === 'lost' && !G.ended) { G.endT -= dt; if (G.endT <= 0) { G.ended = true; showLose(); } }
         updateHud(dt);
-      } else { sim.update(dt * 0.0); sim.events.length = 0; }
+      } else if (G.mode === 'title' && TD.phase === 'shot') { sim.update(dt); titleEvents(); }
+      else { sim.update(dt * 0.0); sim.events.length = 0; }
       syncView(dt);
     }
     updateDebris(dt * (G.paused ? 0 : 1)); updateSprites(dt); updateRings(dt); updateBeams(dt);
@@ -2960,6 +3004,15 @@
       camera.lookAt(G.camLook);
       cannonG.visible = true;
       updateCannon(dt);
+    } else if (G.mode === 'title') {
+      // portada: la cámara se balancea un poco delante de la estructura (la bola llega desde delante)
+      titleDemo(dt);
+      G.orbit = Math.sin(G.t * 0.22) * 0.42;
+      const r = G.camBase.z * 0.95;
+      camera.position.set(Math.sin(G.orbit) * r, G.camBase.y + 1.5, Math.cos(G.orbit) * r);
+      if (G.shake > 0) { camera.position.x += rnd(-1, 1) * G.shake * 0.3; camera.position.y += rnd(-1, 1) * G.shake * 0.3; }
+      camera.lookAt(G.camLook);
+      cannonG.visible = false;
     } else {
       G.orbit += dt * 0.12;
       const r = G.camBase.z * 0.95;
