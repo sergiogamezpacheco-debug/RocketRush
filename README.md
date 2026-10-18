@@ -201,4 +201,4 @@ Al recoger un cofre de la racha se abre una pantalla completa:
 5. Al final hay un resumen y se vuelve a la ventana de la racha.
 
 - El botón atrás de Android cierra la animación y entrega los premios igual (ya se habían dado al recoger).
-- Sonidos sintetizados en `src/sfx.js`, sin archivos de audio. Hay tres juegos (`arcade`, `magia`, `feria`) y se elige con `CHEST_SFX` en `game3d.js`. Respetan el botón de sonido de Ajustes.
+- Sonidos sintetizados en `src/sfx.js`, sin archivos de audio. Hay tres juegos (`arcade`, `magia`, `feria`) y se elige con `CHEST_SFX` en `game3d.js`: el elegido es **magia** (campanillas, soplo de aire al estallar, destellos al recoger y coro suave en los premios especiales). Respetan el botón de sonido de Ajustes.

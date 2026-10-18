@@ -2619,7 +2619,7 @@
   // ---------------- apertura de cofre (estilo Brawl Stars) ----------------
   // 1) cae el cofre · 2) tres toques: tiembla, se agrieta y brilla · 3) estalla (único fogonazo) y los premios caen al suelo
   // 4) un toque por premio: carta con el número subiendo y las piezas del suelo vuelan al contador (sin destellos) · 5) resumen
-  const CHEST_SFX = 'arcade';            // juego de sonido: 'arcade' | 'magia' | 'feria'
+  const CHEST_SFX = 'magia';             // juego de sonido elegido: magia (también hay 'arcade' y 'feria')
   const TIER_COL = { wood: '#ffb84a', silver: '#cfe6ff', gold: '#ffd23f', crystal: '#7fe0ff', epic: '#c06bff', legend: '#ff7a3d' };
   const sfx = (ev, a) => { if (save.sound) { SFX.pack = CHEST_SFX; SFX.play(ev, a); } };
   const imgCache = {};
