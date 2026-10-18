@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.chromacrash.game'
+    namespace 'com.rocketrush.game'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.chromacrash.game3d"
+        applicationId "com.rocketrush.game"
         minSdk 24
         targetSdk 34
         // en GitHub Actions cada compilación lleva un número mayor (así el móvil la reconoce como actualización)

@@ -1,4 +1,4 @@
-package com.chromacrash.game;
+package com.rocketrush.game;
 
 import android.app.Activity;
 import android.content.Context;

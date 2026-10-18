@@ -154,7 +154,7 @@ Icono elegido: **bloque de gelatina morada** que ocupa todo el icono, con «ROCK
 
 ## Nombre: Rocket Rush
 
-Todo lo que ve el jugador dice **Rocket Rush**: nombre de la app, portada, icono, versión en Ajustes, texto para compartir y archivo de la APK. Los códigos de amigo ahora empiezan por `RR-`, y los antiguos `CC-` siguen valiendo. Por dentro se mantienen tres nombres internos que no se ven: la clave del guardado (`chromacrash3d.v1`), para no perder el progreso; el puente con Android (`ChromaAndroid`); y el identificador de la app (`com.chromacrash.game3d`). Ese identificador se puede cambiar antes de publicar en Google Play, porque después ya no se puede, pero cambiarlo obliga a desinstalar la app de prueba una vez.
+Todo lo que ve el jugador dice **Rocket Rush**: nombre de la app, portada, icono, versión en Ajustes, texto para compartir y archivo de la APK. Los códigos de amigo ahora empiezan por `RR-`, y los antiguos `CC-` siguen valiendo. El identificador de la app es `com.rocketrush.game`: es el que aparece en el enlace de Google Play y no se puede cambiar después de publicar. Antes era `com.chromacrash.game3d`, así que la primera APK con el nombre nuevo (1.0.16) se instala como una app distinta: hay que desinstalar la antigua. Por dentro se mantienen dos nombres internos que no se ven: la clave del guardado (`chromacrash3d.v1`) y el puente con Android (`ChromaAndroid`).
 
 ## Iconos del juego (estilo «caramelo brillante»)
 
