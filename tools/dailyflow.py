@@ -92,7 +92,7 @@ with sync_playwright() as p:
     claim(pg); pg.wait_for_timeout(1400); pg.screenshot(path=OUT+'d11_legendario.png')
     print('día 30 →', ev(pg,"() => document.querySelector('.drew').innerText.replace(/\\n/g,' ')"), '· cañón', ev(pg,"() => ChromaGame.save().skins.equip"))
     pg.click('#dClose2')
-    ev(pg,"() => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.startLevel(4, []); }"); ticks(pg,40,True)
+    ev(pg,"() => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.startLevel(5, []); }"); ticks(pg,40,True)
     pg.screenshot(path=OUT+'d12_canon_fuego.png')
     # 8) cambio de día a mitad de sesión: al volver al mapa tras ganar, aparece y luego sigue al nivel
     ev(pg,"() => ChromaGame.shiftDays(1)")

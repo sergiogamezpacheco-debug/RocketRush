@@ -12,7 +12,7 @@ with sync_playwright() as p:
     pg.add_init_script("if(!sessionStorage.g){sessionStorage.g=1;localStorage.setItem('chromacrash3d.v1', JSON.stringify({gemRoll:{n:0,got:0}}))}")  # sin gema: resultado estable
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(1500)
     ev(pg,"() => ChromaGame.manual(true)")
-    ev(pg,"() => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.startLevel(8, ['extra']); }"); ticks(pg,40)
+    ev(pg,"() => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.startLevel(9, ['extra']); }"); ticks(pg,40)
     def shoot():
         pos=ev(pg,"""() => { const s=ChromaGame.G.sim, k=s.queue[0]; const live=s.liveBlocks(); const b=live.find(x=>x.userData.c===k)||live[0];
            const v=new THREE.Vector3().copy(b.position).project(ChromaGame.camera); return [(v.x*0.5+0.5)*innerWidth, (-v.y*0.5+0.5)*innerHeight]; }""")

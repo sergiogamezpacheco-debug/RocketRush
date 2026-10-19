@@ -24,7 +24,8 @@ with sync_playwright() as p:
     print('victoria visible', on(pg,'win'), pg.evaluate("() => document.getElementById('winRes').textContent"))
     pg.click('#winNext'); ticks(pg,1); pg.screenshot(path=OUT+'u3_pre2.png'); print('pre nivel 2', on(pg,'pre'))
     # derrota en nivel 3 disparando al cielo
-    for lv,name in [(3,'u4_regalo'),(10,'u5_pago')]:
+    pg.evaluate("() => { ChromaGame.save().casiFree = {2:true}; }")   # el regalo del mundo 2 ya se usó
+    for lv,name in [(3,'u4_regalo'),(11,'u5_pago')]:
         pg.evaluate(f"() => {{ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.startLevel({lv}, []); }}"); ticks(pg,40,False)
         for i in range(400):
             if pg.evaluate("() => ChromaGame.G.sim.canFire()"): pg.mouse.click(195,120)

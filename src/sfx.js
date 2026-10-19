@@ -77,8 +77,15 @@ const SFX = (() => {
     try { const a = ctx(), b = a.createBuffer(1, 1, 22050), s = a.createBufferSource(); s.buffer = b; s.connect(a.destination); s.start(0); if (a.state !== 'suspended') unlocked = true; } catch (e) { /* nada */ }
   };
   for (const ev of ['pointerdown', 'touchend', 'click', 'keydown']) addEventListener(ev, unlock, { capture: true, passive: true });
+  // combo: cada pieza de un mismo tiro suena una nota más aguda (escala pentatónica de campanas)
+  const SCALE = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760, 2093, 2349, 2637, 3136, 3520];
+  let lastNote = 0;
+  function note(i) {
+    const n = performance.now(); if (n - lastNote < 38) return; lastNote = n;
+    try { const f = SCALE[Math.min(SCALE.length - 1, i)]; bell(f, 0.55, 0.075); if (i >= 9) bell(f * 1.5, 0.4, 0.035, 0.03); } catch (e) { /* sin sonido */ }
+  }
   return {
-    pack: 'arcade', packs: Object.keys(PACKS), unlock,
+    pack: 'arcade', packs: Object.keys(PACKS), unlock, note,
     play(ev, arg) {
       try {
         if (ev === 'clink') { const n = performance.now(); if (n - lastClink < 45) return; lastClink = n; }

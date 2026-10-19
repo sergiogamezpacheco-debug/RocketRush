@@ -8,17 +8,17 @@ with sync_playwright() as p:
     ctx=b.new_context(viewport={'width':390,'height':844},device_scale_factor=1,is_mobile=True,has_touch=True)
     pg=ctx.new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
     # partida guardada: mundo 1 con 3 estrellas en 9 niveles y 2 en el 10
-    pg.add_init_script("localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:11, stars:{1:3,2:3,3:3,4:3,5:3,6:3,7:3,8:3,9:3,10:2}, coins:500, daily:{n:0,last:null,best:0,shields:0,adRescue:-99,auto:Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)}}))")
+    pg.add_init_script("localStorage.setItem('chromacrash3d.v1', JSON.stringify({worlds3:true, unlocked:6, stars:{1:3,2:3,3:3,4:3,5:2}, coins:500, daily:{n:0,last:null,best:0,shields:0,adRescue:-99,auto:Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)}}))")
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(1500)
     pg.evaluate("() => ChromaGame.manual(true)")
     pg.click('#btnPlay'); ticks(pg,1,True); pg.screenshot(path=OUT+'m1_mapa.png')
     print('extra 1 cerrado:', pg.evaluate("() => !document.querySelector('.bonus[data-id=\"10001\"]').classList.contains('open')"), pg.evaluate("() => document.querySelector('.bonus[data-id=\"10001\"] span').textContent"))
     # ganar el nivel 10 con 3 estrellas: se simula derribándolo todo
-    pg.evaluate("() => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.startLevel(10, []); const s=ChromaGame.G.sim; for (const b of s.blocks) { b.position.y -= 20; } }")
+    pg.evaluate("() => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.startLevel(5, []); const s=ChromaGame.G.sim; for (const b of s.blocks) { b.position.y -= 20; } }")
     for i in range(30):
         ticks(pg,15)
         if pg.evaluate("() => document.getElementById('win').classList.contains('on')"): break
-    print('victoria nivel 10:', pg.evaluate("() => document.getElementById('winNext').textContent"), '· estrellas', pg.evaluate("() => ChromaGame.save().stars[10]"))
+    print('victoria nivel 5:', pg.evaluate("() => document.getElementById('winNext').textContent"), '· estrellas', pg.evaluate("() => ChromaGame.save().stars[5]"))
     pg.click('#winNext'); ticks(pg,1,True); pg.screenshot(path=OUT+'m2_extra_pre.png')
     print('pre del extra:', pg.evaluate("() => document.getElementById('preTitle').textContent"), '·', pg.evaluate("() => document.getElementById('preReward').textContent"))
     pg.click('#preGo'); ticks(pg,40,True); pg.screenshot(path=OUT+'m3_extra_juego.png')

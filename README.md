@@ -66,6 +66,8 @@ Durante la partida, de vez en cuando cruza un pájaro rápido por detrás de la 
 
 ## Mundos 6 a 10 (niveles 51-100)
 
+> Desde la versión con jefes, el orden de los mundos cambió: ver «Mundos por paisaje, jefes y bloques nuevos» al final. Los niveles de esta tabla siguen existiendo, ahora dentro de su paisaje.
+
 Cada mundo nuevo tiene su paisaje, su plataforma, un bloque nuevo y su propio objeto que cruza el cielo con 2 bolas a la vista (en lugar del velero, que solo navega en los mundos del mar). Los 50 primeros niveles no cambian.
 
 | Mundo | Paisaje y plataforma | Bloque nuevo | Cruza el cielo |
@@ -81,6 +83,8 @@ Cada mundo tiene 1 nivel difícil (57, 65, 78, 86, 99), 4 medios y 5 fáciles, y
 Pruebas: `node tools/mechanics.js` (reglas de los bloques nuevos y de los objetos que cruzan) y `python3 tools/worldsflow.py` (capturas de cada mundo).
 
 ## Niveles 101 a 1000 (mundos 11-100)
+
+> El paisaje de cada nivel generado ahora lo decide su mundo (ver el final). La forma y la dificultad de cada nivel no cambian.
 
 - Los crea un generador determinista (`genLevel` en `src/levels3d.js`): el nivel N es siempre el mismo. Usa plantillas de estructura probadas (bloques, pirámides, escaleras, torres gemelas, anillos, puentes, murallas, templos y estructuras flotantes en el espacio), los elementos ya aprendidos y, sobre todo, el bloque propio de cada paisaje.
 - **Paisajes**: cada 10 niveles cambia el mundo y rotan los 6 paisajes (mar, desierto, nieve, selva, volcán y espacio). En cada vuelta cambia la luz: día, atardecer, noche (con estrellas) y aurora boreal.
@@ -212,3 +216,33 @@ En la portada se ve la estructura del nivel en el que vas, con el motor 3D y la 
 - Es solo decoración: no da premios, no cuenta para las misiones ni para las estadísticas y no suena. Se detiene mientras haya una ventana abierta (racha, tienda, ajustes…).
 - El cartel del nombre va sin bombillas.
 - Código: `titleDemo()` y `titleEvents()` en `game3d.js`.
+
+## Mundos por paisaje, jefes y bloques nuevos
+
+**Ritmo de los mundos** (`src/levels3d.js`, bloque «ORDEN DE LOS MUNDOS»)
+- Los mundos 1, 2 y 3 son cortos (5, 6 y 8 niveles); el resto tiene 10. Así el primer cambio de paisaje y el primer jefe llegan pronto (nivel 20).
+- Cada paisaje dura 3 mundos y cada mundo tiene su luz: **día, atardecer y anochecer**.
+- Mundos 1-18: mar, desierto, nieve, selva, volcán y espacio. Del 19 al 51 vuelven con **clima** (tormenta con relámpagos, tormenta de arena, ventisca, lluvia, lluvia de ceniza y meteoritos). El clima solo se ve: no cambia la física.
+- Desde el mundo 52 se intercalan **6 paisajes nuevos** con las vueltas de los clásicos: ciudad de caramelo, cueva de cristales, templo antiguo, bosque encantado, feria y ciudad neón (cada uno con su suelo, decorado, plataforma y efectos).
+- 100 mundos, 1023 niveles (incluidos 34 jefes y 7 niveles de estreno) y 100 niveles extra (uno por mundo; se abre con 3 ★ en todos los niveles de su mundo).
+- **La dificultad no cambia**: cada nivel conserva su tipo (fácil, medio o difícil) y su ajuste. Las partidas guardadas se convierten solas: cada nivel viejo conserva sus estrellas y el progreso sigue donde estaba.
+
+**Jefes** (`src/bosses.js`): el último nivel de cada 3.er mundo (y del 100). Rotan tres tipos y cambian de nombre y aspecto con el paisaje:
+| Tipo | Ejemplo | Cómo se gana |
+|---|---|---|
+| Barco pirata | Capitán Bloquebarba (mundo 3) | Derribar el barco y su tesoro dorado. Cada 3 tiros (2 con menos de la mitad de vida) dispara un cañonazo que quita una bola. |
+| Pirámide | Faraón Arenas (mundo 6) | Escudo de color por fases: solo daña el rojo, luego el azul y al final el sarcófago dorado. En cada fase una tormenta de arena arranca la fachada y da bolas del color nuevo. |
+| Gólem | Gólem de hielo (mundo 9) | Camina sobre una losa. Hay que reventar sus 3 núcleos de lava antes de que cargue el golpe sísmico (quita una bola); cada acierto lo aturde. |
+Barra de vida arriba, presentación al empezar, explosión final y **cofre de oro**. Contra un jefe no se regalan bombas ni arcoíris por combo. Estrellas: 3 si quedan 3 bolas o más, 2 si queda alguna, 1 si no.
+
+**Bloques nuevos** (`src/sim3d.js`): cohete (barre su fila), piñata (2 golpes, suelta monedas), reloj de arena (+1 bola), espejo (rebota la bola, no se rompe), muelle (lanza por los aires lo que tiene encima), géiser (chorro que rompe su columna) y portal (la bola entra por uno y sale por el otro, sobre la estructura).
+- Se estrenan en los niveles 4, 15, 22, 65, 84, 127 y 158: nivel fácil, tarjeta «¡Bloque nuevo!» y un anillo que señala el bloque hasta el primer tiro. El nivel siguiente es de práctica y 3 niveles después se combina con lo anterior; luego aparecen en los niveles generados (los que ayudan, en todos los paisajes).
+
+**Más ganas de seguir jugando**
+1. Combo musical: cada pieza de un tiro suena una nota más aguda; con 5, 10, 15 y 25 piezas salen «¡GENIAL!», «¡INCREÍBLE!», «¡ROCKET RUSH!» e «¡IMPARABLE!» con vibración. Cámara lenta al caer la última pieza.
+2. Gran final: las bolas que sobran salen como cohetes, revientan lo que queda y dan 5 monedas cada una.
+3. «¡Casi!»: dice cuántos bloques faltaban y la primera derrota de cada mundo regala +3 bolas.
+4. Racha de victorias con llama en el botón de jugar: 1 victoria = cohete de salida, 2 = + bomba, 3 o más = + arcoíris.
+5. Recompensa variable: cofre de estrellas en lo alto del mapa (cada 30 ★) y caja misteriosa al superar por primera vez cada 5.º nivel (a veces con premio doble).
+
+Pruebas: los tests de siempre (`tools/*flow.py`), ya adaptados a los números de nivel nuevos.

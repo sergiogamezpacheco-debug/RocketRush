@@ -37,6 +37,8 @@
     },
   };
   const isColor = k => C.COLORS.indexOf(k) >= 0;
+  // bloques que no cuentan para el porcentaje (no se pueden quitar del todo o no son estructura)
+  const NOCOUNT = { stone: 1, mirror: 1, spring: 1, portal: 1 };
   // Bolas de los mundos (una por cada uno de los 10 primeros mundos). 'lv' = nivel de la bola (1-10): sube su poder.
   const WBALLS = {
     w1: { name: 'Bola demoledora', world: 1, r: 0.4 },     // atraviesa la estructura rompiendo todo lo que toca
@@ -188,11 +190,20 @@
         else if (t === 'sand') { data = { kind: 'sand' }; density = 1.1; friction = 0.8; }
         else if (t === 'prize') { data = { kind: 'prize', c: d.c || 'r' }; density = 0.9; friction = 0.3; }
         else if (t === 'magma') { data = { kind: 'magma' }; density = 2.2; friction = 0.7; }
+        else if (t === 'rocket') { data = { kind: 'rocket' }; density = 0.8; }
+        else if (t === 'pinata') { data = { kind: 'pinata', hp: 2 }; density = 0.7; }
+        else if (t === 'hourglass') { data = { kind: 'hourglass' }; density = 0.9; }
+        else if (t === 'mirror') { data = { kind: 'mirror' }; density = 3.2; friction = 0.3; }
+        else if (t === 'spring') { data = { kind: 'spring', cd: 0 }; density = 1.4; friction = 0.8; }
+        else if (t === 'geyser') { data = { kind: 'geyser' }; density = 2.4; friction = 0.7; }
+        else if (t === 'portal') { data = { kind: 'portal', a: !!d.pairA, b: !!d.pairB }; }
         else data = { kind: 'block', c: d.c, ice: t === 'i', stripe: t === 'st', bomb: t === 'bm', cham: t === 'cham', hp: t === 'i' ? 2 : 1, popping: false };
         if (d.fl) data.float = true;
         data.id = id++; data.w = d.w; data.h = d.h; data.d = d.d;
         const half = new CANNON.Vec3(d.w / 2 - 0.002, d.h / 2 - 0.002, d.d / 2 - 0.002);
-        const body = new CANNON.Body({ mass: density * d.w * d.h * d.d, material: new CANNON.Material({ friction, restitution: 0.04 }) });
+        const fixed = t === 'portal' || d.fixed;     // portales y espejos de pared: no se mueven
+        const body = new CANNON.Body({ mass: fixed ? 0 : density * d.w * d.h * d.d, type: fixed ? CANNON.Body.STATIC : CANNON.Body.DYNAMIC, material: new CANNON.Material({ friction, restitution: 0.04 }) });
+        if (t === 'portal') body.collisionResponse = false;
         body.addShape(new CANNON.Box(half));
         body.position.set(d.x, d.y, d.z);
         if (d.ry) body.quaternion.setFromEuler(0, d.ry, 0);
@@ -202,7 +213,8 @@
         data.alive = true; data.destroyed = false;
         w.addBody(body); this.blocks.push(body);
       }
-      this.total = this.blocks.filter(b => b.userData.kind !== 'stone').length;   // la piedra no cuenta
+      this.total = this.blocks.filter(b => !NOCOUNT[b.userData.kind]).length;   // la piedra (y espejos, muelles y portales) no cuentan
+      this.portals = this.blocks.filter(b => b.userData.kind === 'portal');
       this.floating = this.blocks.filter(b => b.userData.float);
       this.chams = this.blocks.filter(b => b.userData.cham);
       this.levelColors = C.COLORS.filter(c => this.level.blocks.some(b => b.c === c && b.t !== 'prize'));
@@ -329,6 +341,7 @@
     onContact(A, B, v, px, py, pz) {
       const da = A.userData, db = B.userData;
       if (!da || !db) return;
+      if (da.kind === 'portal' || db.kind === 'portal') return;
       if (da.kind === 'ball') return this.ballHit(A, B, v, px, py, pz);
       if (db.kind === 'ball') return this.ballHit(B, A, v, px, py, pz);
       if (v > 2.4 && this.impactBudget > 0) { this.impactBudget--; this.emit({ type: 'impact', x: px, y: py, z: pz, v, stone: da.kind === 'stone' || db.kind === 'stone' }); }
@@ -349,6 +362,7 @@
       if (WBALLS[d.ball]) { this.worldBallHit(ball, other, v, px, py, pz); return; }
       if (d.ball === 'bomb' && od.kind !== 'island' || d.ball === 'bomb' && v > 2) { this.explode(ball.position.x, ball.position.y, ball.position.z, C.BOMB_R, true); this.killBall(ball, false); return; }
       if (v > 1.5 && this.impactBudget > 0) { this.impactBudget--; this.emit({ type: 'thud', x: px, y: py, z: pz, v }); }
+      if (this.special(other, d.ball, ball, v)) return;
       if (od.kind === 'gold' && !od.popping && !od.destroyed) this.popSingle(other, 0.02);
       else if (od.kind === 'glass' && v > 1.5) this.shatter(other);
       else if (od.kind === 'sand' && v > 1) this.crumble(other);
@@ -369,6 +383,7 @@
       if (od.kind === 'prize') { this.later(delay, () => this.breakPrize(o)); return true; }
       if (od.kind === 'tnt') { this.later(delay, () => this.ignite(o)); return true; }
       if (od.kind === 'magma') { this.heat(o); return true; }
+      if (this.trigger(o, delay)) return true;
       if (od.kind === 'stone' && strong) { this.later(delay, () => { if (!od.alive || od.destroyed) return; od.alive = false; od.destroyed = true; this.world.removeBody(o); this.emit({ type: 'glass', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z, stone: true }); this.wakeAll(); }); return true; }
       return false;
     }
@@ -554,6 +569,121 @@
       if (d.stripe) this.later(0.04, () => this.stripeBlast(b.position.x, b.position.y, b.position.z));
       if (d.bomb) this.later(0.04, () => this.explode(b.position.x, b.position.y, b.position.z, C.BOMB_R, false));
     }
+    // ---------- bloques nuevos ----------
+    // golpe directo de una bola: devuelve true si el bloque se ha encargado del golpe
+    special(o, kind, ball, v) {
+      const od = o.userData;
+      if (!od.alive || od.destroyed) return false;
+      if (od.kind === 'mirror') {            // espejo: refleja la bola sobre la cara que ha tocado y no se rompe
+        const pv = ball.userData._pv; if (!pv) return true;
+        const q = o.quaternion, inv = q.conjugate(), rel = inv.vmult(ball.position.vsub(o.position));
+        const ax = Math.abs(rel.x) / od.w, ay = Math.abs(rel.y) / od.h, az = Math.abs(rel.z) / od.d;
+        const nl = ax >= ay && ax >= az ? new CANNON.Vec3(Math.sign(rel.x), 0, 0) : ay >= az ? new CANNON.Vec3(0, Math.sign(rel.y), 0) : new CANNON.Vec3(0, 0, Math.sign(rel.z));
+        const n = q.vmult(nl), vin = new CANNON.Vec3(pv[0], pv[1], pv[2]), dn = vin.dot(n);
+        if (dn < 0) { ball.velocity.set((pv[0] - 2 * dn * n.x) * 0.95, (pv[1] - 2 * dn * n.y) * 0.95, (pv[2] - 2 * dn * n.z) * 0.95); }
+        this.emit({ type: 'mirror', id: od.id, x: ball.position.x, y: ball.position.y, z: ball.position.z });
+        return true;
+      }
+      if (od.kind === 'spring') { this.spring(o); return true; }
+      if (od.kind === 'pinata') {            // piñata: dos golpes
+        if (v < 0.8 && kind !== 'heavy') return true;
+        od.hp--; this.emit({ type: 'pinataHit', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z, hp: od.hp });
+        o.wakeUp(); o.angularVelocity.set(this.rand() * 4 - 2, this.rand() * 4 - 2, this.rand() * 4 - 2);
+        if (od.hp <= 0) this.burstPinata(o);
+        return true;
+      }
+      if (od.kind === 'rocket' || od.kind === 'hourglass' || od.kind === 'geyser') return this.trigger(o, 0.02);
+      return false;
+    }
+    // explosiones, rayados, chorros y bolas de mundo también los activan
+    trigger(o, delay) {
+      const od = o.userData;
+      if (!od.alive || od.destroyed) return false;
+      if (od.kind === 'rocket') { if (!od.fired) { od.fired = true; this.later(delay || 0.02, () => this.launchRocket(o)); } return true; }
+      if (od.kind === 'pinata') { if (!od.bursting) { od.bursting = true; this.later(delay || 0.02, () => this.burstPinata(o)); } return true; }
+      if (od.kind === 'hourglass') { if (!od.broken) { od.broken = true; this.later(delay || 0.02, () => this.breakHourglass(o)); } return true; }
+      if (od.kind === 'geyser') { if (!od.hot) { od.hot = true; this.emit({ type: 'geyserCharge', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z }); this.later(0.7, () => this.erupt(o, 'geyser')); } return true; }
+      if (od.kind === 'spring') { this.spring(o); return true; }
+      return false;
+    }
+    removeSpecial(o, pts) {
+      const d = o.userData;
+      d.alive = false; d.destroyed = true;
+      this.world.removeBody(o);
+      this.popped++; this.shotPops++; this.score += pts * this.chain;
+      this.wakeAll();
+    }
+    // cohete: cruza su fila de punta a punta y revienta lo que encuentra
+    launchRocket(o) {
+      const d = o.userData;
+      if (!d.alive || d.destroyed) return;
+      const x = o.position.x, y = o.position.y, z = o.position.z;
+      const row = this.liveBlocks().filter(b => b !== o && Math.abs(b.position.y - y) < 0.55);
+      const left = row.filter(b => b.position.x < x).length, right = row.length - left;
+      const dir = right >= left ? 1 : -1;
+      this.removeSpecial(o, 50);
+      this.chain = Math.max(this.chain, 2);
+      this.emit({ type: 'rocket', id: d.id, x, y, z, dir, x1: dir * (C.ISLAND_R + 2) });
+      for (const b of row) {
+        const od = b.userData, dist = Math.max(0, (b.position.x - x) * dir);
+        const delay = 0.05 + Math.abs(b.position.x - x) * 0.045;
+        if ((od.kind === 'block' || od.kind === 'gold') && !od.popping) this.popSingle(b, delay);
+        else if (od.kind === 'glass') this.later(delay, () => this.shatter(b));
+        else if (od.kind === 'sand') this.later(delay, () => this.crumble(b));
+        else if (od.kind === 'prize') this.later(delay, () => this.breakPrize(b));
+        else if (od.kind === 'magma') this.heat(b);
+        else if (od.kind === 'tnt') this.later(delay, () => this.ignite(b));
+        else if (!this.trigger(b, delay) && dist >= 0) { b.wakeUp(); b.velocity.x += dir * 4; }
+      }
+    }
+    burstPinata(o) {
+      const d = o.userData;
+      if (!d.alive || d.destroyed) return;
+      this.removeSpecial(o, 60);
+      this.coins += 15;
+      this.emit({ type: 'pinata', id: d.id, x: o.position.x, y: o.position.y, z: o.position.z, n: 15 });
+    }
+    breakHourglass(o) {
+      const d = o.userData;
+      if (!d.alive || d.destroyed) return;
+      this.removeSpecial(o, 30);
+      if (this.state === 'play') this.addBalls(1);
+      this.emit({ type: 'hourglass', id: d.id, x: o.position.x, y: o.position.y, z: o.position.z });
+    }
+    // muelle: lanza hacia arriba lo que tiene encima (se puede usar varias veces)
+    spring(o) {
+      const d = o.userData;
+      if (this.t - (d.cd || -9) < 0.5) return;
+      d.cd = this.t;
+      const x = o.position.x, y = o.position.y, z = o.position.z;
+      this.wakeAll();
+      let n = 0;
+      for (const b of this.liveBlocks()) {
+        if (b === o) continue;
+        const p = b.position;
+        if (p.y < y + 0.3 || Math.abs(p.x - x) > 1.55 || Math.abs(p.z - z) > 1.2) continue;
+        b.velocity.y += Math.max(5, 12.5 - (p.y - y) * 0.8); b.velocity.x += (this.rand() - 0.5) * 6; b.velocity.z += (this.rand() - 0.5) * 3;
+        b.angularVelocity.set(this.rand() * 6 - 3, this.rand() * 4 - 2, this.rand() * 6 - 3); n++;
+      }
+      this.chain = Math.max(this.chain, 2);
+      this.emit({ type: 'spring', id: d.id, x, y, z, n });
+    }
+    // portal: la bola que entra por el primero sale por el segundo, hacia abajo
+    updatePortals(dt) {
+      const A = this.portals.find(p => p.userData.a), B = this.portals.find(p => p.userData.b);
+      if (!A || !B) return;
+      for (const ball of this.balls) {
+        const bd = ball.userData;
+        bd.pcd = (bd.pcd || 0) - dt;
+        if (bd.pcd > 0 || bd.dead) continue;
+        if (ball.position.distanceTo(A.position) > 0.85) continue;
+        const sp = Math.max(7, ball.velocity.length() * 0.8);
+        this.emit({ type: 'portal', x: A.position.x, y: A.position.y, z: A.position.z, x2: B.position.x, y2: B.position.y, z2: B.position.z });
+        ball.position.set(B.position.x, B.position.y - 0.9, B.position.z);
+        ball.velocity.set(-B.position.x * 0.2, -sp, -0.3);
+        bd.pcd = 0.8; bd.age = 0;
+      }
+    }
     stripeBlast(x, y, z) {
       this.emit({ type: 'stripe', x, y, z });
       for (const o of this.liveBlocks()) {
@@ -565,6 +695,7 @@
         else if (od.kind === 'prize') this.breakPrize(o);
         else if (od.kind === 'magma') this.heat(o);
         else if (od.kind === 'tnt') this.ignite(o);
+        else this.trigger(o, Math.abs(o.position.x - x) * 0.03);
       }
     }
     shatter(b) {
@@ -610,13 +741,13 @@
       this.emit({ type: 'heat', id: d.id, x: b.position.x, y: b.position.y, z: b.position.z });
       this.later(0.45, () => this.erupt(b));
     }
-    erupt(b) {
+    erupt(b, type) {
       const d = b.userData;
       if (!d.alive || d.destroyed) return;
       const x = b.position.x, y = b.position.y, z = b.position.z;
       d.alive = false; d.destroyed = true; this.popped++; this.score += 40;
       this.world.removeBody(b);
-      this.emit({ type: 'erupt', id: d.id, x, y, z });
+      this.emit({ type: type || 'erupt', id: d.id, x, y, z });
       this.wakeAll();
       let k = 0;
       for (const o of this.liveBlocks()) {
@@ -629,7 +760,7 @@
         else if (od.kind === 'prize') this.later(delay, () => this.breakPrize(o));
         else if (od.kind === 'magma') this.heat(o);
         else if (od.kind === 'tnt') this.later(delay, () => this.ignite(o));
-        else { o.velocity.y += 7; }
+        else if (!this.trigger(o, delay)) { o.velocity.y += 7; }
       }
       // empuja un poco lo de alrededor
       for (const o of this.liveBlocks()) {
@@ -677,6 +808,7 @@
         if (d.kind === 'prize' && dist < R * 0.8) { this.breakPrize(b); continue; }
         if (d.kind === 'magma' && dist < R) this.heat(b);
         if (d.kind === 'tnt' && !d.lit) { this.later(0.1, () => this.ignite(b)); }
+        if (dist < R && this.trigger(b, 0.05 + dist * 0.03)) continue;
         const f = 11 * Math.max(0.2, 1 - dist / (R + 0.8));
         const nx = dist > 1e-6 ? dx / dist : 0, ny = dist > 1e-6 ? dy / dist : 1, nz = dist > 1e-6 ? dz / dist : 0;
         b.velocity.x += nx * f; b.velocity.y += ny * f + 2.5; b.velocity.z += nz * f;
@@ -720,7 +852,7 @@
         if (!d.alive) continue;
         const p = b.position;
         if (!d.destroyed && (p.y < C.FALL_Y || Math.hypot(p.x, p.z) > C.ISLAND_R + 2.5)) {
-          d.destroyed = true; if (d.kind !== 'stone') { this.fallen++; this.score += 5; }
+          d.destroyed = true; if (!NOCOUNT[d.kind]) { this.fallen++; this.score += 5; }
           this.takeGem(b);
           if (d.kind === 'gold') { this.coins += 10; this.emit({ type: 'coin', x: p.x, y: p.y, z: p.z, n: 10 }); }
           this.emit({ type: 'fall', id: d.id, x: p.x, y: p.y, z: p.z });
@@ -736,6 +868,7 @@
         }
       }
       this.updateMovers(dt);
+      if (this.portals && this.portals.length >= 2) this.updatePortals(dt);
       for (const b of this.balls.slice()) {
         const d = b.userData, p = b.position;
         d.age += dt;
@@ -841,6 +974,7 @@
     }
     // objeto que cruza el cielo (mundos sin mar): vuela por encima de la estructura, a la vista, con 2 bolas a bordo
     spawnCarrier(biome) {
+      if (!C.CARRIERS[biome]) biome = { candy: 'desert', crystal: 'snow', temple: 'jungle', forest: 'jungle', fair: 'desert', neon: 'space' }[biome];
       const K = C.CARRIERS[biome]; if (!K) return;
       const dir = this.rand() < 0.5 ? 1 : -1, z = K.z - this.rand() * K.zr;
       const cam = referenceCam(this.level), sil = this.silhouette();
