@@ -38,7 +38,7 @@
   };
   const isColor = k => C.COLORS.indexOf(k) >= 0;
   // bloques que no cuentan para el porcentaje (no se pueden quitar del todo o no son estructura)
-  const NOCOUNT = { stone: 1, mirror: 1, spring: 1, portal: 1 };
+  const NOCOUNT = { stone: 1, mirror: 1, spring: 1, portal: 1, magnet: 1, fan: 1, cloud: 1 };
   // Bolas de los mundos (una por cada uno de los 10 primeros mundos). 'lv' = nivel de la bola (1-10): sube su poder.
   const WBALLS = {
     w1: { name: 'Bola demoledora', world: 1, r: 0.4 },     // atraviesa la estructura rompiendo todo lo que toca
@@ -150,6 +150,16 @@
       this.silent = false; this.state = 'play';
       // pájaro y barco de premio: aparecen al azar
       this.movers = []; this.moverId = 0;
+      // clima de las vueltas: viento (tormenta, tormenta de arena), suelo resbaladizo (ventisca, lluvia), brasas y meteoritos
+      this.weather = level.weather || null;
+      this.wind = 0; this.windBase = 0;
+      if (this.weather === 'storm') this.windBase = (level.id % 2 ? 1 : -1) * 3.2;
+      if (this.weather === 'sandstorm') this.windBase = (level.id % 2 ? -1 : 1) * 4.2;
+      this.wind = this.windBase;
+      const slip = this.weather === 'blizzard' ? 0.5 : this.weather === 'rain' ? 0.72 : 1;
+      if (slip < 1) { this.world.defaultContactMaterial.friction *= slip; for (const b of this.blocks) if (b.material) b.material.friction *= slip; }
+      this.nextEmber = 4 + this.rand() * 3; this.nextMeteor = 6 + this.rand() * 4;
+
       this.nextBird = 9 + this.rand() * 10; this.nextShip = 16 + this.rand() * 12;
     }
 
@@ -197,13 +207,25 @@
         else if (t === 'spring') { data = { kind: 'spring', cd: 0 }; density = 1.4; friction = 0.8; }
         else if (t === 'geyser') { data = { kind: 'geyser' }; density = 2.4; friction = 0.7; }
         else if (t === 'portal') { data = { kind: 'portal', a: !!d.pairA, b: !!d.pairB }; }
-        else data = { kind: 'block', c: d.c, ice: t === 'i', stripe: t === 'st', bomb: t === 'bm', cham: t === 'cham', hp: t === 'i' ? 2 : 1, popping: false };
+        else if (t === 'gift') { data = { kind: 'gift' }; density = 0.8; }
+        else if (t === 'prism') { data = { kind: 'prism' }; density = 1.1; friction = 0.4; }
+        else if (t === 'key') { data = { kind: 'key' }; density = 0.6; }
+        else if (t === 'cloud') { data = { kind: 'cloud' }; }
+        else if (t === 'balloon') { data = { kind: 'balloon' }; density = 0.25; friction = 0.6; }
+        else if (t === 'magnet') { data = { kind: 'magnet' }; density = 3.2; friction = 0.8; }
+        else if (t === 'snowball') { data = { kind: 'snowball', hits: 0 }; density = 1.4; friction = 0.3; }
+        else if (t === 'gum') { data = { kind: 'gum' }; density = 1.0; friction = 0.9; }
+        else if (t === 'fan') { data = { kind: 'fan', dir: d.dir || (d.x > 0 ? -1 : 1) }; density = 3.0; friction = 0.8; }
+        else data = { kind: 'block', c: d.c, ice: t === 'i', stripe: t === 'st', bomb: t === 'bm', cham: t === 'cham', hp: t === 'i' ? 2 : 1, popping: false,
+          locked: t === 'lock', totem: t === 'totem', bubble: !!d.bub, vine: t === 'vine' };
+        if (d.bub) d.fl = true;            // burbuja: el bloque flota dentro hasta que la revientas
         if (d.fl) data.float = true;
         data.id = id++; data.w = d.w; data.h = d.h; data.d = d.d;
         const half = new CANNON.Vec3(d.w / 2 - 0.002, d.h / 2 - 0.002, d.d / 2 - 0.002);
-        const fixed = t === 'portal' || d.fixed;     // portales y espejos de pared: no se mueven
+        const fixed = t === 'portal' || t === 'cloud' || d.fixed;     // portales, nubes y espejos de pared: no se mueven
         const body = new CANNON.Body({ mass: fixed ? 0 : density * d.w * d.h * d.d, type: fixed ? CANNON.Body.STATIC : CANNON.Body.DYNAMIC, material: new CANNON.Material({ friction, restitution: 0.04 }) });
-        if (t === 'portal') body.collisionResponse = false;
+        if (t === 'portal' || t === 'cloud') body.collisionResponse = false;
+        if (t === 'balloon') { body.linearDamping = 0.55; body.angularDamping = 0.6; }
         body.addShape(new CANNON.Box(half));
         body.position.set(d.x, d.y, d.z);
         if (d.ry) body.quaternion.setFromEuler(0, d.ry, 0);
@@ -215,6 +237,20 @@
       }
       this.total = this.blocks.filter(b => !NOCOUNT[b.userData.kind]).length;   // la piedra (y espejos, muelles y portales) no cuentan
       this.portals = this.blocks.filter(b => b.userData.kind === 'portal');
+      this.clouds = this.blocks.filter(b => b.userData.kind === 'cloud');
+      this.balloons = this.blocks.filter(b => b.userData.kind === 'balloon');
+      this.snowballs = this.blocks.filter(b => b.userData.kind === 'snowball');
+      this.locks = this.blocks.filter(b => b.userData.locked);
+      // lianas: cuelgan de un punto fijo y se balancean
+      this.vines = [];
+      for (const b of this.blocks) {
+        const d = b.userData, src = this.level.blocks[d.id]; if (!d.vine || !src) continue;
+        const anchor = new CANNON.Body({ mass: 0, type: CANNON.Body.STATIC }); anchor.position.set(src.ax, src.ay, src.z); anchor.collisionResponse = false; w.addBody(anchor);
+        const len = Math.hypot(src.ax - src.x, src.ay - src.y);
+        const con = new CANNON.DistanceConstraint(anchor, b, len); w.addConstraint(con);
+        d.vineC = con; d.anchor = [src.ax, src.ay, src.z]; d.vinePush = src.push || 5;
+        b.linearDamping = 0.01; b.angularDamping = 0.3; this.vines.push(b);
+      }
       this.floating = this.blocks.filter(b => b.userData.float);
       this.chams = this.blocks.filter(b => b.userData.cham);
       this.levelColors = C.COLORS.filter(c => this.level.blocks.some(b => b.c === c && b.t !== 'prize'));
@@ -245,7 +281,7 @@
     progress() { return this.total ? (this.popped + this.fallen) / this.total : 0; }
 
     // ---------- disparo ----------
-    canFire() { return this.state === 'play' && this.queue.length > 0 && this.sinceFire > 0.6; }
+    canFire() { return this.state === 'play' && (this.stuck ? this.stuck.t > 0.25 : this.queue.length > 0 && this.sinceFire > 0.6); }
     muzzle() { return { x: this.cannon.x, y: this.cannon.y + 0.35, z: this.cannon.z - 0.9 }; }
     // altura y cara delantera de lo que queda en pie (se recalcula una vez por paso)
     silhouette() {
@@ -273,12 +309,13 @@
       const L = this.launch(tx, ty, tz), pts = [];
       for (let i = 0; i <= n; i++) {
         const t = (i / n) * L.T;
-        pts.push({ x: L.m.x + L.vx * t, y: L.m.y + L.vy * t + 0.5 * C.G * t * t, z: L.m.z + L.vz * t });
+        pts.push({ x: L.m.x + L.vx * t + 0.5 * this.wind * t * t, y: L.m.y + L.vy * t + 0.5 * C.G * t * t, z: L.m.z + L.vz * t });
       }
       return pts;
     }
     fire(tx, ty, tz) {
       if (!this.canFire()) return false;
+      if (this.stuck) return this.unstick(tx, ty, tz);
       const kind = this.queue.shift();
       this.spawnBall(kind, tx, ty, tz);
       this.armed = true; this.chain = 1; this.shotPops = 0; this.shotOpen = true; this.shotGolden = kind === 'golden' || !!WBALLS[kind];
@@ -349,7 +386,7 @@
       if (v > C.SAND_V) { if (da.kind === 'sand') this.crumble(A); if (db.kind === 'sand') this.crumble(B); }
       if (v > C.PRIZE_V) { if (da.kind === 'prize') this.breakPrize(A); if (db.kind === 'prize') this.breakPrize(B); }
       if (v > C.TNT_V) { if (da.kind === 'tnt') this.ignite(A); if (db.kind === 'tnt') this.ignite(B); }
-      if (this.armed && v > C.CASCADE_V && da.kind === 'block' && db.kind === 'block' && da.c === db.c && !da.popping && !db.popping && !da.destroyed && !db.destroyed) {
+      if (this.armed && v > C.CASCADE_V && da.kind === 'block' && db.kind === 'block' && da.c === db.c && !da.popping && !db.popping && !da.destroyed && !db.destroyed && !da.locked && !db.locked && !da.bubble && !db.bubble) {
         this.chain++;
         this.emit({ type: 'cascade', x: px, y: py, z: pz, chain: this.chain, c: da.c });
         this.popGroup(A, true);
@@ -458,7 +495,7 @@
       const V = this.vortex; if (!V) return;
       V.t -= dt;
       for (const o of this.liveBlocks()) {
-        const od = o.userData; if (od.popping) continue;
+        const od = o.userData; if (od.popping || od.kind === 'magnet' || od.kind === 'cloud' || od.kind === 'portal') continue;
         const dx = V.x - o.position.x, dy = V.y - o.position.y, dz = V.z - o.position.z, dist = Math.hypot(dx, dy, dz);
         if (dist > V.R) continue;
         if (dist < 0.95 && V.n > 0) { if (this.smash(o, 0.01, true)) { V.n--; this.emit({ type: 'swallow', x: o.position.x, y: o.position.y, z: o.position.z }); } continue; }
@@ -522,7 +559,8 @@
       const sd = start.userData;
       if (sd.popping || sd.destroyed) return;
       const c = sd.c;
-      const cands = this.blocks.filter(b => { const d = b.userData; return d.alive && !d.destroyed && d.kind === 'block' && d.c === c && !d.popping; });
+      if (sd.locked || sd.bubble) return;
+      const cands = this.blocks.filter(b => { const d = b.userData; return d.alive && !d.destroyed && d.kind === 'block' && d.c === c && !d.popping && !d.locked && !d.bubble; });
       const seen = new Set([start]);
       let frontier = [start], depth = 0, n = 0;
       while (frontier.length) {
@@ -556,6 +594,7 @@
     removeBlock(b) {
       const d = b.userData;
       if (!d.alive || d.destroyed) return;
+      if (d.vineC) { this.world.removeConstraint(d.vineC); d.vineC = null; }
       this.touchNeighbors(b);
       d.alive = false; d.destroyed = true;
       this.world.removeBody(b);
@@ -585,6 +624,25 @@
         return true;
       }
       if (od.kind === 'spring') { this.spring(o); return true; }
+      if (od.kind === 'block' && od.locked) { this.emit({ type: 'locked', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z }); return true; }
+      if (od.kind === 'block' && od.bubble) { this.unbubble(o); return true; }
+      if (od.kind === 'block' && od.vine && ball.userData.c !== od.c) {     // liana: el golpe la lanza contra la estructura
+        o.wakeUp(); o.velocity.x = (o.position.x > 0 ? -1 : 1) * 11; o.velocity.y += 2; this.chain = Math.max(this.chain, 2);
+        this.emit({ type: 'vine', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z }); return true;
+      }
+      if (od.kind === 'block' && od.totem) {     // tótem: con su color revienta; si no, gira y cambia de color
+        const bc = ball.userData.c || (kind === 'rainbow' ? od.c : null);
+        if (bc === od.c || kind === 'heavy' || kind === 'bomb') return false;
+        const cols = this.levelColors, i = cols.indexOf(od.c); od.c = cols[(i + 1) % cols.length];
+        this.emit({ type: 'cham', id: od.id, c: od.c, x: o.position.x, y: o.position.y, z: o.position.z }); this.emit({ type: 'totem', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z });
+        return true;
+      }
+      if (od.kind === 'magnet') { this.magnet(o); return true; }
+      if (od.kind === 'fan') { this.fan(o); return true; }
+      if (od.kind === 'gum') { this.stick(ball, o); return true; }
+      if (od.kind === 'snowball') { this.rollSnow(o, ball); return true; }
+      if (od.kind === 'prism') { this.prism(o, ball.userData.c); return true; }
+      if (od.kind === 'gift' || od.kind === 'key' || od.kind === 'balloon') return this.trigger(o, 0.02);
       if (od.kind === 'pinata') {            // piñata: dos golpes
         if (v < 0.8 && kind !== 'heavy') return true;
         od.hp--; this.emit({ type: 'pinataHit', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z, hp: od.hp });
@@ -604,10 +662,100 @@
       if (od.kind === 'hourglass') { if (!od.broken) { od.broken = true; this.later(delay || 0.02, () => this.breakHourglass(o)); } return true; }
       if (od.kind === 'geyser') { if (!od.hot) { od.hot = true; this.emit({ type: 'geyserCharge', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z }); this.later(0.7, () => this.erupt(o, 'geyser')); } return true; }
       if (od.kind === 'spring') { this.spring(o); return true; }
+      if (od.kind === 'gift') { if (!od.opened) { od.opened = true; this.later(delay || 0.02, () => this.openGift(o)); } return true; }
+      if (od.kind === 'key') { if (!od.used) { od.used = true; this.later(delay || 0.02, () => this.useKey(o)); } return true; }
+      if (od.kind === 'balloon') { this.later(delay || 0.02, () => { if (od.alive && !od.destroyed) { this.removeSpecial(o, 20); this.emit({ type: 'balloonPop', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z }); } }); return true; }
+      if (od.kind === 'prism') { this.later(delay || 0.02, () => this.prism(o, null)); return true; }
+      if (od.kind === 'gum') { if (!od.used) { od.used = true; this.later(delay || 0.02, () => { if (od.alive) this.removeSpecial(o, 10); }); } return true; }
+      if (od.kind === 'cloud') { this.disperse(o); return true; }
+      if (od.kind === 'block' && od.bubble) { this.unbubble(o); return true; }
+      if (od.kind === 'magnet') { this.magnet(o); return true; }
+      if (od.kind === 'fan') { this.fan(o); return true; }
       return false;
+    }
+    // caja sorpresa: un potenciador al azar
+    openGift(o) {
+      const d = o.userData; if (!d.alive || d.destroyed) return;
+      this.removeSpecial(o, 40);
+      const r = this.rand(), what = r < 0.35 ? 'bomb' : r < 0.65 ? 'rainbow' : 'plus2';
+      if (this.state === 'play') { if (what === 'plus2') this.addBalls(2); else this.queue.unshift(what); }
+      this.emit({ type: 'gift', id: d.id, x: o.position.x, y: o.position.y, z: o.position.z, what });
+    }
+    // cubo arcoíris: revienta todos los bloques del color de la bola (o del color que más hay)
+    prism(o, c) {
+      const d = o.userData; if (!d.alive || d.destroyed) return;
+      if (!c) { const cnt = {}; for (const b of this.liveBlocks()) { const bd = b.userData; if (bd.kind === 'block' && !bd.locked) cnt[bd.c] = (cnt[bd.c] || 0) + 1; } c = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0]; }
+      const x = o.position.x, y = o.position.y, z = o.position.z;
+      this.removeSpecial(o, 60); this.chain = Math.max(this.chain, 2);
+      this.emit({ type: 'prism', id: d.id, x, y, z, c });
+      for (const b of this.liveBlocks()) { const bd = b.userData; if (bd.kind === 'block' && bd.c === c && !bd.popping && !bd.locked) this.popSingle(b, 0.08 + b.position.distanceTo(o.position) * 0.05); }
+    }
+    // llave: abre todos los candados
+    useKey(o) {
+      const d = o.userData; if (!d.alive || d.destroyed) return;
+      this.removeSpecial(o, 40);
+      const ids = [];
+      for (const b of this.locks || []) { const bd = b.userData; if (bd.locked) { bd.locked = false; ids.push(bd.id); } }
+      this.emit({ type: 'unlock', id: d.id, x: o.position.x, y: o.position.y, z: o.position.z, ids });
+    }
+    // burbuja: al reventarla, el bloque vuelve a pesar
+    unbubble(b) {
+      const d = b.userData; if (!d.bubble) return;
+      d.bubble = false; d.float = false; b.wakeUp();
+      this.emit({ type: 'bubblePop', id: d.id, x: b.position.x, y: b.position.y, z: b.position.z });
+    }
+    disperse(o) {
+      const d = o.userData; if (!d.alive) return;
+      d.alive = false; d.destroyed = true; this.world.removeBody(o);
+      this.emit({ type: 'cloudGone', id: d.id, x: o.position.x, y: o.position.y, z: o.position.z });
+    }
+    // imán: durante un momento atrae todo lo que tiene cerca
+    magnet(o) {
+      const d = o.userData;
+      if (this.t - (d.cd || -9) < 1.5) return; d.cd = this.t;
+      this.vortex = { x: o.position.x, y: o.position.y + 0.5, z: o.position.z, t: 1.3, n: 5, R: 3.6 };
+      this.wakeAll(); this.chain = Math.max(this.chain, 2);
+      this.emit({ type: 'magnet', id: d.id, x: o.position.x, y: o.position.y, z: o.position.z, r: 3.6 });
+    }
+    // ventilador: sopla hacia la estructura
+    fan(o) {
+      const d = o.userData;
+      if (this.t - (d.cd || -9) < 1.6) return; d.cd = this.t;
+      this.gust = { x: o.position.x, y: o.position.y, dir: d.dir, t: 1.4 };
+      this.wakeAll(); this.chain = Math.max(this.chain, 2);
+      this.emit({ type: 'fan', id: d.id, x: o.position.x, y: o.position.y, z: o.position.z, dir: d.dir });
+    }
+    // bola de nieve: sale rodando hacia la estructura y arrasa lo que toca
+    rollSnow(o, ball) {
+      const d = o.userData; if (d.rolling) return;
+      d.rolling = true; d.rollT = 0; o.wakeUp();
+      const dir = Math.abs(o.position.x) > 0.5 ? -Math.sign(o.position.x) : (ball.velocity.x >= 0 ? 1 : -1);
+      o.velocity.set(dir * 7, 1.5, -1); o.angularVelocity.set(0, 0, -dir * 8);
+      this.chain = Math.max(this.chain, 2);
+      this.emit({ type: 'snowball', id: d.id, x: o.position.x, y: o.position.y, z: o.position.z });
+    }
+    // chicle: la bola se queda pegada hasta el siguiente toque
+    stick(ball, gum) {
+      if (this.stuck) return;
+      const bd = ball.userData;
+      this.stuck = { ball, gum, t: 0, p: [ball.position.x, ball.position.y, ball.position.z] };
+      ball.velocity.set(0, 0, 0); ball.angularVelocity.set(0, 0, 0); bd.slow = 0; bd.age = 0;
+      this.emit({ type: 'gumStick', id: gum.userData.id, x: ball.position.x, y: ball.position.y, z: ball.position.z });
+    }
+    unstick(tx, ty, tz) {
+      const S = this.stuck; this.stuck = null;
+      const b = S.ball, p = b.position;
+      const dx = tx - p.x, dy = ty - p.y, dz = tz - p.z, dist = Math.hypot(dx, dy, dz);
+      const T = Math.max(0.5, Math.min(0.95, dist / 12));
+      b.velocity.set(dx / T, dy / T - 0.5 * C.G * T, dz / T); b.userData.age = 0; b.userData.slow = 0; b.userData.hits = 0;
+      const g = S.gum.userData; if (g.alive && !g.destroyed) this.removeSpecial(S.gum, 20);
+      this.armed = true; this.sinceFire = 0;
+      this.emit({ type: 'gumGo', x: p.x, y: p.y, z: p.z });
+      return true;
     }
     removeSpecial(o, pts) {
       const d = o.userData;
+      if (d.vineC) { this.world.removeConstraint(d.vineC); d.vineC = null; }
       d.alive = false; d.destroyed = true;
       this.world.removeBody(o);
       this.popped++; this.shotPops++; this.score += pts * this.chain;
@@ -668,6 +816,56 @@
       this.chain = Math.max(this.chain, 2);
       this.emit({ type: 'spring', id: d.id, x, y, z, n });
     }
+    updateExtras(dt) {
+      // bola pegada al chicle: se queda quieta (3,5 s como mucho)
+      if (this.stuck) {
+        const S = this.stuck, b = S.ball; S.t += dt;
+        b.position.set(S.p[0], S.p[1], S.p[2]); b.velocity.set(0, 0, 0); b.userData.slow = 0; b.userData.age = 0;
+        if (S.t > 3.5 || b.userData.dead) { this.stuck = null; const g = S.gum.userData; if (g.alive && !g.destroyed) this.removeSpecial(S.gum, 10); }
+      }
+      // las nubes se deshacen cuando las atraviesa una bola
+      for (const c of this.clouds || []) {
+        const d = c.userData; if (!d.alive) continue;
+        for (const b of this.balls) { const p = b.position; if (Math.abs(p.x - c.position.x) < d.w / 2 + 0.3 && Math.abs(p.y - c.position.y) < d.h / 2 + 0.3 && Math.abs(p.z - c.position.z) < 0.6) { this.disperse(c); break; } }
+      }
+      // globos que se escapan hacia arriba cuentan como derribados
+      for (const b of this.balloons || []) { const d = b.userData; if (d.alive && !d.destroyed && b.position.y > 12) { this.removeSpecial(b, 20); this.emit({ type: 'balloonAway', id: d.id, x: b.position.x, y: b.position.y, z: b.position.z }); } }
+      // bola de nieve rodando: rompe lo que toca hasta 6 bloques
+      for (const o of this.snowballs || []) {
+        const d = o.userData; if (!d.rolling || !d.alive || d.destroyed) continue;
+        d.rollT += dt;
+        for (const b of this.liveBlocks()) {
+          if (b === o || b.userData.popping) continue;
+          const dd = b.position.distanceTo(o.position);
+          if (dd < 1.15 && o.velocity.length() > 1.2) { if (this.smash(b, 0.02, false)) { d.hits++; this.emit({ type: 'snowHit', id: d.id, n: d.hits, x: b.position.x, y: b.position.y, z: b.position.z }); } }
+        }
+        if (d.hits >= 6 || (d.rollT > 1 && o.velocity.length() < 0.6) || d.rollT > 5) { this.removeSpecial(o, 30); this.emit({ type: 'snowEnd', id: d.id, x: o.position.x, y: o.position.y, z: o.position.z }); }
+      }
+      // ráfaga del ventilador
+      if (this.gust) {
+        const G = this.gust; G.t -= dt;
+        for (const b of this.liveBlocks()) { const d = b.userData; if (NOCOUNT[d.kind] && d.kind !== 'spring') continue; const p = b.position; const ahead = (p.x - G.x) * G.dir;
+          if (ahead > 0 && ahead < 10 && Math.abs(p.y - G.y) < 3) { b.wakeUp(); b.velocity.x += G.dir * 14 * dt * (1 - ahead / 12); } }
+        if (G.t <= 0) this.gust = null;
+      }
+      // clima
+      if (this.state !== 'play' && this.state !== 'won') return;
+      if (this.weather === 'sandstorm') this.wind = this.windBase * (0.55 + 0.45 * Math.sin(this.t * 0.7));
+      if (this.wind) for (const b of this.balls) if (!b.userData.dead && b !== (this.stuck && this.stuck.ball)) b.velocity.x += this.wind * dt;
+      if (this.state !== 'play') return;
+      if (this.weather === 'ash' && this.t > this.nextEmber) {      // brasa: cae sobre un bloque de arriba y lo rompe
+        this.nextEmber = this.t + 6 + this.rand() * 4;
+        const live = this.liveBlocks().filter(b => b.userData.kind === 'block' && !b.userData.locked && !b.userData.popping);
+        if (live.length) { const top = Math.max(...live.map(b => b.position.y)); const pool = live.filter(b => b.position.y > top - 1.2); const b = pool[Math.floor(this.rand() * pool.length)];
+          this.emit({ type: 'ember', x: b.position.x, y: b.position.y, z: b.position.z }); this.later(0.6, () => this.popSingle(b, 0.01)); }
+      }
+      if (this.weather === 'meteors' && this.t > this.nextMeteor) {  // meteorito: golpea la estructura y ayuda
+        this.nextMeteor = this.t + 8 + this.rand() * 5;
+        const live = this.liveBlocks().filter(b => !NOCOUNT[b.userData.kind]);
+        if (live.length) { const b = live[Math.floor(this.rand() * live.length)], x = b.position.x, y = b.position.y, z = b.position.z;
+          this.emit({ type: 'meteor', x, y, z }); this.later(0.8, () => this.explode(x, y, z, 1.3, false)); }
+      }
+    }
     // portal: la bola que entra por el primero sale por el segundo, hacia abajo
     updatePortals(dt) {
       const A = this.portals.find(p => p.userData.a), B = this.portals.find(p => p.userData.b);
@@ -710,7 +908,8 @@
     // antigravedad: los bloques flotantes anulan su propio peso (si les cae algo encima, bajan)
     applyFloat() {
       if (!this.floating || !this.floating.length) return;
-      for (const b of this.floating) { const d = b.userData; if (d.alive && !d.destroyed && b.sleepState !== CANNON.Body.SLEEPING) b.force.y -= C.G * b.mass; }
+      for (const b of this.floating) { const d = b.userData; if (d.alive && !d.destroyed && d.float && b.sleepState !== CANNON.Body.SLEEPING) b.force.y -= C.G * b.mass; }
+      for (const b of this.balloons || []) { const d = b.userData; if (d.alive && !d.destroyed) { b.force.y -= C.G * b.mass * 2.4; if (b.sleepState === CANNON.Body.SLEEPING && this.t > 0.3) b.wakeUp(); } }
     }
     // arena: se deshace en polvo (cuenta como derribada)
     crumble(b) {
@@ -809,6 +1008,7 @@
         if (d.kind === 'magma' && dist < R) this.heat(b);
         if (d.kind === 'tnt' && !d.lit) { this.later(0.1, () => this.ignite(b)); }
         if (dist < R && this.trigger(b, 0.05 + dist * 0.03)) continue;
+        if (d.bubble && dist < R) this.unbubble(b);
         const f = 11 * Math.max(0.2, 1 - dist / (R + 0.8));
         const nx = dist > 1e-6 ? dx / dist : 0, ny = dist > 1e-6 ? dy / dist : 1, nz = dist > 1e-6 ? dz / dist : 0;
         b.velocity.x += nx * f; b.velocity.y += ny * f + 2.5; b.velocity.z += nz * f;
@@ -817,7 +1017,8 @@
     }
     popSingle(b, delay) {
       const d = b.userData;
-      if (d.popping || d.destroyed) return;
+      if (d.popping || d.destroyed || d.locked) return;
+      if (d.bubble) { this.unbubble(b); return; }
       d.popping = true;
       this.later(delay || 0.02, () => this.removeBlock(b));
     }
@@ -869,12 +1070,14 @@
       }
       this.updateMovers(dt);
       if (this.portals && this.portals.length >= 2) this.updatePortals(dt);
+      this.updateExtras(dt);
       for (const b of this.balls.slice()) {
         const d = b.userData, p = b.position;
         d.age += dt;
         if (p.y < C.SEA_Y) { this.killBall(b, false); this.emit({ type: 'splash', x: p.x, y: C.SEA_Y, z: p.z, s: 0.7 }); continue; }
         const sp = b.velocity.length();
         if (sp < 0.6) d.slow += dt; else d.slow = 0;
+        if (this.stuck && this.stuck.ball === b) continue;
         if (d.slow > 0.4 || d.age > 6) { this.killBall(b, true); continue; }
       }
       this.maxV = maxV;

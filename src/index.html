@@ -533,6 +533,10 @@ h1,h2,h3{margin:0}
 #newCard .sub{font-size:16px;margin:0 0 16px}
 @keyframes ncpop{0%{transform:scale(.2) rotate(-20deg)}100%{transform:none}}
 .tplay{position:relative}
+.wxchip{position:absolute;left:12px;top:calc(max(10px,env(safe-area-inset-top)) + 62px);display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:3px solid var(--panel-edge);background:rgba(30,20,70,.75);color:#fff;font-size:12px;font-weight:900;letter-spacing:.06em}
+.wxchip[hidden]{display:none}.wxchip i{font-style:normal;font-size:16px;color:#9fe8ff}
+.wxchip[data-w=blizzard] b{color:#cfefff}.wxchip[data-w=ash] b{color:#ffb050}.wxchip[data-w=meteors] b{color:#ffd23f}.wxchip[data-w=rain] b{color:#9fe8ff}
+body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
 .starchest{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:10px 12px;border-radius:20px;border:3px solid rgba(232,196,106,.7);background:linear-gradient(160deg,rgba(255,210,63,.28),rgba(120,70,220,.3));color:#fff;cursor:pointer}
 .starchest .chest{flex:none;transform:scale(.9)}
 .starchest .sct{flex:1;min-width:0}.starchest .sct b{display:block;font-size:16px}.starchest .sct span{font-size:13px;opacity:.9}
@@ -782,6 +786,7 @@ h1,h2,h3{margin:0}
   <button class="btn green finish" id="btnFinish" hidden>TERMINAR</button>
   <button class="goldbtn" id="btnGold" hidden aria-label="Usar bola dorada"><span class="ball bGolden"></span><span class="gtxt"><small>DORADA</small><b id="goldCount">1</b></span></button>
   <div class="hint" id="hint"></div>
+  <div class="wxchip" id="wxChip" hidden><b>VIENTO</b><i></i></div>
 </div>
 <div id="ftexts"></div>
 

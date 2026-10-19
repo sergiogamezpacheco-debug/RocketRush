@@ -1108,6 +1108,23 @@
     for (const b of row) sim.popSingle(b, 0.06 + (b.position.x + C.ISLAND_R + 2) * 0.045);
     centerText('¡COHETE DE RACHA!', '#ffb23a', 30); Audio.special(); Audio.shoot(); vibe([20, 20, 40]);
   }
+  // clima de las vueltas: aviso arriba y explicación la primera vez
+  const WX = {
+    storm: ['VIENTO', 'Tormenta: el viento desvía la bola. Mira la guía al apuntar.'], sandstorm: ['RÁFAGAS', 'Tormenta de arena: ráfagas de viento que cambian de fuerza.'],
+    blizzard: ['HIELO', 'Ventisca: todo resbala más. Las torres caen con poco.'], rain: ['LLUVIA', 'Lluvia: el suelo está mojado y los bloques resbalan.'],
+    ash: ['BRASAS', 'Lluvia de ceniza: caen brasas que rompen bloques de arriba.'], meteors: ['METEORITOS', 'Meteoritos: de vez en cuando uno golpea la estructura.'] };
+  function setWeatherChip(L) {
+    const el = $('wxChip'), w = L.weather && WX[L.weather];
+    el.hidden = !w; if (!w) return;
+    el.dataset.w = L.weather; el.querySelector('b').textContent = w[0]; el.querySelector('i').textContent = '';
+    save.seenWx = save.seenWx || {};
+    if (!save.seenWx[L.weather]) { save.seenWx[L.weather] = true; persist(); setTimeout(() => { if (G.level === L) showHint(w[1], 5000); }, 1600); }
+  }
+  function updateWeatherChip() {
+    const sim = G.sim, el = $('wxChip'); if (!sim || el.hidden || !sim.windBase) return;
+    const a = el.querySelector('i'), w = sim.wind;
+    a.textContent = Math.abs(w) < 0.3 ? '·' : (w < 0 ? '←' : '→').repeat(Math.max(1, Math.min(3, Math.round(Math.abs(w) / 1.6))));
+  }
   function grandFinale(n) {
     const sim = G.sim, cp = G.level.cannon || C.CANNON_POS;
     sim.coins += n * 5;
@@ -1256,7 +1273,7 @@
 
   // ---------------- vista de un nivel ----------------
   function clearLevelView() {
-    for (const m of G.meshes) { if (m) world.remove(m); }
+    for (const m of G.meshes) { if (m) { world.remove(m); if (m.userData.rope) world.remove(m.userData.rope); } }
     G.meshes = [];
     for (const m of G.ballMeshes.values()) scene.remove(m);
     G.ballMeshes.clear();
@@ -1282,7 +1299,27 @@
     const springTex = deco(g => { g.strokeStyle = '#2a1d5c'; g.lineWidth = 10; g.lineCap = 'round'; g.beginPath(); for (let i = 0; i <= 5; i++) { const y = 100 - i * 15; g.moveTo(30, y); g.lineTo(98, y - 8); } g.stroke(); g.strokeStyle = '#ffd23f'; g.lineWidth = 6; g.stroke(); });
     const ventTex = deco(g => { g.fillStyle = '#1d1430'; g.beginPath(); g.ellipse(64, 70, 30, 18, 0, 0, 7); g.fill(); g.fillStyle = '#7fe6ff'; g.beginPath(); g.ellipse(64, 66, 18, 9, 0, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.85)'; for (let i = 0; i < 3; i++) { g.beginPath(); g.arc(50 + i * 14, 40 - i * 6, 7 + i * 2, 0, 7); g.fill(); } });
     const decal = (tex) => new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    const giftTex = deco(g => { g.fillStyle = '#ffd23f'; g.fillRect(54, 0, 20, 128); g.fillRect(0, 54, 128, 20); g.strokeStyle = '#2a1d5c'; g.lineWidth = 4; g.strokeRect(54, 0, 20, 128); g.strokeRect(0, 54, 128, 20);
+      g.fillStyle = '#ffd23f'; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(64 + s * 18, 50, 18, 11, s * 0.5, 0, 7); g.fill(); g.stroke(); } g.fillStyle = '#fff'; g.font = 'bold 34px sans-serif'; g.textAlign = 'center'; g.fillText('?', 64, 100); });
+    const rainbowTex = canvasTex(128, 128, (g) => { const c = ['#ff4f6d', '#ff9a3d', '#ffd23f', '#5fd45a', '#3d9bff', '#a66bff']; for (let i = -6; i < 12; i++) { g.fillStyle = c[((i % 6) + 6) % 6]; g.beginPath(); g.moveTo(i * 22, 0); g.lineTo(i * 22 + 22, 0); g.lineTo(i * 22 - 106, 128); g.lineTo(i * 22 - 128, 128); g.fill(); } g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.arc(40, 36, 20, 0, 7); g.fill(); }, true);
+    const keyTex = deco(g => { g.strokeStyle = '#7a4a08'; g.fillStyle = '#ffd23f'; g.lineWidth = 6; g.beginPath(); g.arc(40, 64, 22, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#7a4a08'; g.beginPath(); g.arc(40, 64, 8, 0, 7); g.fill();
+      g.fillStyle = '#ffd23f'; g.fillRect(60, 56, 54, 16); g.strokeRect(60, 56, 54, 16); g.fillRect(92, 72, 10, 18); g.fillRect(106, 72, 8, 14); });
+    const lockTex = deco(g => { g.strokeStyle = '#3a3448'; g.lineWidth = 10; g.beginPath(); g.arc(64, 54, 22, Math.PI, 0); g.stroke(); g.fillStyle = '#ffd23f'; g.strokeStyle = '#7a4a08'; g.lineWidth = 5; g.beginPath(); g.roundRect(34, 54, 60, 46, 10); g.fill(); g.stroke(); g.fillStyle = '#7a4a08'; g.beginPath(); g.arc(64, 72, 7, 0, 7); g.fill(); g.fillRect(61, 74, 6, 14);
+      g.strokeStyle = 'rgba(60,52,72,.85)'; g.lineWidth = 7; for (const y of [12, 116]) { g.beginPath(); for (let x = 0; x <= 128; x += 16) { g.moveTo(x, y - 5); g.lineTo(x + 10, y + 5); } g.stroke(); } });
+    const magnetTex = deco(g => { g.lineWidth = 26; g.strokeStyle = '#ff3a5a'; g.beginPath(); g.arc(64, 58, 32, Math.PI, 0); g.stroke(); g.fillStyle = '#ff3a5a'; g.fillRect(19, 56, 26, 30); g.fillRect(83, 56, 26, 30); g.fillStyle = '#e8eef8'; g.fillRect(19, 86, 26, 18); g.fillRect(83, 86, 26, 18); });
+    const gumTex = deco(g => { g.fillStyle = '#ff8ad0'; g.beginPath(); g.arc(64, 64, 40, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.arc(50, 48, 12, 0, 7); g.fill(); g.strokeStyle = '#c0408a'; g.lineWidth = 4; g.beginPath(); g.arc(64, 64, 40, 0, 7); g.stroke(); });
+    const fanTex = deco(g => { g.translate(64, 64); g.fillStyle = '#cfd8e8'; g.strokeStyle = '#2a1d5c'; g.lineWidth = 4; for (let i = 0; i < 4; i++) { g.rotate(Math.PI / 2); g.beginPath(); g.ellipse(0, -26, 14, 26, 0.4, 0, 7); g.fill(); g.stroke(); } g.fillStyle = '#ffd23f'; g.beginPath(); g.arc(0, 0, 11, 0, 7); g.fill(); g.stroke(); });
+    const tikiTex = deco(g => { g.fillStyle = 'rgba(40,20,60,.75)'; g.fillRect(28, 40, 26, 12); g.fillRect(74, 40, 26, 12); g.fillRect(40, 78, 48, 22); g.fillStyle = '#fff'; for (let x = 44; x < 88; x += 10) g.fillRect(x, 80, 6, 8); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(14, 18, 100, 6); });
     return {
+      gift: { body: new THREE.MeshStandardMaterial({ color: 0xff4f6d, roughness: 0.45 }), deco: decal(giftTex) },
+      prism: { body: new THREE.MeshPhysicalMaterial({ map: rainbowTex, roughness: 0.15, clearcoat: 1, emissive: 0x332244, emissiveIntensity: 0.4 }) },
+      key: { body: new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: 0.6 }), deco: decal(keyTex) },
+      magnet: { body: new THREE.MeshStandardMaterial({ color: 0x3a3448, roughness: 0.5, metalness: 0.5 }), deco: decal(magnetTex) },
+      gum: { body: new THREE.MeshStandardMaterial({ color: 0xffb8e2, roughness: 0.35 }), deco: decal(gumTex) },
+      fan: { body: new THREE.MeshStandardMaterial({ color: 0x6a7a96, roughness: 0.5, metalness: 0.4 }), deco: decal(fanTex) },
+      snowball: { body: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85 }) },
+      balloon: { body: null }, cloud: { body: null },
+      lockDeco: decal(lockTex), tikiDeco: decal(tikiTex),
       rocket: { body: new THREE.MeshStandardMaterial({ color: 0x3a2f6e, roughness: 0.4, metalness: 0.2 }), deco: decal(rocketTex) },
       pinata: { body: new THREE.MeshStandardMaterial({ map: pinataTex, roughness: 0.6 }) },
       hourglass: { body: new THREE.MeshPhysicalMaterial({ color: 0xbfe6ff, roughness: 0.1, transparent: true, opacity: 0.55, clearcoat: 1 }), deco: decal(hourTex) },
@@ -1292,10 +1329,22 @@
     };
   })();
   // icono de cada bloque nuevo para su tarjeta de estreno
-  const DEBUT_KIND = { k: 'rocket', n: 'pinata', h: 'hourglass', e: 'mirror', u: 'spring', v: 'geyser', q: 'portal' };
+  const DEBUT_KIND = { k: 'rocket', n: 'pinata', h: 'hourglass', e: 'mirror', u: 'spring', v: 'geyser', q: 'portal', j: 'gift', B: 'bubble', w: 'prism', F: 'fan', l: 'lock', S: 'snowball', N: 'cloud', V: 'vine', d: 'balloon', z: 'magnet', T: 'totem', C: 'gum' };
+  const DEBUT_FIND = { lock: b => b.userData.kind === 'key', bubble: b => b.userData.bubble, totem: b => b.userData.totem, vine: b => b.userData.vine };
   function newKindIcon(kind) {
     const L = NEWK[kind];
     const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    const ico = { bubble: '#cfefff', cloud: '#ffffff', vine: '#5fd45a', balloon: '#ff4f6d', totem: '#ffd23f', lock: '#3d9bff', snowball: '#ffffff' }[kind];
+    if (ico) {
+      g.fillStyle = kind === 'cloud' || kind === 'snowball' ? '#7fb8ff' : '#3a2f6e'; g.strokeStyle = '#2a1d5c'; g.lineWidth = 6; g.beginPath(); g.roundRect(10, 10, 108, 108, 22); g.fill(); g.stroke();
+      if (kind === 'bubble') { g.fillStyle = '#ff4f6d'; g.fillRect(44, 44, 40, 40); g.strokeStyle = '#cfefff'; g.lineWidth = 5; g.beginPath(); g.arc(64, 64, 40, 0, 7); g.stroke(); }
+      if (kind === 'cloud' || kind === 'snowball') { g.fillStyle = '#fff'; if (kind === 'cloud') { for (const [x, y, r] of [[44, 70, 22], [66, 58, 26], [88, 72, 20], [64, 80, 22]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } } else { g.beginPath(); g.arc(64, 66, 36, 0, 7); g.fill(); } }
+      if (kind === 'vine') { g.strokeStyle = '#5fd45a'; g.lineWidth = 6; g.beginPath(); g.moveTo(64, 14); g.lineTo(64, 64); g.stroke(); g.fillStyle = '#ffd23f'; g.fillRect(44, 64, 40, 40); }
+      if (kind === 'balloon') { g.fillStyle = '#ff4f6d'; g.beginPath(); g.ellipse(64, 54, 28, 34, 0, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(64, 88); g.quadraticCurveTo(54, 100, 64, 114); g.stroke(); }
+      if (kind === 'totem') { g.fillStyle = '#ffd23f'; g.fillRect(34, 18, 60, 92); g.drawImage(NEWK.tikiDeco.map.image, 34, 30, 60, 60); }
+      if (kind === 'lock') { g.fillStyle = '#3d9bff'; g.fillRect(24, 24, 80, 80); g.drawImage(NEWK.lockDeco.map.image, 24, 24, 80, 80); }
+      return c.toDataURL();
+    }
     if (kind === 'portal') { const gr = g.createRadialGradient(64, 64, 8, 64, 64, 56); gr.addColorStop(0, '#fff'); gr.addColorStop(0.45, '#c07bff'); gr.addColorStop(0.8, '#5a1fd6'); gr.addColorStop(1, 'rgba(90,31,214,0)'); g.fillStyle = gr; g.beginPath(); g.arc(64, 64, 56, 0, 7); g.fill(); g.strokeStyle = '#2a1d5c'; g.lineWidth = 6; g.beginPath(); g.arc(64, 64, 44, 0, 7); g.stroke(); return c.toDataURL(); }
     g.fillStyle = kind === 'mirror' ? '#dfe8f5' : kind === 'geyser' ? '#9a94aa' : kind === 'spring' ? '#5fd45a' : kind === 'hourglass' ? '#cfeaff' : '#3a2f6e';
     g.strokeStyle = '#2a1d5c'; g.lineWidth = 6; g.beginPath(); g.roundRect(10, 10, 108, 108, 22); g.fill(); g.stroke();
@@ -1315,7 +1364,7 @@
     const L = G.level, kind = DEBUT_KIND[L.debut], sim = G.sim;
     showHint(L.debutTip, 6000);
     // anillo que señala el bloque nuevo hasta el primer tiro
-    const b = sim && sim.blocks.find(x => x.userData.kind === kind && (kind !== 'portal' || x.userData.a));
+    const b = sim && sim.blocks.find(DEBUT_FIND[kind] || (x => x.userData.kind === kind && (kind !== 'portal' || x.userData.a)));
     if (b && G.meshes[b.userData.id]) {
       const ring = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.07, 10, 40), new THREE.MeshBasicMaterial({ color: 0x7dffb0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
       ring.position.z = b.userData.d / 2 + 0.15; G.meshes[b.userData.id].add(ring); G.debutRing = ring;
@@ -1329,6 +1378,18 @@
       g.add(ring, disc); g.userData.body = ring; g.userData.spin = disc; g.userData.portal = true;
       return g;
     }
+    if (d.kind === 'balloon') {
+      const col = [0xff4f6d, 0xffd23f, 0x3d9bff, 0x5fd45a, 0xa66bff][d.id % 5];
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.52, 20, 14), new THREE.MeshPhysicalMaterial({ color: col, roughness: 0.25, clearcoat: 1 })); b.scale.y = 1.12; b.castShadow = true; g.add(b);
+      const knot = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.16, 8), b.material); knot.position.y = -0.6; knot.rotation.x = Math.PI; g.add(knot);
+      g.userData.body = b; return g;
+    }
+    if (d.kind === 'cloud') {
+      const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.93, emissive: 0xdfe8f5, emissiveIntensity: 0.35 });
+      for (let i = 0; i < 9; i++) { const r = rnd(0.6, 1.05); const p = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 2), m); p.position.set(rnd(-d.w / 2 + 0.5, d.w / 2 - 0.5), rnd(-d.h / 2 + 0.5, d.h / 2 - 0.5), rnd(-0.2, 0.3)); g.add(p); }
+      g.userData.body = g.children[0]; g.userData.cloud = true; return g;
+    }
+    if (d.kind === 'snowball') { const sb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.56, 2), NEWK.snowball.body); sb.castShadow = true; g.add(sb); g.userData.body = sb; g.userData.snow = sb; return g; }
     const L = NEWK[d.kind];
     const mesh = new THREE.Mesh(roundedGeo(d.w, d.h, d.d), L.body); mesh.castShadow = d.kind !== 'hourglass'; mesh.receiveShadow = true;
     g.add(mesh); g.userData.body = mesh;
@@ -1337,6 +1398,8 @@
     if (d.kind === 'mirror') { const fr = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(d.w, d.h, d.d)), new THREE.LineBasicMaterial({ color: 0xffd23f })); g.add(fr); }
     if (d.kind === 'hourglass') g.userData.sparkle = true;
     if (d.kind === 'geyser') g.userData.steam = true;
+    if (d.kind === 'fan') g.userData.fanDeco = g.children.filter(c => c !== mesh);
+    if (d.kind === 'prism' || d.kind === 'gift') g.userData.sparkle = true;
     return g;
   }
   function buildLevelView() {
@@ -1344,7 +1407,7 @@
     const sim = G.sim;
     for (const b of sim.blocks) {
       const d = b.userData;
-      if (NEWK[d.kind] || d.kind === 'portal') { const g = newKindMesh(d); world.add(g); G.meshes[d.id] = g; continue; }
+      if ((NEWK[d.kind] && d.kind !== 'lockDeco' && d.kind !== 'tikiDeco') || d.kind === 'portal') { const g = newKindMesh(d); world.add(g); G.meshes[d.id] = g; continue; }
       let mat;
       if (d.kind === 'stone') mat = MAT.stone;
       else if (d.kind === 'glass') mat = MAT.glass;
@@ -1393,13 +1456,20 @@
         const fuse = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.35, 6), new THREE.MeshStandardMaterial({ color: 0x2b2233 }));
         fuse.position.y = d.h / 2 + 0.15; g.add(fuse);
       }
+      if (d.locked) { const L = new THREE.Mesh(faceGeo, NEWK.lockDeco); L.scale.set(0.95, 0.95, 1); L.position.z = d.d / 2 + 0.012; g.add(L); g.userData.lock = L; }
+      if (d.totem) { if (g.userData.face) { g.userData.face.visible = false; g.userData.face = null; } const T = new THREE.Mesh(faceGeo, NEWK.tikiDeco); T.scale.set(0.95, 0.95, 1); T.position.z = d.d / 2 + 0.012; g.add(T); }
+      if (d.bubble) { const bb = new THREE.Mesh(new THREE.SphereGeometry(0.85, 24, 16), new THREE.MeshPhysicalMaterial({ color: 0xcfefff, transparent: true, opacity: 0.32, roughness: 0.05, clearcoat: 1, depthWrite: false })); g.add(bb); g.userData.bubble = bb; }
+      if (d.vine && d.anchor) { const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]); const rope = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x3f8a3a })); world.add(rope); g.userData.rope = rope; g.userData.anchor = d.anchor; }
       world.add(g);
       G.meshes[d.id] = g;
     }
     syncView(0);
   }
+  const fogMat = new THREE.MeshStandardMaterial({ color: 0xb8bcc8, roughness: 0.9 });
+  let cloudRects = [];
   function syncView(dt) {
     const sim = G.sim, t = G.t;
+    cloudRects = (sim.clouds || []).filter(c => c.userData.alive).map(c => [c.position.x, c.position.y, c.userData.w / 2 + 0.2, c.userData.h / 2 + 0.2, c.position.z]);
     const look = sim.balls.length ? sim.balls[sim.balls.length - 1].position : null;
     for (const b of sim.blocks) {
       const d = b.userData, g = G.meshes[d.id];
@@ -1421,6 +1491,12 @@
       const face = g.userData.chamFace ? null : g.userData.face;
       if (g.userData.floatRing) g.userData.floatRing.rotation.z = t * 2 + d.id;
       if (g.userData.prizeBall) g.userData.prizeBall.rotation.y = t;
+      if (g.userData.rope) { const a = g.userData.rope.geometry.attributes.position; a.setXYZ(0, g.userData.anchor[0], g.userData.anchor[1], g.userData.anchor[2]); a.setXYZ(1, b.position.x, b.position.y + d.h / 2, b.position.z); a.needsUpdate = true; g.userData.rope.visible = d.alive && !d.destroyed && !!d.vineC; }
+      if (g.userData.fanDeco) { const sp = sim.gust && Math.abs(sim.gust.x - b.position.x) < 0.1 ? 30 : 2; for (const f of g.userData.fanDeco) f.rotation.z += dt * sp; }
+      if (cloudRects.length && d.kind === 'block') {
+        const hide = cloudRects.some(c => Math.abs(b.position.x - c[0]) < c[2] && Math.abs(b.position.y - c[1]) < c[3] && b.position.z < c[4]);
+        if (hide !== !!g.userData.fogged) { g.userData.fogged = hide; if (hide) { g.userData.mat0 = g.userData.body.material; g.userData.body.material = fogMat; } else if (g.userData.mat0) g.userData.body.material = g.userData.mat0; if (g.userData.face) g.userData.face.visible = !hide; }
+      }
       if (g.userData.spin) { g.userData.spin.rotation.z = -t * 3; g.userData.body.rotation.z = t * 0.8; const k = 1 + Math.sin(t * 4 + d.id) * 0.06; g.scale.set(k, k, 1); }
       if (g.userData.sparkle && Math.random() < 0.02) spawnSprite(b.position.x + rnd(-0.3, 0.3), b.position.y + rnd(-0.3, 0.4), b.position.z + d.d / 2 + 0.1, 0xfff2b0, 0.4, 0.6, 0.5, { add: true });
       if (g.userData.steam && Math.random() < 0.03) spawnSprite(b.position.x + rnd(-0.2, 0.2), b.position.y + d.h / 2 + 0.2, b.position.z, 0xffffff, 0.5, 2, 1.1, { vy: 0.8, alpha: 0.45 });
@@ -1855,6 +1931,36 @@
           floatText(e.x, e.y + 1.2, e.z, '¡GÉISER!', '#9fe8ff', 26, true);
           break;
         case 'portal': spawnSprite(e.x, e.y, e.z, 0xc07bff, 2, 1.4, 0.35, { add: true, alpha: 1 }); spawnSprite(e.x2, e.y2, e.z2, 0xc07bff, 2.4, 1.4, 0.4, { add: true, alpha: 1 }); spawnRing(e.x2, e.y2, e.z2, 0xc07bff, 1.6, 0.4); Audio.special(); break;
+        case 'gift': { stats().specials++;
+          for (const c of [0xff4f6d, 0xffd23f, 0x5fd45a, 0x3d9bff]) spawnDebris(e.x, e.y, e.z, c, 6, 5, 0.1, 1.1, { flat: true });
+          spawnSprite(e.x, e.y, e.z, 0xffe27a, 2.2, 1.4, 0.35, { add: true, alpha: 1 });
+          floatText(e.x, e.y + 1, e.z, e.what === 'bomb' ? '¡BOMBA!' : e.what === 'rainbow' ? '¡ARCOÍRIS!' : '+2 BOLAS', '#ffd23f', 28, true, true); Audio.special(); Audio.coin(); lastTray = ''; vibe([20, 20, 40]);
+          break; }
+        case 'prism': stats().specials++;
+          for (const c of Object.values(COL)) spawnRing(e.x, e.y, e.z, c, 2 + Math.random() * 2, 0.7);
+          centerText('¡ARCOÍRIS!', hexCss(e.c), 34); Audio.special(); G.shake = Math.max(G.shake, 0.3); vibe([30, 20, 60]);
+          break;
+        case 'locked': floatText(e.x, e.y + 0.8, e.z, '¡CERRADO!', '#cfd3e0', 20); Audio.thud(4, true); break;
+        case 'unlock':
+          for (const id of e.ids || []) { const g = G.meshes[id]; if (g && g.userData.lock) { g.userData.lock.visible = false; spawnSprite(g.position.x, g.position.y, g.position.z + 0.6, 0xffe27a, 1.2, 1.4, 0.4, { add: true }); } }
+          centerText('¡CANDADOS ABIERTOS!', '#ffd23f', 28); Audio.crown(); vibe([20, 30, 20]);
+          break;
+        case 'bubblePop': { const g = G.meshes[e.id]; if (g && g.userData.bubble) { g.remove(g.userData.bubble); g.userData.bubble = null; }
+          for (let i = 0; i < 8; i++) spawnSprite(e.x + rnd(-0.6, 0.6), e.y + rnd(-0.6, 0.6), e.z + 0.5, 0xcfefff, 0.5, 1.2, 0.4, { add: true }); Audio.pop(2); floatText(e.x, e.y + 1, e.z, '¡POP!', '#cfefff', 22); break; }
+        case 'cloudGone': for (let i = 0; i < 10; i++) spawnSprite(e.x + rnd(-1.5, 1.5), e.y + rnd(-1, 1), e.z, 0xffffff, 1.6, 1.6, 0.8, { alpha: 0.7, vy: 0.4 }); Audio.swap(); floatText(e.x, e.y + 1.2, e.z, '¡DESPEJADO!', '#ffffff', 24, true); break;
+        case 'balloonPop': spawnDebris(e.x, e.y, e.z, [0xff4f6d, 0xffd23f, 0x3d9bff, 0x5fd45a, 0xa66bff][e.id % 5], 10, 4, 0.1, 0.9, { flat: true }); Audio.pop(3); break;
+        case 'balloonAway': floatText(e.x, Math.min(e.y, 9), e.z, '+20', '#ffd23f', 22); Audio.chirp(); break;
+        case 'magnet': spawnRing(e.x, e.y, e.z, 0xff3a5a, e.r, 0.8); spawnRing(e.x, e.y, e.z, 0xe8eef8, e.r * 0.7, 0.6); floatText(e.x, e.y + 1.2, e.z, '¡IMÁN!', '#ff6a80', 26, true); Audio.special(); G.shake = Math.max(G.shake, 0.25); break;
+        case 'fan': for (let i = 0; i < 14; i++) setTimeout(() => spawnSprite(e.x + e.dir * rnd(1, 7), e.y + rnd(-0.5, 2.5), e.z + rnd(-1, 1), 0xe8f0ff, 0.5, 2.5, 0.5, { alpha: 0.6 }), i * 60); floatText(e.x, e.y + 1.2, e.z, '¡VENDAVAL!', '#cfe8ff', 24, true); Audio.swap(); vibe(30); break;
+        case 'snowball': floatText(e.x, e.y + 1.2, e.z, '¡AVALANCHA!', '#ffffff', 26, true); Audio.special(); break;
+        case 'snowHit': { spawnDebris(e.x, e.y, e.z, 0xffffff, 8, 4, 0.12, 0.8); const g = G.meshes[e.id]; if (g && g.userData.snow) g.userData.snow.scale.setScalar(1 + e.n * 0.12); break; }
+        case 'snowEnd': for (let i = 0; i < 6; i++) spawnSprite(e.x + rnd(-0.5, 0.5), e.y, e.z, 0xffffff, 1.4, 1.4, 0.8, { alpha: 0.8, vy: 0.5 }); break;
+        case 'gumStick': spawnSprite(e.x, e.y, e.z, 0xff8ad0, 1.2, 1.2, 0.4, { add: true }); showHint('¡Pegada! Toca dónde quieres lanzarla', 3500); Audio.thud(2); break;
+        case 'gumGo': spawnSprite(e.x, e.y, e.z, 0xff8ad0, 1.6, 1.4, 0.35, { add: true }); Audio.shoot(); break;
+        case 'vine': floatText(e.x, e.y + 1, e.z, '¡ALLÁ VA!', '#7dffb0', 24, true); Audio.swap(); vibe(25); break;
+        case 'totem': floatText(e.x, e.y + 1, e.z, '¡GIRA!', '#ffffff', 20); break;
+        case 'ember': for (let i = 0; i < 8; i++) setTimeout(() => spawnSprite(e.x + (8 - i) * 0.25, e.y + (8 - i) * 1.1, e.z, i % 2 ? 0xffb050 : 0xff5a1a, 0.9, 1, 0.4, { add: true, alpha: 1 }), i * 70); break;
+        case 'meteor': for (let i = 0; i < 10; i++) setTimeout(() => spawnSprite(e.x - (10 - i) * 0.8, e.y + (10 - i) * 1.4, e.z - (10 - i) * 0.5, i === 9 ? 0xffffff : 0xffb050, 1.6 - i * 0.05, 1, 0.45, { add: true, alpha: 1 }), i * 70); setTimeout(() => floatText(e.x, e.y + 1, e.z, '¡METEORITO!', '#ffb050', 24, true), 750); break;
         case 'stripe':
           spawnBeam(e.y, e.z, 0xffffff); Audio.special(); G.shake = Math.max(G.shake, 0.2); vibe(45);
           break;
@@ -2377,7 +2483,8 @@
     setTheme(L.world); buildLevelView(); frameCamera();
     if (window.Bosses) { if (L.boss) setTimeout(() => { if (G.level === L) window.Bosses.start(L); }, 0); else window.Bosses.stop(); }
     G.mode = 'play'; G.paused = false; G.ended = false; G.endT = 0; G.finalT = 0; G.slowT = 0; G.timeScale = 1;
-    G.lastSlow = false; G.combo = 0;
+    G.lastSlow = false; G.combo = 0; hintUntil = 0;
+    setWeatherChip(L);
     G.casi = 0; G.firstShot = false; G.swapped = false; G.winShown = false; G.winAt = 0; G.extraUsed = false; shownScore = 0; lastTray = '';
     $('btnFinish').hidden = true; G.cannonKind = null;
     G.aimTarget.set(0, 1.5, 0);
@@ -3430,6 +3537,7 @@
         sim.update(dt * G.timeScale);
         handleEvents();
         if (G.level.boss && window.Bosses) window.Bosses.tick(dt * G.timeScale);
+        updateWeatherChip();
         // cámara lenta cuando cae la última pieza
         if (!G.lastSlow && !G.level.boss && sim.state === 'play' && sim.progress() >= 0.97) { G.lastSlow = true; G.slowT = Math.max(G.slowT, 1.1); }
         // racha: el cohete de salida cruza la estructura al empezar

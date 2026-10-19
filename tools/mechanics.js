@@ -28,7 +28,7 @@ let ok = 0, bad = 0; const check = (name, cond, extra) => { cond ? ok++ : bad++;
   const y0 = s.blocks[1].position.y; s.popGroup(s.blocks[0], false); run(s, 3);
   check('flotante se queda en el aire', Math.abs(s.blocks[1].position.y - y0) < 0.3, y0.toFixed(2) + ' → ' + s.blocks[1].position.y.toFixed(2)); }
 // 6) los objetos que cruzan en cada paisaje: aparecen a la vista, y un tiro adelantado los alcanza y da sus 2 bolas
-for (const id of [35, 68, 88, 130, 161]) {   // un nivel de cada paisaje (desierto, nieve, selva, volcán y espacio)
+for (const id of [35, 68, 87, 130, 161]) {   // un nivel de cada paisaje (desierto, nieve, selva, volcán y espacio)
   const L = byId(id), s = new Sim(L); s.nextBird = 1e9; s.nextShip = 0;
   run(s, 0.2); const m = s.movers.find(x => x.kind === 'ship'); if (!m) { check('aparece en ' + L.biome, false); continue; }
   const K = C.CARRIERS[m.carrier]; m.x = -m.dir * (m.xr - 4);

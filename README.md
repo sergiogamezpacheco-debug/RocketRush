@@ -222,7 +222,15 @@ En la portada se ve la estructura del nivel en el que vas, con el motor 3D y la 
 **Ritmo de los mundos** (`src/levels3d.js`, bloque «ORDEN DE LOS MUNDOS»)
 - Los mundos 1, 2 y 3 son cortos (5, 6 y 8 niveles); el resto tiene 10. Así el primer cambio de paisaje y el primer jefe llegan pronto (nivel 20).
 - Cada paisaje dura 3 mundos y cada mundo tiene su luz: **día, atardecer y anochecer**.
-- Mundos 1-18: mar, desierto, nieve, selva, volcán y espacio. Del 19 al 51 vuelven con **clima** (tormenta con relámpagos, tormenta de arena, ventisca, lluvia, lluvia de ceniza y meteoritos). El clima solo se ve: no cambia la física.
+- Mundos 1-18: mar, desierto, nieve, selva, volcán y espacio. Del 19 al 51 vuelven con **clima**, que también cambia la partida (aviso arriba a la izquierda y explicación la primera vez):
+  | Clima | Efecto |
+  |---|---|
+  | Tormenta (mar) | Viento constante que desvía la bola; la guía de apuntado ya lo tiene en cuenta |
+  | Tormenta de arena (desierto) | Ráfagas de viento que suben y bajan de fuerza |
+  | Ventisca (nieve) | Todo resbala la mitad: las torres caen con poco |
+  | Lluvia (selva) | Suelo mojado: los bloques resbalan algo más |
+  | Ceniza (volcán) | Cada 6-10 s cae una brasa que rompe un bloque de arriba |
+  | Meteoritos (espacio) | Cada 8-13 s un meteorito golpea la estructura |
 - Desde el mundo 52 se intercalan **6 paisajes nuevos** con las vueltas de los clásicos: ciudad de caramelo, cueva de cristales, templo antiguo, bosque encantado, feria y ciudad neón (cada uno con su suelo, decorado, plataforma y efectos).
 - 100 mundos, 1023 niveles (incluidos 34 jefes y 7 niveles de estreno) y 100 niveles extra (uno por mundo; se abre con 3 ★ en todos los niveles de su mundo).
 - **La dificultad no cambia**: cada nivel conserva su tipo (fácil, medio o difícil) y su ajuste. Las partidas guardadas se convierten solas: cada nivel viejo conserva sus estrellas y el progreso sigue donde estaba.
@@ -235,8 +243,29 @@ En la portada se ve la estructura del nivel en el que vas, con el motor 3D y la 
 | Gólem | Gólem de hielo (mundo 9) | Camina sobre una losa. Hay que reventar sus 3 núcleos de lava antes de que cargue el golpe sísmico (quita una bola); cada acierto lo aturde. |
 Barra de vida arriba, presentación al empezar, explosión final y **cofre de oro**. Contra un jefe no se regalan bombas ni arcoíris por combo. Estrellas: 3 si quedan 3 bolas o más, 2 si queda alguna, 1 si no.
 
-**Bloques nuevos** (`src/sim3d.js`): cohete (barre su fila), piñata (2 golpes, suelta monedas), reloj de arena (+1 bola), espejo (rebota la bola, no se rompe), muelle (lanza por los aires lo que tiene encima), géiser (chorro que rompe su columna) y portal (la bola entra por uno y sale por el otro, sobre la estructura).
-- Se estrenan en los niveles 4, 15, 22, 65, 84, 127 y 158: nivel fácil, tarjeta «¡Bloque nuevo!» y un anillo que señala el bloque hasta el primer tiro. El nivel siguiente es de práctica y 3 niveles después se combina con lo anterior; luego aparecen en los niveles generados (los que ayudan, en todos los paisajes).
+**Bloques nuevos** (`src/sim3d.js`, 19 en total). Cada uno se estrena en un nivel fácil con la tarjeta «¡Bloque nuevo!» y un anillo que lo señala hasta el primer tiro; el nivel siguiente es de práctica, 3 niveles después se combina con lo anterior y luego aparece en los niveles generados (los que ayudan, en todos los paisajes; los obstáculos, en su paisaje y en los nuevos).
+| Nivel | Bloque | Qué hace |
+|---|---|---|
+| 4 | Cohete | Barre su fila de punta a punta |
+| 15 | Piñata | Con 2 golpes revienta y suelta monedas |
+| 22 | Reloj de arena | +1 bola |
+| 65 | Espejo | Rebota la bola; no se rompe |
+| 84 | Muelle | Lanza por los aires lo que tiene encima |
+| 127 | Géiser | Chorro que rompe su columna |
+| 158 | Portal | La bola entra por uno y sale por el otro, sobre la estructura |
+| 520 | Caja sorpresa | Bomba, arcoíris o +2 bolas al azar |
+| 551 | Burbuja | El bloque flota dentro hasta que revientas la pompa |
+| 582 | Cubo arcoíris | Revienta todos los bloques del color de la bola |
+| 613 | Ventilador | Sopla con fuerza hacia la estructura |
+| 644 | Candado y llave | Los candados no se rompen hasta romper la llave |
+| 675 | Bola de nieve | Rueda y arrasa hasta 6 bloques |
+| 706 | Nube | Tapa el color de lo que hay detrás hasta que la atraviesas |
+| 737 | Liana | Cuelga a un lado; si la golpeas con otro color, sale contra la torre |
+| 768 | Globo | Sube si no tiene nada encima; si lo revientas, lo de arriba cae |
+| 830 | Imán | Atrae lo de alrededor y se traga hasta 5 bloques |
+| 861 | Tótem | Revienta con su color; si fallas, cambia de color |
+| 892 | Chicle | La bola se queda pegada; con otro toque eliges hacia dónde sale |
+Prueba rápida: `node tools/newblocks.js`.
 
 **Más ganas de seguir jugando**
 1. Combo musical: cada pieza de un tiro suena una nota más aguda; con 5, 10, 15 y 25 piezas salen «¡GENIAL!», «¡INCREÍBLE!», «¡ROCKET RUSH!» e «¡IMPARABLE!» con vibración. Cámara lenta al caer la última pieza.

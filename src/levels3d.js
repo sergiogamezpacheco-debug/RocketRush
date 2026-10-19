@@ -11,6 +11,8 @@
   //   a = arena (se deshace) · f = bola congelada (al romperla, la bola es tuya) · c = camaleón (cambia de color tras cada tiro)
   //   m = magma (estalla hacia arriba cuando revienta algo a su lado) · flotantes (antigravedad): función flo()
   //   k = cohete · n = piñata · h = reloj de arena · e = espejo · u = muelle · v = géiser · portales: función portalPair()
+  //   j = caja sorpresa · w = cubo arcoíris · l = candado · i = llave · d = globo · z = imán · S = bola de nieve · C = chicle
+  //   T = tótem · F = ventilador · burbujas (bub), nubes y lianas: objetos sueltos (ver inject)
   const BOMBC = { 1: 'r', 2: 'b', 3: 'g', 4: 'y', 5: 'p' };
   const ICEC = { 6: 'r', 7: 'b', 8: 'g', 9: 'y', 0: 'p' };
   const ICE = { r: '6', b: '7', g: '8', y: '9', p: '0' }, BOMB = { r: '1', b: '2', g: '3', y: '4', p: '5' };
@@ -35,6 +37,16 @@
     if (ch === 'e') return Object.assign(base, { t: 'mirror' });     // espejo: rebota la bola, no se rompe
     if (ch === 'u') return Object.assign(base, { t: 'spring' });     // muelle: lanza hacia arriba lo que tiene encima
     if (ch === 'v') return Object.assign(base, { t: 'geyser' });     // géiser: chorro que rompe su columna
+    if (ch === 'j') return Object.assign(base, { t: 'gift' });       // caja sorpresa: potenciador al azar
+    if (ch === 'w') return Object.assign(base, { t: 'prism' });      // cubo arcoíris: revienta un color entero
+    if (ch === 'i') return Object.assign(base, { t: 'key' });        // llave: abre los candados
+    if (ch === 'l') return Object.assign(base, { t: 'lock' });       // candado (su color lo pone el nivel)
+    if (ch === 'd') return Object.assign(base, { t: 'balloon' });    // globo: sube si nada lo sujeta
+    if (ch === 'z') return Object.assign(base, { t: 'magnet' });     // imán: atrae lo de alrededor
+    if (ch === 'S') return Object.assign(base, { t: 'snowball' });   // bola de nieve: rueda y arrasa
+    if (ch === 'C') return Object.assign(base, { t: 'gum' });        // chicle: la bola se queda pegada
+    if (ch === 'T') return Object.assign(base, { t: 'totem' });      // tótem: cambia de color si fallas
+    if (ch === 'F') return Object.assign(base, { t: 'fan', dir: x > 0 ? -1 : 1 });   // ventilador: sopla hacia el centro
     return null;
   }
   // capas de abajo arriba; cada capa = filas de delante (z mayor) hacia atrás; cada carácter = 1 columna en x
@@ -529,8 +541,8 @@
     const cols = ['r', 'b', 'g', 'y', 'p'].sort(() => r() - 0.5).slice(0, ncol);
     const colPat = (seed) => { const q = r(); return q < 0.55 ? P.rand(cols, seed) : q < 0.7 ? P.layer(cols) : q < 0.85 ? P.checker(cols) : P.diag(cols); };
     // elementos especiales: los de siempre y, sobre todo, el del paisaje
-    const sig = { sea: ['RBGYP', 'bomb', 'ice', 't', 'x'], desert: ['a', 'a', 'a', 'RBGYP', 's'], snow: ['f', 'ice', 'ice', 'f', 'x'], jungle: ['c', 'c', 'c', 'RBGYP', 'bomb'], volcano: ['m', 'm', 's', 't', 'bomb'], space: ['f', 'c', 'x', 'RBGYP', 'bomb'] }[biome].concat((extras || []).filter(c => c !== 'q'));
-    const once = { k: 1, n: 1, h: 1, e: 2, u: 1, v: 1 };   // bloques nuevos: pocos por nivel (el portal va siempre en pareja)
+    const sig = { sea: ['RBGYP', 'bomb', 'ice', 't', 'x'], desert: ['a', 'a', 'a', 'RBGYP', 's'], snow: ['f', 'ice', 'ice', 'f', 'x'], jungle: ['c', 'c', 'c', 'RBGYP', 'bomb'], volcano: ['m', 'm', 's', 't', 'bomb'], space: ['f', 'c', 'x', 'RBGYP', 'bomb'] }[biome].concat((extras || []).filter(c => CELL_NEW.includes(c)));
+    const once = { k: 1, n: 1, h: 1, e: 2, u: 1, v: 1, j: 1, w: 1, d: 2, z: 1, S: 1, C: 1 };   // bloques nuevos: pocos por nivel
     const used = {};
     const pSpec = (tier === 'hard' ? 0.16 : tier === 'medium' ? 0.12 : 0.08) + ramp * 0.04;
     let tnt = 0, prize = 0;
@@ -573,8 +585,11 @@
     if (!blocks.some(b => b.c && !b.t)) blocks.push({ x: 0, y: 0.5, z: 2.5, w: 1, h: 1, d: 1, c: cols[0] });
     const nb = Math.round(ncol * 0.9 + blocks.length / 12 + (tier === 'easy' ? 2 : tier === 'medium' ? 0.5 : -0.5) - ramp * 0.6);
     const target = +(tier === 'easy' ? 0.7 : tier === 'medium' ? 0.78 : 0.85) + ramp * 0.04;
-    // portales: siempre en pareja, uno a cada lado y en el aire
-    if ((extras || []).includes('q') && r() < 0.35) { const top = Math.max(...blocks.map(b => b.y + b.h / 2)); blocks.push(...portalPair(top, r, midZ(blocks))); }
+    // los que no son una celda (portal, tótem, burbuja, candado, nube, liana, ventilador): como mucho uno por nivel
+    const post = (extras || []).filter(c => !CELL_NEW.includes(c));
+    const pre = { blocks };
+    if (post.length && r() < 0.45) inject(pre, post[Math.floor(r() * post.length)], 2, r);
+    blocks = pre.blocks;
     return { name: pick(ARCH[arch]) + ' ' + pick(BIOME_ADJ[look] || BIOME_ADJ[biome]), nb: Math.max(3, Math.min(14, nb)), target: Math.min(0.92, +target.toFixed(2)), gen: true, gid: n, tier, biome: look,
       goal: pick(TIPS[biome]), blocks };
   }
@@ -641,7 +656,7 @@
       const cols = [...new Set(l.blocks.filter(b => b.c && !b.t || b.t === 'st' || b.t === 'bm' || b.t === 'i').map(b => b.c))];
       const r = seeded(l.name.length * 977 + 3);
       let q = Math.floor(r() * 5);
-      for (const b of l.blocks) if ((b.t === 'prize' || b.t === 'cham') && !b.c) b.c = (cols.length ? cols : ['r', 'b'])[q++ % (cols.length || 2)];
+      for (const b of l.blocks) if ((b.t === 'prize' || b.t === 'cham' || b.t === 'lock' || b.t === 'totem' || b.t === 'vine') && !b.c) b.c = (cols.length ? cols : ['r', 'b'])[q++ % (cols.length || 2)];
     }
     if (l.balls0 === undefined) l.balls0 = l.balls || '';
     const t = l.gen ? (GTUNE[l.gid] && { nb: GTUNE[l.gid][0], target: GTUNE[l.gid][1] }) : TUNE[l.name];
@@ -702,9 +717,37 @@
     q: { name: 'Agujero de gusano', world: 17, pos: 4, title: 'Portal', what: 'La bola entra por uno y sale por el otro.', tip: 'Dispara al portal de la izquierda.',
       balls: 'bgbgb', blocks: flat(grid(0, 0, 0, [['sssss'], ['sssss'], ['sssss']]), grid(0, -1.5, 0, [['bgbgb', 'gbgbg'], ['gbgbg', 'bgbgb'], ['bgbgb', 'gbgbg'], ['gbgbg', 'bgbgb']])).concat(portalPair(4, () => 0.2, -1.5)) },
   };
-  const DEBUT_ORDER = ['k', 'n', 'h', 'e', 'u', 'v', 'q'];
-  const POSITIVE = { k: 1, n: 1, h: 1, u: 1, v: 1 };     // los que ayudan (aparecen en todos los paisajes desde su estreno)
-  const SPECIAL_T = { k: 'rocket', n: 'pinata', h: 'hourglass', e: 'mirror', u: 'spring', v: 'geyser' };
+  Object.assign(DEBUT, {
+    j: { name: 'La caja sorpresa', world: 52, pos: 4, title: 'Caja sorpresa', what: 'Al romperla te da un potenciador al azar.', tip: 'Rompe la caja: ¡a ver qué sale!',
+      balls: 'ry', blocks: grid(0, 0, 0, [['rrbbyy', 'rrbbyy'], ['yyjbrr', 'yybbrr'], ['bbrryy', 'bbrryy']]) },
+    B: { name: 'Pompas', world: 55, pos: 4, title: 'Burbuja', what: 'El bloque flota dentro hasta que revientas la pompa.', tip: 'Revienta una pompa y el bloque caerá.',
+      balls: 'brbr', blocks: flat(grid(0, 0, 0, [['bbrrbb', 'bbrrbb'], ['rrbbrr', 'rrbbrr']]), [{ x: -2, y: 3.8, z: 0.5, w: 1, h: 1, d: 1, c: 'r', bub: true }, { x: 0, y: 4.2, z: 0.5, w: 1, h: 1, d: 1, c: 'b', bub: true }, { x: 2, y: 3.8, z: 0.5, w: 1, h: 1, d: 1, c: 'r', bub: true }]) },
+    w: { name: 'Prisma', world: 58, pos: 4, title: 'Cubo arcoíris', what: 'Revienta todos los bloques del color de tu bola.', tip: 'Dispara al cubo arcoíris con un color.',
+      balls: 'rgb', blocks: grid(0, 0, 0, [['rgbrgb', 'gbrgbr'], ['brgbrg', 'rgbrgb'], ['gbwgbr', 'brgbrg']]) },
+    F: { name: 'Vendaval', world: 61, pos: 4, title: 'Ventilador', what: 'Sopla con fuerza hacia la estructura.', tip: 'Dale al ventilador y mira cómo vuela todo.',
+      balls: 'yry', blocks: flat(grid(0.5, 0, 0, [['yyrr', 'yyrr'], ['rryy', 'rryy'], ['yyrr', 'yyrr'], ['rryy', 'rryy']]), [{ x: -3.6, y: 0.5, z: 0, w: 1, h: 1, d: 1, t: 'fan', dir: 1 }]) },
+    l: { name: 'La llave', world: 64, pos: 4, title: 'Candado', what: 'No se rompe hasta que rompes su llave.', tip: 'Busca la llave y rómpela.',
+      balls: 'yrby', blocks: flat(grid(0, 0, 0, [['yyrrbb', 'yyrrbb'], ['bbyyrr', 'bbyyrr']]).map(b => Object.assign(b, { t: 'lock' })), grid(0, 0.5, 2, [['i']])) },
+    S: { name: 'Bola de nieve', world: 67, pos: 4, title: 'Bola de nieve', what: 'Rueda y arrasa lo que encuentra.', tip: 'Dale a la bola de nieve.',
+      balls: 'bp', blocks: flat(grid(-3.6, 0, 0, [['s'], ['S']]), grid(0.6, 0, 0, [['bbppb', 'bbppb'], ['ppbbp', 'ppbbp'], ['bbppb', 'bbppb']])) },
+    N: { name: 'Niebla', world: 70, pos: 4, title: 'Nube', what: 'Tapa el color de lo que hay detrás hasta que la atraviesas.', tip: 'Dispara a la nube para despejarla.',
+      balls: 'rgrg', blocks: flat(grid(0, 0, 0, [['rgrg', 'grgr'], ['grgr', 'rgrg'], ['rgrg', 'grgr']]), [{ x: 0, y: 1.6, z: 2.0, w: 4.4, h: 3.4, d: 0.3, t: 'cloud' }]) },
+    V: { name: 'Lianas', world: 73, pos: 4, title: 'Liana', what: 'Cuelga a un lado: si la golpeas, se balancea y arrasa la torre.', tip: 'Golpea la liana con otro color: sale disparada contra la torre.',
+      balls: 'ygyg', blocks: flat(grid(0, 0, 0, [['yggy', 'yggy'], ['gyyg', 'gyyg'], ['yggy', 'yggy'], ['gyyg', 'gyyg']]),
+        [{ x: -3.3, y: 2.8, z: 0, w: 1, h: 1, d: 1, t: 'vine', c: 'y', ax: -3.3, ay: 7.5 }, { x: 3.3, y: 2.8, z: 0, w: 1, h: 1, d: 1, t: 'vine', c: 'g', ax: 3.3, ay: 7.5 }]) },
+    d: { name: 'Globos', world: 76, pos: 4, title: 'Globo', what: 'Sube si no tiene nada encima. Si lo revientas, lo de arriba se cae.', tip: 'Revienta los globos o libéralos.',
+      balls: 'brb', blocks: grid(0, 0, 0, [['rrbbrr', 'rrbbrr'], ['dddddd', 'dddddd'], ['bbrrbb', 'bbrrbb']]) },
+    z: { name: 'Imán', world: 82, pos: 4, title: 'Imán', what: 'Al golpearlo atrae todo lo que tiene cerca.', tip: 'Dale al imán del centro.',
+      balls: 'rb', blocks: grid(0, 0, 0, [['rbzbr', 'brbrb'], ['brbrb', 'rbrbr'], ['rbrbr', 'brbrb']]) },
+    T: { name: 'Monolito', world: 85, pos: 4, title: 'Tótem', what: 'Revienta con su color; si fallas, cambia de color.', tip: 'Acierta el color de cada tótem.',
+      balls: 'bybyb', blocks: flat(grid(0, 1.5, 0, [['T.T.T']]), grid(0, -0.5, 0, [['bybyb', 'ybyby'], ['ybyby', 'bybyb'], ['bybyb', 'ybyby']])) },
+    C: { name: 'Chicle', world: 88, pos: 4, title: 'Chicle', what: 'La bola se queda pegada: con otro toque eliges hacia dónde sale.', tip: 'Dispara al chicle y luego toca dónde quieres que vaya.',
+      balls: 'pyp', blocks: flat(grid(0, 2.6, 0, [['s'], ['s'], ['C']]), grid(0, 1.6, 0, [['sss'], ['sss']]), grid(0, -0.5, 0, [['pypyp', 'ypypy'], ['ypypy', 'pypyp']])) },
+  });
+  const DEBUT_ORDER = ['k', 'n', 'h', 'e', 'u', 'v', 'q', 'j', 'B', 'w', 'F', 'l', 'S', 'N', 'V', 'd', 'z', 'T', 'C'];
+  const POSITIVE = { k: 1, n: 1, h: 1, u: 1, v: 1, j: 1, w: 1, F: 1, S: 1, z: 1, d: 1 };     // los que ayudan: en todos los paisajes desde su estreno
+  const OBSTACLE_HOME = { e: ['snow', 'crystal', 'neon', 'space'], q: ['space', 'neon', 'crystal', 'temple'], l: ['temple', 'desert', 'crystal'], N: ['forest', 'jungle', 'candy'], T: ['temple', 'space', 'fair'], B: ['sea', 'candy', 'fair'], V: ['jungle', 'forest', 'temple'], C: ['candy', 'fair', 'neon'] };
+  const SPECIAL_T = { k: 'rocket', n: 'pinata', h: 'hourglass', e: 'mirror', u: 'spring', v: 'geyser', j: 'gift', w: 'prism', d: 'balloon', z: 'magnet', S: 'snowball', C: 'gum' };
   // portales: uno a la izquierda, a mano, y su pareja encima de la estructura (la bola sale hacia abajo)
   function portalPair(top, r, zc) {
     const side = r() < 0.5 ? -1 : 1;
@@ -712,16 +755,34 @@
   }
   const midZ = bl => { const c = bl.filter(b => b.c); return c.length ? c.reduce((s, b) => s + b.z, 0) / c.length : 0; };
   // pone bloques nuevos en un nivel ya hecho (práctica, combinación y remezcla): en la cara de delante y sin tocar la base
-  function inject(l, ch, count) {
-    if (ch === 'q') { if (!l.blocks.some(b => b.t === 'portal')) l.blocks.push(...portalPair(Math.max(...l.blocks.map(b => b.y + b.h / 2)), seeded(l.blocks.length), midZ(l.blocks))); return; }
+  function inject(l, ch, count, rr) {
+    const r = rr || seeded(l.blocks.length * 31 + ch.charCodeAt(0));
+    const top = Math.max(...l.blocks.map(b => b.y + b.h / 2)), zc = midZ(l.blocks);
+    if (ch === 'q') { if (!l.blocks.some(b => b.t === 'portal')) l.blocks.push(...portalPair(top, r, zc)); return; }
+    if (ch === 'N') { if (!l.blocks.some(b => b.t === 'cloud')) { const fz = Math.max(...l.blocks.map(b => b.z + b.d / 2)); l.blocks.push({ x: 0, y: Math.min(top, 4) / 2 + 0.3, z: fz + 0.6, w: 3.2, h: Math.min(top, 4) * 0.8, d: 0.3, t: 'cloud' }); } return; }
+    if (ch === 'V') { const sd = r() < 0.5 ? -1 : 1, y = Math.max(1.5, top * 0.5); const vx = Math.min(4.2, Math.max(...l.blocks.map(b => Math.abs(b.x) + b.w / 2)) + 1.3); l.blocks.push({ x: sd * vx, y, z: zc, w: 1, h: 1, d: 1, t: 'vine', ax: sd * vx, ay: y + 4 }); return; }
+    if (ch === 'F') { const sd = r() < 0.5 ? -1 : 1; if (!l.blocks.some(b => Math.abs(b.x - sd * 4.4) < 1 && b.y < 1)) l.blocks.push({ x: sd * 4.4, y: 0.5, z: zc, w: 1, h: 1, d: 1, t: 'fan', dir: -sd }); return; }
     const plain = l.blocks.filter(b => b.c && !b.t && b.w === 1 && b.y > 0.6);
     if (!plain.length) return;
     const maxZ = Math.max(...plain.map(b => b.z));
-    const front = plain.filter(b => b.z >= maxZ - 0.01).sort((a, b) => a.y - b.y || a.x - b.x);
+    let front = plain.filter(b => b.z >= maxZ - 0.01).sort((a, b) => a.y - b.y || a.x - b.x);
+    if (ch === 'd') front = front.filter(b => l.blocks.some(o => o !== b && Math.abs(o.x - b.x) < 0.5 && Math.abs(o.z - b.z) < 0.5 && o.y > b.y + 0.5));   // el globo, siempre con algo encima
+    if (ch === 'B') front = plain.filter(b => b.y > top - 1.2);
+    if (!front.length) return;
     const step = Math.max(1, Math.floor(front.length / (count + 1)));
-    for (let i = 0; i < count && (i + 1) * step - 1 < front.length; i++) { const b = front[(i + 1) * step - 1]; b.t = SPECIAL_T[ch]; delete b.c; }
+    const picked = [];
+    for (let i = 0; i < count && (i + 1) * step - 1 < front.length; i++) picked.push(front[(i + 1) * step - 1]);
+    for (const b of picked) {
+      if (ch === 'T') b.t = 'totem';
+      else if (ch === 'B') b.bub = true;
+      else if (ch === 'l') b.t = 'lock';
+      else { b.t = SPECIAL_T[ch]; delete b.c; }
+    }
+    // los candados siempre traen su llave, arriba y delante
+    if (ch === 'l' && picked.length && !l.blocks.some(b => b.t === 'key')) l.blocks.push({ x: 0, y: top + 0.5, z: maxZ, w: 1, h: 1, d: 1, t: 'key' });
     l.blocks = l.blocks.slice();
   }
+  const CELL_NEW = ['k', 'n', 'h', 'e', 'u', 'v', 'j', 'w', 'z', 'S', 'C', 'd'];
 
   // ---- jefes: tres tipos que rotan por paisaje; el nombre y el aspecto cambian con el paisaje ----
   const BOSS_NAMES = {
@@ -769,7 +830,7 @@
   const handBio = { desert: HAND.slice(50, 60), snow: HAND.slice(60, 70), jungle: HAND.slice(70, 80), volcano: HAND.slice(80, 90), space: HAND.slice(90, 100) };
   let gn = 101;                                       // siguiente nivel generado (el número fija su forma y su dificultad)
   const unlocked = [];                                // bloques nuevos ya estrenados (para remezclar)
-  const extrasFor = (biome) => unlocked.filter(c => POSITIVE[c] || c === 'e' && ['snow', 'crystal', 'neon', 'space'].includes(biome) || c === 'q' && ['space', 'neon', 'crystal', 'temple'].includes(biome));
+  const extrasFor = (biome) => unlocked.filter(c => POSITIVE[c] || (OBSTACLE_HOME[c] || []).includes(biome));
   const pending = [];                                 // práctica y combinación de los estrenos: { at: índice, ch, n }
   const WORLDS = [];
   const FIRST_NAMES = { 1: 'Plaza mayor', 2: 'Feria del castillo', 3: 'Puerto pirata', 4: 'Dunas doradas', 5: 'Oasis perdido', 6: 'Valle de los reyes', 7: 'Pico helado', 8: 'Lago helado', 9: 'Glaciar', 10: 'Templo perdido', 11: 'Río esmeralda', 12: 'Cascadas', 13: 'Isla de fuego', 14: 'Géiseres', 15: 'Cráter rojo', 16: 'Base lunar', 17: 'Nebulosa', 18: 'Estación orbital' };
