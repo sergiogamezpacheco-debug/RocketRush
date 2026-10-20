@@ -1167,11 +1167,26 @@
     ftBox.appendChild(el);
     setTimeout(() => el.remove(), 1000);
   }
+  // textos grandes del centro: si llegan varios a la vez, salen uno detrás de otro (nunca encima)
+  const ctQueue = []; let ctCur = null, ctFree = 0, ctTimer = 0;
   function centerText(txt, color, size) {
-    const el = document.createElement('div');
-    el.className = 'ft'; el.textContent = txt; el.style.left = '50%'; el.style.top = '38%';
-    el.style.color = color || '#fff'; el.style.fontSize = (size || 30) + 'px'; el.style.animationDuration = '1.6s';
+    if (ctQueue.some(q => q.txt === txt) || (ctCur && ctCur.textContent === txt && performance.now() < ctFree)) return;
+    ctQueue.push({ txt, color, size });
+    if (ctQueue.length > 4) ctQueue.splice(0, ctQueue.length - 4);
+    pumpCenter();
+  }
+  function pumpCenter() {
+    clearTimeout(ctTimer);
+    if (!ctQueue.length) return;
+    const now = performance.now();
+    if (ctCur && now < ctFree) { ctTimer = setTimeout(pumpCenter, ctFree - now); return; }
+    if (ctCur) { const old = ctCur; old.style.transition = 'opacity .12s'; old.style.opacity = '0'; setTimeout(() => old.remove(), 130); }
+    const q = ctQueue.shift(), el = document.createElement('div');
+    el.className = 'ft'; el.textContent = q.txt; el.style.left = '50%'; el.style.top = '38%';
+    el.style.color = q.color || '#fff'; el.style.fontSize = (q.size || 30) + 'px'; el.style.animationDuration = '1.6s';
     ftBox.appendChild(el); setTimeout(() => el.remove(), 1600);
+    ctCur = el; ctFree = now + 700;                 // cada texto se ve al menos 0,7 s antes de dar paso al siguiente
+    if (ctQueue.length) ctTimer = setTimeout(pumpCenter, 700);
   }
 
   // ---------------- estado ----------------
