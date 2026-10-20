@@ -145,7 +145,7 @@
       this.gems = 0;
       if (opts.gems) this.placeGems(opts.gems, opts.gemSeed || 1);
       for (let i = 0; i < 30; i++) { this.applyFloat(); this.world.step(C.DT); }
-      for (const b of this.blocks) b.sleep();
+      for (const b of this.blocks) { b.sleep(); b.userData.hy = b.position.y; }   // altura de reposo: la cascada es solo para bloques que caen
       this.events.length = 0;
       this.silent = false; this.state = 'play';
       // pájaro y barco de premio: aparecen al azar
@@ -189,52 +189,7 @@
         b.userData = { kind: 'plat', w: p.w, h: p.h, d: p.d };
         w.addBody(b);
       }
-      let id = 0;
-      for (const d of this.level.blocks) {
-        const t = d.t || 'n';
-        let data, density = 1, friction = 0.55;
-        if (t === 's') { data = { kind: 'stone' }; density = 2.6; friction = 0.7; }
-        else if (t === 'tnt') { data = { kind: 'tnt', lit: false }; density = 0.8; }
-        else if (t === 'gl') { data = { kind: 'glass' }; density = 0.9; friction = 0.35; }
-        else if (t === 'gold') { data = { kind: 'gold' }; density = 1.6; friction = 0.6; }
-        else if (t === 'sand') { data = { kind: 'sand' }; density = 1.1; friction = 0.8; }
-        else if (t === 'prize') { data = { kind: 'prize', c: d.c || 'r' }; density = 0.9; friction = 0.3; }
-        else if (t === 'magma') { data = { kind: 'magma' }; density = 2.2; friction = 0.7; }
-        else if (t === 'rocket') { data = { kind: 'rocket' }; density = 0.8; }
-        else if (t === 'pinata') { data = { kind: 'pinata', hp: 2 }; density = 0.7; }
-        else if (t === 'hourglass') { data = { kind: 'hourglass' }; density = 0.9; }
-        else if (t === 'mirror') { data = { kind: 'mirror' }; density = 3.2; friction = 0.3; }
-        else if (t === 'spring') { data = { kind: 'spring', cd: 0 }; density = 1.4; friction = 0.8; }
-        else if (t === 'geyser') { data = { kind: 'geyser' }; density = 2.4; friction = 0.7; }
-        else if (t === 'portal') { data = { kind: 'portal', a: !!d.pairA, b: !!d.pairB }; }
-        else if (t === 'gift') { data = { kind: 'gift' }; density = 0.8; }
-        else if (t === 'prism') { data = { kind: 'prism' }; density = 1.1; friction = 0.4; }
-        else if (t === 'key') { data = { kind: 'key' }; density = 0.6; }
-        else if (t === 'cloud') { data = { kind: 'cloud' }; }
-        else if (t === 'balloon') { data = { kind: 'balloon' }; density = 0.25; friction = 0.6; }
-        else if (t === 'magnet') { data = { kind: 'magnet' }; density = 3.2; friction = 0.8; }
-        else if (t === 'snowball') { data = { kind: 'snowball', hits: 0 }; density = 1.4; friction = 0.3; }
-        else if (t === 'gum') { data = { kind: 'gum' }; density = 1.0; friction = 0.9; }
-        else if (t === 'fan') { data = { kind: 'fan', dir: d.dir || (d.x > 0 ? -1 : 1) }; density = 3.0; friction = 0.8; }
-        else data = { kind: 'block', c: d.c, ice: t === 'i', stripe: t === 'st', bomb: t === 'bm', cham: t === 'cham', hp: t === 'i' ? 2 : 1, popping: false,
-          locked: t === 'lock', totem: t === 'totem', bubble: !!d.bub, vine: t === 'vine' };
-        if (d.bub) d.fl = true;            // burbuja: el bloque flota dentro hasta que la revientas
-        if (d.fl) data.float = true;
-        data.id = id++; data.w = d.w; data.h = d.h; data.d = d.d;
-        const half = new CANNON.Vec3(d.w / 2 - 0.002, d.h / 2 - 0.002, d.d / 2 - 0.002);
-        const fixed = t === 'portal' || t === 'cloud' || d.fixed;     // portales, nubes y espejos de pared: no se mueven
-        const body = new CANNON.Body({ mass: fixed ? 0 : density * d.w * d.h * d.d, type: fixed ? CANNON.Body.STATIC : CANNON.Body.DYNAMIC, material: new CANNON.Material({ friction, restitution: 0.04 }) });
-        if (t === 'portal' || t === 'cloud') body.collisionResponse = false;
-        if (t === 'balloon') { body.linearDamping = 0.55; body.angularDamping = 0.6; }
-        body.addShape(new CANNON.Box(half));
-        body.position.set(d.x, d.y, d.z);
-        if (d.ry) body.quaternion.setFromEuler(0, d.ry, 0);
-        body.linearDamping = data.float ? 0.45 : 0.04; body.angularDamping = data.float ? 0.5 : 0.08;
-        body.sleepSpeedLimit = 0.12; body.sleepTimeLimit = 0.6;
-        body.half = half; body.userData = data;
-        data.alive = true; data.destroyed = false;
-        w.addBody(body); this.blocks.push(body);
-      }
+      for (const d of this.level.blocks) this.makeBlock(d, this.blocks.length);
       this.total = this.blocks.filter(b => !NOCOUNT[b.userData.kind]).length;   // la piedra (y espejos, muelles y portales) no cuentan
       this.portals = this.blocks.filter(b => b.userData.kind === 'portal');
       this.clouds = this.blocks.filter(b => b.userData.kind === 'cloud');
@@ -257,6 +212,60 @@
       if (!this.levelColors.length) this.levelColors = ['r', 'b'];
     }
 
+    // crea el cuerpo de un bloque de la lista del nivel (también los que aparecen durante la partida, como la arena del faraón)
+    makeBlock(d, id) {
+      const w = this.world;
+      const t = d.t || 'n';
+      let data, density = 1, friction = 0.55;
+      if (t === 's') { data = { kind: 'stone' }; density = 2.6; friction = 0.7; }
+      else if (t === 'tnt') { data = { kind: 'tnt', lit: false }; density = 0.8; }
+      else if (t === 'gl') { data = { kind: 'glass' }; density = 0.9; friction = 0.35; }
+      else if (t === 'gold') { data = { kind: 'gold' }; density = 1.6; friction = 0.6; }
+      else if (t === 'sand') { data = { kind: 'sand' }; density = 1.1; friction = 0.8; }
+      else if (t === 'prize') { data = { kind: 'prize', c: d.c || 'r' }; density = 0.9; friction = 0.3; }
+      else if (t === 'magma') { data = { kind: 'magma' }; density = 2.2; friction = 0.7; }
+      else if (t === 'rocket') { data = { kind: 'rocket' }; density = 0.8; }
+      else if (t === 'pinata') { data = { kind: 'pinata', hp: 2 }; density = 0.7; }
+      else if (t === 'hourglass') { data = { kind: 'hourglass' }; density = 0.9; }
+      else if (t === 'mirror') { data = { kind: 'mirror' }; density = 3.2; friction = 0.3; }
+      else if (t === 'spring') { data = { kind: 'spring', cd: 0 }; density = 1.4; friction = 0.8; }
+      else if (t === 'geyser') { data = { kind: 'geyser' }; density = 2.4; friction = 0.7; }
+      else if (t === 'portal') { data = { kind: 'portal', a: !!d.pairA, b: !!d.pairB }; }
+      else if (t === 'gift') { data = { kind: 'gift' }; density = 0.8; }
+      else if (t === 'prism') { data = { kind: 'prism' }; density = 1.1; friction = 0.4; }
+      else if (t === 'key') { data = { kind: 'key' }; density = 0.6; }
+      else if (t === 'cloud') { data = { kind: 'cloud' }; }
+      else if (t === 'balloon') { data = { kind: 'balloon' }; density = 0.25; friction = 0.6; }
+      else if (t === 'magnet') { data = { kind: 'magnet' }; density = 3.2; friction = 0.8; }
+      else if (t === 'snowball') { data = { kind: 'snowball', hits: 0 }; density = 1.4; friction = 0.3; }
+      else if (t === 'gum') { data = { kind: 'gum' }; density = 1.0; friction = 0.9; }
+      else if (t === 'fan') { data = { kind: 'fan', dir: d.dir || (d.x > 0 ? -1 : 1) }; density = 3.0; friction = 0.8; }
+      else data = { kind: 'block', c: d.c, ice: t === 'i', stripe: t === 'st', bomb: t === 'bm', cham: t === 'cham', hp: t === 'i' ? 2 : 1, popping: false,
+        locked: t === 'lock', totem: t === 'totem', bubble: !!d.bub, vine: t === 'vine' };
+      if (d.bub) d.fl = true;            // burbuja: el bloque flota dentro hasta que la revientas
+      if (d.fl) data.float = true;
+      data.id = id; data.w = d.w; data.h = d.h; data.d = d.d;
+      const half = new CANNON.Vec3(d.w / 2 - 0.002, d.h / 2 - 0.002, d.d / 2 - 0.002);
+      const fixed = t === 'portal' || t === 'cloud' || d.fixed;     // portales, nubes y espejos de pared: no se mueven
+      const body = new CANNON.Body({ mass: fixed ? 0 : density * d.w * d.h * d.d, type: fixed ? CANNON.Body.STATIC : CANNON.Body.DYNAMIC, material: new CANNON.Material({ friction, restitution: 0.04 }) });
+      if (t === 'portal' || t === 'cloud') body.collisionResponse = false;
+      if (t === 'balloon') { body.linearDamping = 0.55; body.angularDamping = 0.6; }
+      body.addShape(new CANNON.Box(half));
+      body.position.set(d.x, d.y, d.z);
+      if (d.ry) body.quaternion.setFromEuler(0, d.ry, 0);
+      body.linearDamping = data.float ? 0.45 : 0.04; body.angularDamping = data.float ? 0.5 : 0.08;
+      body.sleepSpeedLimit = 0.12; body.sleepTimeLimit = 0.6;
+      body.half = half; body.userData = data;
+      data.alive = true; data.destroyed = false;
+      w.addBody(body); this.blocks.push(body);
+      return body;
+    }
+    addBlock(d) {
+      const b = this.makeBlock(d, this.blocks.length);
+      b.userData.hy = d.y;
+      if (!NOCOUNT[b.userData.kind]) this.total++;
+      return b;
+    }
     // gemas: algunos bloques de color de la cara delantera (los que se ven) llevan una gema dentro
     placeGems(n, seed) {
       const r = rng(seed);
@@ -386,12 +395,14 @@
       if (v > C.SAND_V) { if (da.kind === 'sand') this.crumble(A); if (db.kind === 'sand') this.crumble(B); }
       if (v > C.PRIZE_V) { if (da.kind === 'prize') this.breakPrize(A); if (db.kind === 'prize') this.breakPrize(B); }
       if (v > C.TNT_V) { if (da.kind === 'tnt') this.ignite(A); if (db.kind === 'tnt') this.ignite(B); }
-      if (this.armed && v > C.CASCADE_V && da.kind === 'block' && db.kind === 'block' && da.c === db.c && !da.popping && !db.popping && !da.destroyed && !db.destroyed && !da.locked && !db.locked && !da.bubble && !db.bubble) {
+      if (this.armed && v > C.CASCADE_V && da.kind === 'block' && db.kind === 'block' && da.c === db.c && !da.popping && !db.popping && !da.destroyed && !db.destroyed && !da.locked && !db.locked && !da.bubble && !db.bubble && (this.dropped(A) || this.dropped(B))) {
         this.chain++;
         this.emit({ type: 'cascade', x: px, y: py, z: pz, chain: this.chain, c: da.c });
         this.popGroup(A, true);
       }
     }
+    // ¿ha caído este bloque desde donde estaba? (un empujón de una bola de otro color no cuenta como caída)
+    dropped(o) { const hy = o.userData.hy; return hy === undefined || hy - o.position.y > 0.45; }
     ballHit(ball, other, v, px, py, pz) {
       const d = ball.userData, od = other.userData;
       if (d.dead) return;

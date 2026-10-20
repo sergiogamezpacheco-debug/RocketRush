@@ -239,7 +239,7 @@ En la portada se ve la estructura del nivel en el que vas, con el motor 3D y la 
 | Tipo | Ejemplo | Cómo se gana |
 |---|---|---|
 | Barco pirata | Capitán Bloquebarba (mundo 3) | Derribar el barco y su tesoro dorado. Cada 3 tiros (2 con menos de la mitad de vida) dispara un cañonazo que quita una bola. |
-| Pirámide | Faraón Arenas (mundo 6) | Escudo de color por fases: solo daña el rojo, luego el azul y al final el sarcófago dorado. En cada fase una tormenta de arena arranca la fachada y da bolas del color nuevo. |
+| Pirámide | Faraón Arenas (mundo 6) | Su vida está en la **máscara de oro** que flota sobre la pirámide. El escudo es de un color que cambia cada 2 tiros (siempre uno que queda en la pirámide; los ojos de la máscara y la barra avisan del siguiente). Rompiendo 4, 6 y 8 bloques de ese color (cuentan aunque caigan) el escudo cae durante 2 tiros y se puede golpear la máscara. 3 golpes y cae. Tras cada golpe la arena reconstruye parte de la pirámide y da +4 bolas; si se queda sin bloques, también se reconstruye, así que nunca se atasca. Prueba: `python3 tools/pharaohflow.py`. |
 | Gólem | Gólem de hielo (mundo 9) | Camina sobre una losa. Hay que reventar sus 3 núcleos de lava antes de que cargue el golpe sísmico (quita una bola); cada acierto lo aturde. |
 Barra de vida arriba, presentación al empezar, explosión final y **cofre de oro**. Contra un jefe no se regalan bombas ni arcoíris por combo. Estrellas: 3 si quedan 3 bolas o más, 2 si queda alguna, 1 si no.
 
@@ -271,7 +271,13 @@ Prueba rápida: `node tools/newblocks.js`.
 1. Combo musical: cada pieza de un tiro suena una nota más aguda; con 5, 10, 15 y 25 piezas salen «¡GENIAL!», «¡INCREÍBLE!», «¡ROCKET RUSH!» e «¡IMPARABLE!» con vibración. Cámara lenta al caer la última pieza.
 2. Gran final: las bolas que sobran salen como cohetes, revientan lo que queda y dan 5 monedas cada una.
 3. «¡Casi!»: dice cuántos bloques faltaban y la primera derrota de cada mundo regala +3 bolas.
-4. Racha de victorias con llama en el botón de jugar: 1 victoria = cohete de salida, 2 = + bomba, 3 o más = + arcoíris.
+4. Racha de victorias con llama en el botón de jugar: 2 victorias = bomba gratis, 3 o más = + arcoíris. Con 1 victoria o más, el **cohete de salida** (cruza la estructura y revienta la fila con más bloques) sale gratis en la ventana del nivel, junto a las demás ventajas, y solo se usa si lo eliges.
 5. Recompensa variable: cofre de estrellas en lo alto del mapa (cada 30 ★) y caja misteriosa al superar por primera vez cada 5.º nivel (a veces con premio doble).
 
 Pruebas: los tests de siempre (`tools/*flow.py`), ya adaptados a los números de nivel nuevos.
+
+## Colores: solo revienta la bola de su color
+
+Antes, una bola de otro color podía reventar un grupo entero: al empujar el bloque contra su vecino del mismo color saltaba la cascada (que es para los bloques que **caen** sobre los de su color). Pasaba en uno de cada cuatro niveles más o menos, también en los jefes (por ejemplo, Barcaza del río, 113).
+
+Ahora cada bloque recuerda su altura de reposo y la cascada solo salta si uno de los dos ha caído al menos medio bloque. Los empujones no cuentan, y las cascadas de verdad siguen igual. Prueba: `node tools/wrongcolor.js 3` (bola de otro color contra el bloque más cercano en 1 de cada 3 niveles): antes 27 % de niveles con bloques reventados por error; ahora solo quedan los derrumbes reales.

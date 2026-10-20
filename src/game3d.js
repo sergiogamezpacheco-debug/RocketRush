@@ -1106,7 +1106,7 @@
     const row = live.filter(b => Math.abs(b.position.y - best) < 0.55), z = Math.max(...row.map(b => b.position.z));
     launchFlyer({ x: -C.ISLAND_R - 2, y: best, z, dir: 1, x1: C.ISLAND_R + 2 });
     for (const b of row) sim.popSingle(b, 0.06 + (b.position.x + C.ISLAND_R + 2) * 0.045);
-    centerText('¡COHETE DE RACHA!', '#ffb23a', 30); Audio.special(); Audio.shoot(); vibe([20, 20, 40]);
+    centerText('¡COHETE!', '#ffb23a', 30); Audio.special(); Audio.shoot(); vibe([20, 20, 40]);
   }
   // clima de las vueltas: aviso arriba y explicación la primera vez
   const WX = {
@@ -1223,6 +1223,7 @@
     const L = G.level;
     let maxY = 3;
     if (L) for (const b of L.blocks) maxY = Math.max(maxY, b.y + b.h / 2);
+    if (L && L.viewTop) maxY = Math.max(maxY, L.viewTop);
     const cp = L && L.cannon ? L.cannon : C.CANNON_POS;
     const aspect = W / H;
     camera.fov = aspect < 0.7 ? 56 : 46; camera.updateProjectionMatrix();
@@ -1419,10 +1420,13 @@
   }
   function buildLevelView() {
     clearLevelView();
-    const sim = G.sim;
-    for (const b of sim.blocks) {
-      const d = b.userData;
-      if ((NEWK[d.kind] && d.kind !== 'lockDeco' && d.kind !== 'tikiDeco') || d.kind === 'portal') { const g = newKindMesh(d); world.add(g); G.meshes[d.id] = g; continue; }
+    for (const b of G.sim.blocks) blockView(b.userData);
+    syncView(0);
+  }
+  // la pieza que se ve de un bloque (también los que aparecen durante la partida)
+  function blockView(d) {
+    {
+      if ((NEWK[d.kind] && d.kind !== 'lockDeco' && d.kind !== 'tikiDeco') || d.kind === 'portal') { const g = newKindMesh(d); world.add(g); G.meshes[d.id] = g; return g; }
       let mat;
       if (d.kind === 'stone') mat = MAT.stone;
       else if (d.kind === 'glass') mat = MAT.glass;
@@ -1477,8 +1481,8 @@
       if (d.vine && d.anchor) { const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]); const rope = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x3f8a3a })); world.add(rope); g.userData.rope = rope; g.userData.anchor = d.anchor; }
       world.add(g);
       G.meshes[d.id] = g;
+      return g;
     }
-    syncView(0);
   }
   const fogMat = new THREE.MeshStandardMaterial({ color: 0xb8bcc8, roughness: 0.9 });
   let cloudRects = [];
@@ -2090,6 +2094,7 @@
     ray.setFromCamera(ndc, camera);
     const objs = [];
     for (const g of G.meshes) if (g && g.visible) objs.push(g.userData.body);
+    for (const o of window.RRGame.aimObjs) if (o.visible) objs.push(o);
     const hits = ray.intersectObjects(objs, false);
     if (hits.length) return hits[0].point.clone();
     const p = new THREE.Vector3();
@@ -2439,14 +2444,15 @@
     $('preCrowns').textContent = L.boss ? 'JEFE FINAL' : 'Derriba el ' + Math.round(L.target * 100) + '%';
     $('preBalls').textContent = L.balls.length + ' bolas';
     $('preGoal').textContent = L.goal || '';
-    const free = streakBoosters();
-    const defs = [['bomb', 'Bomba'], ['rainbow', 'Arcoíris'], ['extra', '+2 bolas']];
+    const free = streakBoosters(), freeOpt = save.streak >= 1 ? ['rocket'] : [];
+    const defs = [['rocket', 'Cohete'], ['bomb', 'Bomba'], ['rainbow', 'Arcoíris'], ['extra', '+2 bolas']];
     // bola del mundo de este nivel (y las demás que ya tengas)
     const wk = worldBallOf(L.world), wks = [wk].concat(WB_KEYS.filter(k => k !== wk && (save.boosters[k] || 0) > 0));
     const wdefs = wks.filter(k => wbOpen(k)).map(k => [k, WBALLS[k].name.replace('Bola ', '').replace(/^de /, '')]);
     $('preBoosters').innerHTML = defs.map(([k, n]) => {
-      const isFree = free.includes(k);
-      return `<div class="boost ${isFree ? 'sel' : ''}" data-k="${k}"><span class="n ${isFree ? 'free' : ''}">${isFree ? 'GRATIS' : (save.boosters[k] || 0)}</span><div class="ball big ${k === 'extra' ? 'bPlus2' : CSSB[k]}" style="margin:2px auto 0;width:44px;height:44px"></div><div>${n}</div></div>`;
+      const isFree = free.includes(k), opt = freeOpt.includes(k);
+      const ico = k === 'rocket' ? `<div style="margin:2px auto 0;width:44px;height:44px">${ROCKET_SVG}</div>` : `<div class="ball big ${k === 'extra' ? 'bPlus2' : CSSB[k]}" style="margin:2px auto 0;width:44px;height:44px"></div>`;
+      return `<div class="boost ${isFree ? 'sel' : ''}" data-k="${k}"><span class="n ${isFree || opt ? 'free' : ''}">${isFree || opt ? 'GRATIS' : (save.boosters[k] || 0)}</span>${ico}<div>${n}</div></div>`;
     }).join('') + wdefs.map(([k, n]) => {
       const have = save.boosters[k] || 0;
       return `<div class="boost wboost" data-k="${k}"><span class="n ${have ? '' : 'buy'}">${have || ('<i class="gem"></i>' + wbGems(k))}</span><div class="ball big ${CSSB[k]}" style="margin:2px auto 0;width:44px;height:44px"></div><div>${n}<small>nv. ${wbLevel(k)}</small></div></div>`;
@@ -2456,6 +2462,12 @@
       const k = el.dataset.k;
       if (free.includes(k)) return;
       Audio.click();
+      if (k === 'rocket') {         // cohete de salida: gratis con racha, y si no, de los que tengas guardados
+        if (!freeOpt.length && !preSel.rocket && !(save.boosters.rocket > 0)) { toast('Gana una partida y tendrás el cohete gratis en la siguiente'); return; }
+        preSel.rocket = !preSel.rocket; el.classList.toggle('sel', preSel.rocket);
+        $('preWb').innerHTML = '<b>Cohete:</b> al empezar cruza la estructura y revienta la fila con más bloques.';
+        return;
+      }
       if (WBALLS[k] && !preSel[k] && !(save.boosters[k] > 0)) {      // comprarla con gemas aquí mismo
         const g = wbGems(k);
         if ((save.gems || 0) < g) { toast(`Te faltan ${g - (save.gems || 0)} gemas`); openShop('gems'); return; }
@@ -2470,11 +2482,13 @@
     const st = $('preStreak');
     if (save.streak >= 1) {
       st.hidden = false; st.style.display = 'block';
-      st.innerHTML = '<i class="ico ico-fire"></i> ' + (save.streak >= 3 ? `Racha de ${save.streak} victorias: cohete de salida, bomba y arcoíris gratis` : save.streak >= 2 ? `Racha de 2 victorias: cohete de salida y bomba gratis · con 3, también arcoíris` : `Racha de 1 victoria: un cohete abre la partida · con 2, también bomba`);
+      st.innerHTML = '<i class="ico ico-fire"></i> ' + (save.streak >= 3 ? `Racha de ${save.streak} victorias: bomba y arcoíris gratis, y el cohete si lo eliges` : save.streak >= 2 ? `Racha de 2 victorias: bomba gratis y el cohete si lo eliges · con 3, también arcoíris` : `Racha de 1 victoria: cohete gratis si lo eliges · con 2, también bomba`);
     } else st.style.display = 'none';
     $('pre').classList.add('on'); $('preScroll').scrollTop = 0;
   }
-  function streakBoosters() { return save.streak >= 3 ? ['rocket', 'bomb', 'rainbow'] : save.streak >= 2 ? ['rocket', 'bomb'] : save.streak >= 1 ? ['rocket'] : []; }
+  // regalos de la racha que entran solos; el cohete se elige (o no) antes de empezar
+  function streakBoosters() { return save.streak >= 3 ? ['bomb', 'rainbow'] : save.streak >= 2 ? ['bomb'] : []; }
+  const ROCKET_SVG = '<svg viewBox="0 0 64 64" width="44" height="44"><g transform="rotate(45 32 32)"><path d="M26 44 L32 60 L38 44Z" fill="#ffb23a" stroke="#ff5a1a" stroke-width="2.5" stroke-linejoin="round"/><path d="M22 36 L14 48 L24 46Z M42 36 L50 48 L40 46Z" fill="#3d9bff" stroke="#2a1d5c" stroke-width="3" stroke-linejoin="round"/><path d="M32 4 C44 14 44 32 40 46 H24 C20 32 20 14 32 4Z" fill="#ff4f6d" stroke="#2a1d5c" stroke-width="3.5" stroke-linejoin="round"/><circle cx="32" cy="24" r="6" fill="#cfefff" stroke="#2a1d5c" stroke-width="3"/><path d="M26 12 Q32 6 38 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".7"/></g></svg>';
 
   function refundGolden() {
     const sim = G.sim;
@@ -3404,7 +3418,8 @@
       save.coins -= L.replayCost; setCoins(); Audio.coin();
     }
     const bs = streakBoosters().slice();
-    for (const k of Object.keys(preSel)) if (preSel[k] && save.boosters[k] > 0) { save.boosters[k]--; bs.push(k); }
+    if (preSel.rocket) { bs.push('rocket'); if (save.streak < 1) save.boosters.rocket = Math.max(0, (save.boosters.rocket || 0) - 1); }
+    for (const k of Object.keys(preSel)) if (k !== 'rocket' && preSel[k] && save.boosters[k] > 0) { save.boosters[k]--; bs.push(k); }
     persist(); startLevel(G.preId, bs);
   });
   // caja misteriosa: premio al azar y, a veces, doble
@@ -3603,7 +3618,8 @@
 
   // los jefes (bosses.js) usan estas piezas del juego
   window.RRGame = { G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
-    refreshTray: () => { lastTray = ''; }, get save() { return save; },
+    refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
+    addBlockView: d => blockView(d),
     // el jefe ha caído: el nivel se gana con las bolas que quedaban
     bossWin(left) { const sim = G.sim; if (!sim || G.mode !== 'play') return; sim.queue = Array.from({ length: left }, () => 'heavy'); sim.goalReached = true; sim.finish(); G.winAt = G.t - 1; } };
   // inicio

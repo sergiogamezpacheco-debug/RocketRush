@@ -632,6 +632,7 @@
   function placeCannon(l) {
     let mx = 1, my = 3;
     for (const b of l.blocks) { mx = Math.max(mx, Math.abs(b.x) + b.w / 2); my = Math.max(my, b.y + b.h / 2); }
+    if (l.viewTop) my = Math.max(my, l.viewTop);
     const tanV = Math.tan(28 * Math.PI / 180), tanH = tanV * 0.46;
     const dist = Math.max((mx + 1.0) / tanH, (my + (my > 6 ? 4 : 2.5)) / (2 * tanV));
     l.cannon = { x: 0, y: 1.2, z: Math.max(6.5, Math.min(14.5, dist - 3.6)) };
@@ -800,24 +801,21 @@
       balls: 'rgypbrgBypbgr' + 'rg'.slice(0, extra),
       blocks: grid(0, 0, 1.4, [['rrs.sgg', 'rr.o.gg', 'rrpppgg'], ['rr...gg', 'rr...gg', 'rrpppgg'], ['yy...yy', 'yy...yy', 'yypppyy'], ['gg...rr', 'gg...rr', 'ggbbbrr'], ['...', '...', 'bbb'], ['...', '...', 'bbb']]) };
     else if (kind === 'pyramid') {
-      const blocks = [], HW = [3, 3, 2, 2, 1, 1, 0], HD = [2, 2, 1, 1, 0, 0, 0];
-      // manchas rojas (escudo de la fase 1) y azules (fase 2) separadas: los grupos que se tocan, aunque sea por una esquina, revientan juntos
-      const RED = new Set(['-3,0,2', '-2,0,2', '2,0,2', '3,0,2', '0,2,1', '0,3,1', '0,5,0', '-3,1,-1', '-3,1,0', '3,1,-1', '3,1,0', '-2,3,0', '2,3,0']);
-      const BLUE = new Set(['-2,0,1', '-2,0,0', '2,0,1', '2,0,0', '0,1,1', '-1,3,0', '1,3,0']);
+      // pirámide de colores mezclados (el escudo del faraón va cambiando de color) con un núcleo de piedra;
+      // la máscara dorada del faraón flota encima (la dibuja bosses.js)
+      const blocks = [], HW = [3, 3, 2, 2, 1, 1, 0], HD = [2, 2, 1, 1, 0, 0, 0], PAL = ['r', 'y', 'b', 'g', 'p'];
       const back = biome === 'desert' ? 'a' : 'y';
       for (let j = 0; j < HW.length; j++) {
         const hw = HW[j], hd = HD[j];
         for (let x = -hw; x <= hw; x++) for (let z = -hd; z <= hd; z++) {
-          const k = x + ',' + j + ',' + z;
           let ch;
-          if (x === 0 && z === 0 && (j === 1 || j === 2)) ch = 'o';
-          else if (Math.abs(x) === hw || z === hd) ch = RED.has(k) ? 'r' : 'y';
-          else if (z === -hd) ch = back;
-          else ch = BLUE.has(k) ? 'b' : 'g';
+          if (x === 0 && z === 0 && (j === 1 || j === 2)) ch = 's';                       // núcleo de piedra
+          else if (z === -hd && hd > 0) ch = back;                                          // espalda de arena
+          else ch = PAL[(((x + 5) + 2 * j + 3 * (z + 5)) % 5 + 5) % 5];                    // los vecinos casi nunca repiten color
           blocks.push(...grid(x, z, j, [[ch]]));
         }
       }
-      l = { blocks, balls: 'rrrrrBrrrrr' + 'rr'.slice(0, extra) };
+      l = { blocks, viewTop: 10.2, balls: 'rybgpbrgyp' + 'yg'.slice(0, extra) };
     } else l = {
       statics: [{ x: 0, y: 0, z: 0, w: 6, h: 0.4, d: 3 }, { x: 0, y: 0.4, z: 0, w: 0.96, h: 2, d: 1.9 }],
       balls: 'byrpHbyrBpby' + 'by'.slice(0, extra),
