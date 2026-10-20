@@ -38,7 +38,7 @@
   };
   const isColor = k => C.COLORS.indexOf(k) >= 0;
   // bloques que no cuentan para el porcentaje (no se pueden quitar del todo o no son estructura)
-  const NOCOUNT = { stone: 1, mirror: 1, spring: 1, portal: 1, magnet: 1, fan: 1, cloud: 1 };
+  const NOCOUNT = { stone: 1, mirror: 1, portal: 1, magnet: 1, fan: 1, cloud: 1 };
   // Bolas de los mundos (una por cada uno de los 10 primeros mundos). 'lv' = nivel de la bola (1-10): sube su poder.
   const WBALLS = {
     w1: { name: 'Bola demoledora', world: 1, r: 0.4 },     // atraviesa la estructura rompiendo todo lo que toca
@@ -200,7 +200,10 @@
       this.vines = [];
       for (const b of this.blocks) {
         const d = b.userData, src = this.level.blocks[d.id]; if (!d.vine || !src) continue;
-        const anchor = new CANNON.Body({ mass: 0, type: CANNON.Body.STATIC }); anchor.position.set(src.ax, src.ay, src.z); anchor.collisionResponse = false; w.addBody(anchor);
+        // el punto de amarre lleva una forma diminuta que no choca con nada: un cuerpo sin forma descoloca el barrido de choques
+        // (SAP) y los bloques de al lado dejaban de tocarse (se veían metidos unos en otros)
+        const anchor = new CANNON.Body({ mass: 0, type: CANNON.Body.STATIC }); anchor.addShape(new CANNON.Sphere(0.05)); anchor.position.set(src.ax, src.ay, src.z);
+        anchor.collisionResponse = false; anchor.collisionFilterGroup = 0; anchor.collisionFilterMask = 0; w.addBody(anchor);
         const len = Math.hypot(src.ax - src.x, src.ay - src.y);
         const con = new CANNON.DistanceConstraint(anchor, b, len); w.addConstraint(con);
         d.vineC = con; d.anchor = [src.ax, src.ay, src.z]; d.vinePush = src.push || 5;
@@ -809,11 +812,18 @@
       if (this.state === 'play') this.addBalls(1);
       this.emit({ type: 'hourglass', id: d.id, x: o.position.x, y: o.position.y, z: o.position.z });
     }
-    // muelle: lanza hacia arriba lo que tiene encima (se puede usar varias veces)
+    // muelle: el primer golpe lanza hacia arriba lo que tiene encima; el segundo lo revienta (cuenta para las 3 estrellas)
     spring(o) {
       const d = o.userData;
-      if (this.t - (d.cd || -9) < 0.5) return;
+      if (!d.alive || d.destroyed || this.t - (d.cd || -9) < 0.5) return;
       d.cd = this.t;
+      d.hits = (d.hits || 0) + 1;
+      if (d.hits >= 2) {
+        const p = o.position;
+        this.removeSpecial(o, 30);
+        this.emit({ type: 'springPop', id: d.id, x: p.x, y: p.y, z: p.z });
+        return;
+      }
       const x = o.position.x, y = o.position.y, z = o.position.z;
       this.wakeAll();
       let n = 0;

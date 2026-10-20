@@ -1942,7 +1942,11 @@
           floatText(e.x, e.y + 0.9, e.z, '+1 BOLA', '#7dffb0', 26, true, true); Audio.glass(); Audio.crown(); lastTray = ''; vibe(25);
           break;
         case 'mirror': spawnSprite(e.x, e.y, e.z, 0xffffff, 1.4, 1.2, 0.25, { add: true, alpha: 1 }); Audio.glass(); break;
-        case 'spring': spawnRing(e.x, e.y + 0.5, e.z, 0x7dffb0, 1.8, 0.4); floatText(e.x, e.y + 1.2, e.z, '¡BOING!', '#7dffb0', 26, true); Audio.chirp(); G.shake = Math.max(G.shake, 0.2); vibe(30); break;
+        case 'spring': { spawnRing(e.x, e.y + 0.5, e.z, 0x7dffb0, 1.8, 0.4); floatText(e.x, e.y + 1.2, e.z, '¡BOING!', '#7dffb0', 26, true); Audio.chirp(); G.shake = Math.max(G.shake, 0.2); vibe(30);
+          const g = G.meshes[e.id]; if (g && !g.userData.dented) { g.userData.dented = true; g.scale.set(1.04, 0.82, 1.04); g.traverse(o => { if (o.isMesh && o.material && o.material.color && !o.material._dent) { o.material = o.material.clone(); o.material._dent = true; o.material.color.multiplyScalar(0.72); if (o.material.emissive) o.material.emissive.setHex(0x3a0a0a); } }); }
+          break; }
+        case 'springPop': stats().blocks++; stats().specials++; spawnDebris(e.x, e.y, e.z, 0x7dffb0, 16, 6, 0.14, 1); spawnSprite(e.x, e.y, e.z + 0.4, 0xd8fff0, 2, 1.2, 0.35, { add: true });
+          floatText(e.x, e.y + 1.2, e.z, '¡CRAC!', '#7dffb0', 28, true); Audio.pop && Audio.pop(1); G.shake = Math.max(G.shake, 0.25); vibe([20, 20, 30]); break;
         case 'geyserCharge': for (let i = 0; i < 4; i++) spawnSprite(e.x + rnd(-0.3, 0.3), e.y + 0.6, e.z, 0xffffff, 0.8, 1.6, 0.7, { vy: 1.5, alpha: 0.6 }); Audio.fuse(); break;
         case 'geyser': stats().blocks++; stats().specials++;
           for (let i = 0; i < 12; i++) spawnSprite(e.x + rnd(-0.25, 0.25), e.y + i * 0.55, e.z + 0.2, i % 2 ? 0xffffff : 0x9fe8ff, 1.5, 1.3, 0.8, { vy: 5, alpha: 0.85 });
@@ -3628,5 +3632,5 @@
   goTitle(); setCoins(); scheduleReminder();
   requestAnimationFrame(() => requestAnimationFrame(autoDailySoon));   // cuenta desde que la portada ya se ve
   requestAnimationFrame(frame);
-  window.ChromaGame = { G, startLevel, tick, manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, LEVELS };
+  window.ChromaGame = { G, startLevel, tick, manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, LEVELS, goTitle };
 })();

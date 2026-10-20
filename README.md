@@ -240,7 +240,7 @@ En la portada se ve la estructura del nivel en el que vas, con el motor 3D y la 
 |---|---|---|
 | Barco pirata | Capitán Bloquebarba (mundo 3) | Derribar el barco y su tesoro dorado. Cada 3 tiros (2 con menos de la mitad de vida) dispara un cañonazo que quita una bola. |
 | Pirámide | Faraón Arenas (mundo 6) | Su vida está en la **máscara de oro** que flota sobre la pirámide. El escudo es de un color que cambia cada 2 tiros (siempre uno que queda en la pirámide; los ojos de la máscara y la barra avisan del siguiente). Rompiendo 4, 6 y 8 bloques de ese color (cuentan aunque caigan) el escudo cae durante 2 tiros y se puede golpear la máscara. 3 golpes y cae. Tras cada golpe la arena reconstruye parte de la pirámide y da +4 bolas; si se queda sin bloques, también se reconstruye, así que nunca se atasca. Prueba: `python3 tools/pharaohflow.py`. |
-| Gólem | Gólem de hielo (mundo 9) | Camina sobre una losa. Hay que reventar sus 3 núcleos de lava antes de que cargue el golpe sísmico (quita una bola); cada acierto lo aturde. |
+| Gólem | Gólem de hielo (mundo 9) | Camina sobre una losa. Hay que reventar sus 3 núcleos de lava antes de que cargue el golpe sísmico (quita una bola); cada acierto lo aturde. Si un núcleo se cae del gólem (detrás, a un lado o al suelo), se rompe al quedarse quieto: nunca queda uno inalcanzable (`python3 tools/golemflow.py`). |
 Barra de vida arriba, presentación al empezar, explosión final y **cofre de oro**. Contra un jefe no se regalan bombas ni arcoíris por combo. Estrellas: 3 si quedan 3 bolas o más, 2 si queda alguna, 1 si no.
 
 **Bloques nuevos** (`src/sim3d.js`, 19 en total). Cada uno se estrena en un nivel fácil con la tarjeta «¡Bloque nuevo!» y un anillo que lo señala hasta el primer tiro; el nivel siguiente es de práctica, 3 niveles después se combina con lo anterior y luego aparece en los niveles generados (los que ayudan, en todos los paisajes; los obstáculos, en su paisaje y en los nuevos).
@@ -250,7 +250,7 @@ Barra de vida arriba, presentación al empezar, explosión final y **cofre de or
 | 15 | Piñata | Con 2 golpes revienta y suelta monedas |
 | 22 | Reloj de arena | +1 bola |
 | 65 | Espejo | Rebota la bola; no se rompe |
-| 84 | Muelle | Lanza por los aires lo que tiene encima |
+| 84 | Muelle | El primer golpe lanza por los aires lo que tiene encima (y el muelle se queda aplastado y más oscuro); el segundo lo revienta. Cuenta como bloque: para las 3 estrellas hay que reventarlo. |
 | 127 | Géiser | Chorro que rompe su columna |
 | 158 | Portal | La bola entra por uno y sale por el otro, sobre la estructura |
 | 520 | Caja sorpresa | Bomba, arcoíris o +2 bolas al azar |
@@ -281,3 +281,7 @@ Pruebas: los tests de siempre (`tools/*flow.py`), ya adaptados a los números de
 Antes, una bola de otro color podía reventar un grupo entero: al empujar el bloque contra su vecino del mismo color saltaba la cascada (que es para los bloques que **caen** sobre los de su color). Pasaba en uno de cada cuatro niveles más o menos, también en los jefes (por ejemplo, Barcaza del río, 113).
 
 Ahora cada bloque recuerda su altura de reposo y la cascada solo salta si uno de los dos ha caído al menos medio bloque. Los empujones no cuentan, y las cascadas de verdad siguen igual. Prueba: `node tools/wrongcolor.js 3` (bola de otro color contra el bloque más cercano en 1 de cada 3 niveles): antes 27 % de niveles con bloques reventados por error; ahora solo quedan los derrumbes reales.
+
+## Lianas: los bloques ya no se meten unos dentro de otros
+
+El punto del que cuelga cada liana era un cuerpo físico sin forma. Eso descolocaba el sistema que decide qué piezas se tocan, y algunos bloques dejaban de chocar entre sí: en el nivel 1022 (el que sale de fondo en la portada con todo desbloqueado) el tablón rojo se hundía por la derecha dentro de la columna. Ahora el amarre lleva una forma diminuta que no choca con nada. Afectaba a los 8 niveles con liana, también durante la partida.

@@ -711,7 +711,7 @@
     e: { name: 'Sala de espejos', world: 8, pos: 4, title: 'Espejo', what: 'No se rompe: hace rebotar la bola.', tip: 'Dispara a un espejo: la bola rebota hacia la torre escondida.',
       balls: 'bpbp', blocks: flat(grid(0, 1.6, 0, [['sss'], ['sss'], ['sss']]), grid(0, -0.5, 0, [['bpb', 'pbp'], ['pbp', 'bpb'], ['bpb', 'pbp']]),
         [{ x: -3.4, y: 1.1, z: -0.5, w: 1.4, h: 2.2, d: 0.25, t: 'mirror', ry: Math.PI / 4, fixed: true }, { x: 3.4, y: 1.1, z: -0.5, w: 1.4, h: 2.2, d: 0.25, t: 'mirror', ry: -Math.PI / 4, fixed: true }]) },
-    u: { name: 'Trampolín', world: 10, pos: 2, title: 'Muelle', what: 'Lanza por los aires lo que tiene encima.', tip: 'Dale al muelle y mira cómo salta todo.',
+    u: { name: 'Trampolín', world: 10, pos: 2, title: 'Muelle', what: 'El primer golpe lanza por los aires lo que tiene encima; el segundo lo revienta.', tip: 'Para las 3 estrellas hay que reventar también el muelle.',
       balls: 'grg', blocks: flat(grid(0, 0, 0, [['guuug', 'guuug']]), grid(0, 0, 1, [['rrgrr', 'rrgrr'], ['ggrgg', 'ggrgg'], ['rrgrr', 'rrgrr']])) },
     v: { name: 'Fumarola', world: 14, pos: 4, title: 'Géiser', what: 'Lanza un chorro que rompe toda su columna.', tip: 'Dale al géiser y espera el chorro.',
       balls: 'ryry', blocks: grid(0, 0, 0, [['yrvry', 'yrsry'], ['ryrry', 'ryryr'], ['yrryr', 'yrryr'], ['ryyry', 'ryyry'], ['yrryr', 'yrryr']]) },

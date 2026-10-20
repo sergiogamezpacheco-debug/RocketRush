@@ -30,6 +30,9 @@ with sync_playwright() as p:
     n0=ev(pg,"() => ChromaGame.G.sim.shots"); ticks(pg,180); n1=ev(pg,"() => ChromaGame.G.sim.shots")
     print('disparos automáticos en 6 s sin tocar:', n1-n0)
     ticks(pg,1,True); pg.screenshot(path=OUT+'f1_objetivo.png')
-    pg.click('#btnFinish'); ticks(pg,70)
+    # a veces lo que quedaba termina de caer solo y el nivel se gana sin pulsar Terminar
+    if ev(pg,"() => !document.getElementById('btnFinish').hidden"): pg.click('#btnFinish')
+    else: print('(se ha ganado solo al caer lo que quedaba)')
+    ticks(pg,70)
     print('victoria visible:',ev(pg,"() => document.getElementById('win').classList.contains('on')"),'· puntos:',ev(pg,"() => document.getElementById('winScore').textContent"),'· bonus:',ev(pg,"() => ChromaGame.G.sim.bonus"))
     print('errores', errs[:5]); b.close()

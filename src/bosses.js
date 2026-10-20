@@ -410,9 +410,31 @@
     if (sk) { const rock = new THREE.MeshStandardMaterial({ color: sk[0], metalness: sk[1], roughness: sk[2] }); for (const b of sim.blocks) if (b.userData.kind === 'stone') { const m = G.meshes[b.userData.id]; if (m) m.userData.body.material = rock; } }
     const light = new THREE.PointLight(0xff5a10, 6, 9, 2); light.position.set(0, 5, 2); X.world.add(light); S.extras.push(light); S.light = light;
     S.walk = 0; S.stun = 0; S.charge = 0; S.coresHit = 0;
+    // sitio de cada núcleo dentro del cuerpo (relativo a la losa, que camina)
+    const px0 = S.plat ? S.plat.position.x : 0;
+    S.home = {}; S.rest = {};
+    for (const id of S.cores) { const b = sim.blocks[id]; S.home[id] = { x: b.position.x - px0, y: b.position.y, z: b.position.z }; S.rest[id] = 0; }
+  }
+  // un núcleo que se cae del gólem (detrás, a un lado o al suelo) se rompe al quedarse quieto: nunca queda uno inalcanzable
+  function looseCores(dt) {
+    const sim = S.sim, px = S.plat ? S.plat.position.x : 0;
+    for (const id of S.cores) {
+      const b = sim.blocks[id], d = b.userData, h = S.home[id];
+      if (!d.alive || d.destroyed || d.popping || S.counted.has(id)) continue;
+      const off = Math.hypot(b.position.x - px - h.x, b.position.y - h.y, b.position.z - h.z);
+      const still = b.velocity.length() < 0.5 + (S.plat ? Math.abs(S.plat.velocity.x) : 0);
+      S.rest[id] = off > 1.2 && still ? S.rest[id] + dt : 0;
+      if (S.rest[id] > 0.8) {
+        const p = b.position;
+        for (let i = 0; i < 8; i++) X.spawnSprite(p.x + rnd(-0.4, 0.4), p.y + rnd(-0.3, 0.5), p.z + rnd(-0.3, 0.4), 0xff7a2a, 0.6, 1.2, 0.6, { add: true });
+        ft(p.x, p.y + 1.2, p.z + 0.6, '¡SE HA CAÍDO Y SE ROMPE!', '#ffb050', 22);
+        sim.popSingle(b, 0.05);
+      }
+    }
   }
   function golemTick(dt) {
     const sim = S.sim;
+    if (!S.done) looseCores(dt);
     S.hp = Math.max(0, (S.cores.length - S.coresHit) / S.cores.length);
     if (S.stun > 0) S.stun -= dt;
     const moving = S.stun <= 0 && !S.done && S.introT <= 0;
