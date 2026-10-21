@@ -214,11 +214,15 @@
     for (const b of S.sim.liveBlocks()) { const d = b.userData; if (d.kind === 'block' && !d.popping && PC[d.c]) n[d.c] = (n[d.c] || 0) + 1; }
     return n;
   }
+  // ayuda del faraón: en el primero el escudo siempre cambia a un color del que tienes bolas; en los siguientes, cada vez menos
+  const helpOn = () => Math.random() < (S.help || 0);
   function pickColor(excl) {
-    const n = liveColors(), q = S.sim.queue.slice(0, 4);
+    const n = liveColors(), q = S.sim.queue.slice(0, 4), have = new Set(S.sim.queue.filter(k => PC[k]));
+    const onlyHave = helpOn() && Object.keys(n).some(c => c !== excl && n[c] >= 2 && have.has(c));
     let best = null, bw = -1;
     for (const c of Object.keys(n)) {
       if (c === excl || n[c] < 2) continue;
+      if (onlyHave && !have.has(c)) continue;
       const w = Math.min(n[c], 8) + (q.includes(c) ? 6 : 0) + Math.random() * 4;
       if (w > bw) { bw = w; best = c; }
     }
@@ -260,9 +264,11 @@
   }
   function initPyramid() {
     const sim = S.sim;
-    S.hits = 0; S.prog = 0; S.open = false; S.immuneT = 0; S.rebuildT = 0; S.flash = 0; S.curseAt = 0; S.windOn = false;
+    S.hits = 0; S.prog = 0; S.open = false; S.immuneT = 0; S.rebuildT = 0; S.flash = 0; S.curseAt = 0;
     S.mpos = { x: 0, y: MASK.y, z: 0 };
     S.curse = S.d >= 0.66 ? 2 : CURSE; S.needAdd = S.d >= 0.5 ? 1 : 0; S.spin = 1 + 0.4 * S.d;
+    S.help = Math.max(0, 1 - S.d * 1.6);                // 1 en el primer faraón, nada a partir de los dos tercios del juego
+    S.windShots = Math.round(2 + 4 * S.d); S.windUntil = -1;   // la tormenta dura 2 tiros en el primero y hasta 6 en los últimos
     S.slots = S.L.blocks.filter(b => b.c && !b.t).map(b => ({ x: b.x, y: b.y, z: b.z }));
     S.shieldC = pickColor(null); S.nextC = pickColor(S.shieldC); S.rotAt = sim.shots;
     const g = new THREE.Group();
@@ -286,6 +292,7 @@
   }
   function rotateShield(force) {
     const n = liveColors();
+    if (S.nextC && helpOn() && !S.sim.queue.includes(S.nextC)) S.nextC = null;      // ya no te quedan bolas de ese color: se elige otro
     S.shieldC = n[S.nextC] ? S.nextC : pickColor(S.shieldC);
     S.nextC = pickColor(S.shieldC); S.rotAt = S.sim.shots;
     paintShield();
@@ -297,7 +304,7 @@
   function openShield() {
     S.open = true; S.openAt = S.sim.shots; S.prog = 0;
     G.shake = Math.max(G.shake, 0.6); X.Audio.special && X.Audio.special(); X.vibe && X.vibe([40, 30, 60]);
-    S.window = S.hits >= 3 ? 1 : 2;
+    S.window = S.hits >= 3 && S.help < 0.5 ? 1 : 2;      // en los primeros faraones, siempre 2 tiros
     banner('¡ESCUDO ROTO!', 'Dispara a la máscara de oro: tienes ' + (S.window === 1 ? '1 tiro' : '2 tiros'));
     for (let r = 0; r < 3; r++) X.spawnRing(0, 0.2, 0, PC[S.shieldC].hex, 5 + r * 1.5, 0.5 + r * 0.2);
   }
@@ -344,16 +351,16 @@
     if (S.hits >= HITS) { S.hp = 0; return; }
     closeShield(true);
     const move = S.hits === 1 ? ' · ahora la máscara se mueve' : S.hits === 3 ? ' · ahora da vueltas a la pirámide' : '';
-    banner('¡EL FARAÓN SE ENFURECE!', 'La arena reconstruye la pirámide · +3 bolas' + move);
+    banner('¡EL FARAÓN SE ENFURECE!', 'La arena reconstruye la pirámide · +' + (S.help >= 0.5 ? 4 : 3) + ' bolas' + move);
     X.Audio.horn && X.Audio.horn();
     sim.later(0.9, () => {
       if (!S || S.sim !== sim) return;
       rebuild(9 + S.hits * 2);
-      sim.giveBalls([S.shieldC, S.shieldC, S.nextC]); X.refreshTray();
-      if (S.hits >= 2 && !S.windOn) {          // desde la mitad del combate: tormenta de arena con viento
-        S.windOn = true; sim.weather = 'sandstorm'; sim.windBase = (S.hits % 2 ? -1 : 1) * 4.2;
-        X.weatherChip && X.weatherChip('sandstorm');
-        sim.later(2.4, () => { if (S && S.sim === sim) banner('¡TORMENTA DE ARENA!', 'El viento desvía la bola: mira la guía al apuntar'); });
+      sim.giveBalls(S.help >= 0.5 ? [S.shieldC, S.shieldC, S.nextC, S.nextC] : [S.shieldC, S.shieldC, S.nextC]); X.refreshTray();
+      if (S.hits >= 2) {                       // desde la mitad del combate: tras cada golpe, una tormenta de arena con viento durante unos tiros
+        sim.weather = 'sandstorm'; sim.windBase = (S.hits % 2 ? -1 : 1) * 4.2; S.windUntil = sim.shots + S.windShots;
+        X.weatherChip && X.weatherChip('sandstorm'); X.weatherFx && X.weatherFx('sandstorm');
+        sim.later(2.4, () => { if (S && S.sim === sim) banner('¡TORMENTA DE ARENA!', 'Durante ' + S.windShots + ' tiros el viento desvía la bola'); });
       }
     });
   }
@@ -413,6 +420,11 @@
       if (total < 16 && S.rebuildT <= 0 && idle) { if (rebuild(12)) ft(0, 3, 1, '¡LA ARENA LA RECONSTRUYE!', '#ffe6a0', 24); }
       if (!n[S.shieldC] && S.rebuildT <= 3.5) rotateShield(true);                     // ya no quedan de ese color
       else if (sim.shots - S.rotAt >= ROT && idle && sim.sinceFire > 1) rotateShield();
+    }
+    // la tormenta amaina
+    if (S.windUntil >= 0 && sim.shots >= S.windUntil && idle && sim.sinceFire > 1) {
+      S.windUntil = -1; sim.weather = null; sim.windBase = 0; sim.wind = 0;
+      X.weatherFx && X.weatherFx(null); ft(0, 5, 2, 'La tormenta amaina', '#ffe6a0', 22);
     }
     // maldición de arena: cada 3 tiros convierte una bola de color de la bandeja en bola de arena (no revienta nada, solo empuja)
     if (!S.done && sim.shots - S.curseAt >= S.curse && idle && sim.sinceFire > 1.4) {

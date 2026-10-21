@@ -1050,8 +1050,10 @@
     update(dt) {
       this.acc += Math.min(dt, 0.1);
       let steps = 0;
-      while (this.acc >= C.DT && steps < 6) { this.step(); this.acc -= C.DT; steps++; }
-      if (steps >= 6) this.acc = 0;
+      // como mucho 4 pasos por fotograma (lo justo para ir a 30 fotogramas por segundo): si uno va más lento (un gran derrumbe en un
+      // móvil), la física va un instante más lenta en vez de recuperar el tiempo con más pasos, que encadenaban fotogramas lentos (tirones)
+      while (this.acc >= C.DT && steps < 4) { this.step(); this.acc -= C.DT; steps++; }
+      if (steps >= 4) this.acc = Math.min(this.acc, C.DT);
     }
     step() {
       const dt = C.DT;

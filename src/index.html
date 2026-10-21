@@ -214,6 +214,9 @@ h1,h2,h3{margin:0}
 .pcard .gem{width:22px;height:22px}
 .pcard .skinsw{width:26px;height:26px;border-radius:8px;border:3px solid #2a1d5c}
 #passClaimAll{position:fixed;left:50%;transform:translateX(-50%);bottom:max(14px,env(safe-area-inset-bottom));width:auto;padding:12px 22px;z-index:6}
+.streakprize{margin:8px auto 0;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:900;font-size:14px;color:#fff;background:linear-gradient(180deg,#ff9a3d,#ff5a1a);border:3px solid var(--panel-edge);border-radius:999px;padding:5px 12px;width:max-content;max-width:92%;box-shadow:0 3px 0 var(--panel-edge);animation:tin .5s ease .4s both}
+.streakprize[hidden]{display:none}
+.streakprize small{opacity:.85;font-size:11px;letter-spacing:.06em}
 .passline{margin-top:8px;font-weight:900;font-size:14px;color:#8a5a00;background:#fff3c4;border-radius:12px;padding:6px 10px;display:inline-block}
 .passline:empty{display:none}
 .shopitem .gemp{display:flex;align-items:center;gap:6px}
@@ -888,6 +891,7 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
     <div class="score" id="winScore">0</div><div class="result" id="winRes"></div>
     <div class="reward"><i class="coin"></i><span id="winCoins">+0</span></div>
     <div class="passline" id="winPass"></div>
+    <div class="streakprize" id="winStreak" hidden></div>
     <button class="btn purple" id="winDouble">&#9654; Monedas x2 (anuncio)</button>
     <button class="btn purple" id="winBalls" hidden>&#9654; +3 bolas para terminarlo (anuncio)</button>
     <div class="row"><button class="btn gray" id="winMap" style="flex:.45" aria-label="Niveles">&#9776;</button><button class="btn" id="winRetry" style="flex:.45" aria-label="Reintentar nivel" hidden><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 3.5v5h-5"/></svg></button><button class="btn green" id="winNext">SIGUIENTE</button></div>

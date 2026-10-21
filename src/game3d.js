@@ -87,6 +87,7 @@
         if (!ok()) return;
         const now = ac.currentTime;
         if (now - popT > 0.35) popRun = 0;
+        if (now - popT < 0.03) { popRun = Math.min(popRun + 1, 14); return; }   // varios en el mismo instante: un solo sonido (menos carga al reventar un grupo)
         popT = now; popRun = Math.min(popRun + 1, 14);
         const semis = popRun + (chain - 1) * 3;
         const f = 520 * Math.pow(2, semis / 12);
@@ -925,7 +926,14 @@
       kind = k; while (grp.children.length) grp.remove(grp.children[0]);
       sys = null; embers.length = 0;
       if (k === 'storm' || k === 'rain') { sys = lines(k === 'storm' ? 1400 : 1000, 0xcfd8ff, 0.9); grp.add(sys); }
-      else if (k === 'sandstorm') { sys = make(1600, 0xe0a860, 0.14, 0.7, () => [rnd(-30, 30), rnd(-6, 18), rnd(-40, 14)]); grp.add(sys); }
+      else if (k === 'sandstorm') {
+        // tormenta de arena: rachas de arena horizontales (se ven bien también en el móvil) y granos más gordos delante
+        const n = 700, geo = new THREE.BufferGeometry(), a = new Float32Array(n * 6);
+        for (let i = 0; i < n; i++) { const x = rnd(-30, 30), y = rnd(-2, 16), z = rnd(-30, 11), len = rnd(0.8, 2.4); a.set([x, y, z, x - len, y + len * 0.05, z], i * 6); }
+        geo.setAttribute('position', new THREE.BufferAttribute(a, 3));
+        sys = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0xf6d090, transparent: true, opacity: 0.7, depthWrite: false })); grp.add(sys);
+        const grains = make(500, 0xd89a50, 0.4, 0.9, () => [rnd(-25, 25), rnd(-2, 14), rnd(-14, 11)]); grains.material.map = TEX.soft; grains.material.needsUpdate = true; grp.add(grains); embers.push(grains);
+      }
       else if (k === 'blizzard') { sys = make(2200, 0xffffff, 0.16, 0.95, () => [rnd(-30, 30), rnd(-6, 26), rnd(-40, 14)]); grp.add(sys); }
       else if (k === 'ash') { sys = make(900, 0x8a8088, 0.16, 0.85, () => [rnd(-30, 30), rnd(-6, 26), rnd(-40, 14)]); grp.add(sys); const e = make(160, 0xff7a2a, 0.2, 1, () => [rnd(-20, 20), rnd(-6, 20), rnd(-30, 10)]); e.material.blending = THREE.AdditiveBlending; grp.add(e); embers.push(e); }
       grp.visible = !!k;
@@ -935,7 +943,16 @@
       if (sys && sys.geometry) {
         const a = sys.geometry.attributes.position, n = a.count;
         if (kind === 'storm' || kind === 'rain') { const v = (kind === 'storm' ? 38 : 26) * dt; for (let i = 0; i < n; i++) { let y = a.getY(i) - v; if (y < -7) y += 33; a.setY(i, y); a.setX(i, a.getX(i) - v * (kind === 'storm' ? 0.25 : 0.1)); if (a.getX(i) < -32) a.setX(i, a.getX(i) + 62); } }
-        else if (kind === 'sandstorm') { for (let i = 0; i < n; i++) { let x = a.getX(i) + dt * (14 + (i % 7) * 2); if (x > 30) x -= 60; a.setX(i, x); a.setY(i, a.getY(i) + Math.sin(G.t * 2 + i) * dt * 0.8); } }
+        else if (kind === 'sandstorm') {
+          // la arena va hacia donde sopla el viento
+          const dir = G.sim && G.sim.wind < 0 ? -1 : 1, arr = a.array;
+          for (let i = 0; i < n; i += 2) {
+            const v = dir * dt * (22 + (i % 9) * 2.5); let x0 = arr[i * 3] + v, x1 = arr[i * 3 + 3] + v;
+            if (x0 > 32 || x1 > 32) { x0 -= 64; x1 -= 64; } else if (x0 < -32 || x1 < -32) { x0 += 64; x1 += 64; }
+            arr[i * 3] = x0; arr[i * 3 + 3] = x1;
+          }
+          for (const e of embers) { const b = e.geometry.attributes.position, ba = b.array; for (let i = 0; i < b.count; i++) { let x = ba[i * 3] + dir * dt * (12 + (i % 5) * 3); if (x > 26) x -= 52; else if (x < -26) x += 52; ba[i * 3] = x; ba[i * 3 + 1] += Math.sin(G.t * 3 + i) * dt * 0.6; } b.needsUpdate = true; }
+        }
         else if (kind === 'blizzard') { for (let i = 0; i < n; i++) { let y = a.getY(i) - dt * (3 + (i % 5)); if (y < -6) y = 26; a.setY(i, y); let x = a.getX(i) + dt * 6; if (x > 30) x -= 60; a.setX(i, x); } }
         else if (kind === 'ash') { for (let i = 0; i < n; i++) { let y = a.getY(i) - dt * 1.2; if (y < -6) y = 26; a.setY(i, y); a.setX(i, a.getX(i) + Math.sin(G.t + i) * dt * 0.5); } for (const e of embers) { const b = e.geometry.attributes.position; for (let i = 0; i < b.count; i++) { let y = b.getY(i) + dt * 2; if (y > 20) y = -6; b.setY(i, y); } b.needsUpdate = true; } }
         a.needsUpdate = true;
@@ -1056,6 +1073,11 @@
   }
   // anillos de onda y rayos de bloques rayados
   const rings = [];
+  // los efectos se crean la primera vez que hacen falta; los dejamos hechos al cargar para que el primer impacto no dé un tirón
+  function prewarmFx() {
+    for (let i = 0; i < 48; i++) spawnSprite(0, -200, 0, 0xffffff, 0.1, 0, 0.02, { add: i % 2 === 0 });
+    for (let i = 0; i < 14; i++) spawnRing(0, -200, 0, 0xffffff, 0.1, 0.02);
+  }
   function spawnRing(x, y, z, color, r, life) {
     let o = rings.find(q => q.life <= 0);
     if (!o) { const m = new THREE.Mesh(new THREE.TorusGeometry(1, 0.06, 6, 40), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false })); scene.add(m); o = { m, life: 0 }; rings.push(o); }
@@ -2482,6 +2504,30 @@
     $('preStreak').style.display = 'none';
     $('pre').classList.add('on'); $('preScroll').scrollTop = 0;
   }
+  // premio de la racha de victorias: al ganar, uno al azar de su nivel (mejor cuanto más larga es la racha) y nunca el mismo dos veces seguidas
+  const STREAK_PRIZES = [
+    [{ coins: 30 }, { coins: 40 }, { coins: 50 }],                                            // racha 1
+    [{ coins: 80 }, { rocket: 1 }, { extra: 1 }],                                             // racha 2
+    [{ bomb: 1 }, { rainbow: 1 }, { coins: 120 }, { gems: 2 }],                               // racha 3
+    [{ bomb: 1, coins: 100 }, { rainbow: 1, rocket: 1 }, { gems: 4 }, { wball: 1 }],          // racha 4 y 5
+    [{ golden: 1 }, { gems: 8 }, { bomb: 1, rainbow: 1, coins: 150 }, { wball: 2, gems: 2 }], // racha 6 o más
+  ];
+  function streakPrize(L) {
+    const s = save.streak; if (s < 1) return '';
+    const pool = STREAK_PRIZES[s >= 6 ? 4 : s >= 4 ? 3 : s - 1];
+    const opts = pool.filter(p => JSON.stringify(p) !== save.streakLast);
+    const p = opts[Math.floor(Math.random() * opts.length)] || pool[0];
+    save.streakLast = JSON.stringify(p);
+    const out = [];
+    for (const k in p) {
+      const n = p[k];
+      if (k === 'coins') { save.coins += n; out.push(`+${n} monedas`); }
+      else if (k === 'gems') { save.gems = (save.gems || 0) + n; out.push(`+${n} gemas`); }
+      else if (k === 'wball') { const w = worldBallOf(L.world); save.boosters[w] = (save.boosters[w] || 0) + n; out.push(`+${n} ${WBALLS[w].name.toLowerCase()}`); }
+      else { save.boosters[k] = (save.boosters[k] || 0) + n; out.push(`+${n} ${{ bomb: 'bomba', rainbow: 'arcoíris', extra: '+2 bolas', rocket: 'cohete', golden: 'bola dorada' }[k]}`); }
+    }
+    return out.join(' · ');
+  }
   // precio en la tienda de cada ventaja (en monedas)
   const BOOST_PRICE = { bomb: 250, rainbow: 300, extra: 200, rocket: 200 };
   function boosterPrice(k) { return WBALLS[k] ? wbCoins(k) : BOOST_PRICE[k]; }
@@ -2550,6 +2596,7 @@
     coins += sim.coins || 0;
     G.pendingCoins = coins; save.coins += coins;
     save.streak = Math.min(save.streak + 1, 9); save.played++;
+    { const sp = streakPrize(L); const el = $('winStreak'); el.hidden = !sp; if (sp) el.innerHTML = `<i class="ico ico-fire"></i><small>RACHA ${save.streak}</small> ${sp}`; }
     // ¿se acaba de abrir el nivel extra de este mundo?
     G.newBonus = null;
     if (!L.bonus) {
@@ -3616,11 +3663,11 @@
   // los jefes (bosses.js) usan estas piezas del juego
   window.RRGame = { G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
-    addBlockView: d => blockView(d), weatherChip: w => setWeatherChip({ weather: w }),
+    addBlockView: d => blockView(d), weatherChip: w => setWeatherChip({ weather: w }), weatherFx: w => { Weather.set(w); const el = $('wxChip'); if (!w) el.hidden = true; },
     // el jefe ha caído: el nivel se gana con las bolas que quedaban
     bossWin(left) { const sim = G.sim; if (!sim || G.mode !== 'play') return; sim.queue = Array.from({ length: left }, () => 'heavy'); sim.goalReached = true; sim.finish(); G.winAt = G.t - 1; } };
   // inicio
-  resize();
+  resize(); prewarmFx();
   ensureSeason(); applySkin();
   goTitle(); setCoins(); scheduleReminder();
   requestAnimationFrame(() => requestAnimationFrame(autoDailySoon));   // cuenta desde que la portada ya se ve

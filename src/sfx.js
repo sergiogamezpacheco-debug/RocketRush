@@ -81,8 +81,9 @@ const SFX = (() => {
   const SCALE = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760, 2093, 2349, 2637, 3136, 3520];
   let lastNote = 0;
   function note(i) {
-    const n = performance.now(); if (n - lastNote < 38) return; lastNote = n;
-    try { const f = SCALE[Math.min(SCALE.length - 1, i)]; bell(f, 0.55, 0.075); if (i >= 9) bell(f * 1.5, 0.4, 0.035, 0.03); } catch (e) { /* sin sonido */ }
+    const n = performance.now(); if (n - lastNote < 60) return; lastNote = n;
+    // campana ligera: 2 osciladores (antes 3 o 6), para no cargar el móvil cuando revientan muchas piezas a la vez
+    try { const f = SCALE[Math.min(SCALE.length - 1, i)]; tone(f, 0.55, 'sine', 0.08); tone(f * (i >= 9 ? 1.5 : 2.76), 0.3, 'sine', 0.03); } catch (e) { /* sin sonido */ }
   }
   return {
     pack: 'arcade', packs: Object.keys(PACKS), unlock, note,

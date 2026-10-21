@@ -1,5 +1,5 @@
 # Jefe faraón: romper el escudo con su color, golpear la máscara 3 veces, reconstrucción con arena y victoria (python3 tools/pharaohflow.py)
-import json
+import json, sys
 from playwright.sync_api import sync_playwright
 OUT='/home/claude/chroma3d/dist/shots/'
 with sync_playwright() as p:
@@ -8,7 +8,7 @@ with sync_playwright() as p:
     pg.on('pageerror',lambda e: errs.append(str(e)))
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(2000)
     pg.evaluate("() => ChromaGame.manual(true)")
-    lid=pg.evaluate("() => ChromaGame.LEVELS.find(l=>l.boss==='pyramid').id")
+    lid=int(sys.argv[1]) if len(sys.argv)>1 else pg.evaluate("() => ChromaGame.LEVELS.find(l=>l.boss==='pyramid').id")
     pg.evaluate(f"() => {{ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.startLevel({lid}, []); }}")
     T=lambda n: pg.evaluate(f"() => {{ for(let i=0;i<{n};i++) ChromaGame.tick(1/30, true); ChromaGame.render(); }}")
     T(5); pg.screenshot(path=OUT+'ph_0_intro.png'); T(110)

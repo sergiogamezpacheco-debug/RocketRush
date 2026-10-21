@@ -823,18 +823,15 @@
     let l;
     if (kind === 'ship') l = {
       statics: [{ x: 0, y: 0, z: 0, w: 7.4, h: 1.4, d: 3 }],
-      balls: 'rgypbrgBypbgr' + 'rg'.slice(0, extra),
-      blocks: grid(0, 0, 1.4, [['rrs.sgg', 'rr.o.gg', 'rrpppgg'], ['rr...gg', 'rr...gg', 'rrpppgg'], ['yy...yy', 'yy...yy', 'yypppyy'], ['gg...rr', 'gg...rr', 'ggbbbrr'], ['...', '...', 'bbb'], ['...', '...', 'bbb']]) };
-    // en los mundos altos el barco se repite con los colores más mezclados (grupos más pequeños): cuesta más derribarlo
-    if (kind === 'ship' && g >= 6) {
-      limitGroups(l.blocks, Math.max(3, Math.round(5.5 - 2.6 * g / 33)), 900 + g);
-      l.balls += 'rgybprgy'.slice(0, Math.round(3 + 5 * g / 33));       // y unas bolas más para compensar (el cañón dispara más a menudo)
-    }
+      balls: 'rgypbrgBypbgrygp' + 'rg'.slice(0, extra),
+      // casco de colores, castillos de proa y popa, cabina y mástil: casi 100 bloques que se pueden reventar
+      blocks: grid(0, 0, 1.4, [['rrs.sgg', 'rr.o.gg', 'rrpppgg'], ['rr...gg', 'rr...gg', 'rrpppgg'], ['yy...yy', 'yy...yy', 'yypppyy'], ['gg...rr', 'gg...rr', 'ggbbbrr'],
+        ['yy...pp', 'yy...pp', 'yybbbpp'], ['pp...yy', 'pp...yy', 'ppbbbyy'], ['...', '...', 'rrr'], ['.', '.', 'g'], ['.', '.', 'g']]) };
     else if (kind === 'pyramid') {
       // pirámide de colores mezclados (el escudo del faraón va cambiando de color) con un núcleo de piedra;
       // como mucho 3 bloques del mismo color juntos (contando los que se tocan por una esquina), para que un tiro no abra el escudo.
       // La máscara dorada del faraón flota encima (la dibuja bosses.js)
-      const blocks = [], HW = [3, 3, 2, 2, 1, 1, 0], HD = [2, 2, 1, 1, 0, 0, 0], PAL = ['r', 'y', 'b', 'g', 'p'];
+      const blocks = [], HW = [3, 3, 2, 2, 1, 1, 0], HD = [1, 1, 1, 1, 0, 0, 0], PAL = ['r', 'y', 'b', 'g', 'p'];   // 3 de fondo: menos piezas tocándose = física más ligera
       const back = 'a', cells = [];
       for (let j = 0; j < HW.length; j++) {
         const hw = HW[j], hd = HD[j];
@@ -874,6 +871,10 @@
       statics: [{ x: 0, y: 0, z: 0, w: 6, h: 0.4, d: 3 }, { x: 0, y: 0.4, z: 0, w: 0.96, h: 2, d: 1.9 }],
       balls: 'byrpHbyrBpby' + 'by'.slice(0, extra),
       blocks: grid(0, 0, 0.4, [['ss.ss', 'ss.ss'], ['ss.ss', 'ss.ss'], ['sssss', 'sssss'], ['ybbby', 'ssoss'], ['ybbby', 'sssss'], ['sssss', 'sssss'], ['.oso.', '.sss.'], ['.ppp.', '.ppp.']]) };
+    // en los mundos altos el barco se repite con los colores más mezclados (grupos más pequeños): cuesta más derribarlo
+    // (en el primero, grupos de hasta 6, para que no caiga en 4 tiros con una cascada)
+    if (kind === 'ship') limitGroups(l.blocks, Math.max(3, Math.round(6 - 3 * g / 33)), 900 + g);
+    if (kind === 'ship' && g >= 6) l.balls += 'rgybprgy'.slice(0, Math.round(3 + 5 * g / 33));   // y unas bolas más para compensar (el cañón dispara más a menudo)
     return Object.assign(l, { name, boss: kind, bossName: name, bossD: Math.min(1, g / 33), target: 1.5, tier: 'boss', nb: l.balls.length, goal: 'Jefe final del paisaje: derríbalo para abrir el siguiente.' });
   }
 

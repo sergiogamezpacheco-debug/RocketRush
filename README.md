@@ -273,7 +273,7 @@ Prueba rápida: `node tools/newblocks.js`.
 1. Combo musical: cada pieza de un tiro suena una nota más aguda; con 5, 10, 15 y 25 piezas salen «¡GENIAL!», «¡INCREÍBLE!», «¡ROCKET RUSH!» e «¡IMPARABLE!» con vibración. Cámara lenta al caer la última pieza.
 2. Gran final: las bolas que sobran salen como cohetes, revientan lo que queda y dan 5 monedas cada una.
 3. «¡Casi!»: dice cuántos bloques faltaban y la primera derrota de cada mundo regala +3 bolas.
-4. Racha de victorias con llama en el botón de jugar (solo se ve: ya no regala ventajas). En la ventana del nivel **ninguna ventaja es gratis**: si te quedan se usan, y si no se compran ahí mismo al precio de la tienda (cohete 200, bomba 250, arcoíris 300, +2 bolas 200 y bolas de mundo a su precio en monedas). El **cohete de salida** también está en la tienda.
+4. Racha de victorias con llama en el botón de jugar. **Premio de racha** al ganar, al azar dentro de su nivel y nunca el mismo dos veces seguidas: racha 1 = 30-50 monedas; 2 = 80 monedas, cohete o +2 bolas; 3 = bomba, arcoíris, 120 monedas o 2 gemas; 4-5 = bomba + 100 monedas, arcoíris + cohete, 4 gemas o bola de mundo; 6+ = bola dorada, 8 gemas, bomba + arcoíris + 150 monedas o 2 bolas de mundo + 2 gemas. Va a tu inventario (no cuenta para el x2 de monedas). En la ventana del nivel **ninguna ventaja es gratis**: si te quedan se usan, y si no se compran ahí mismo al precio de la tienda (cohete 200, bomba 250, arcoíris 300, +2 bolas 200 y bolas de mundo a su precio en monedas). El **cohete de salida** también está en la tienda.
 5. Recompensa variable: cofre de estrellas en lo alto del mapa (cada 30 ★) y caja misteriosa al superar por primera vez cada 5.º nivel (a veces con premio doble).
 
 Pruebas: los tests de siempre (`tools/*flow.py`), ya adaptados a los números de nivel nuevos.
@@ -291,3 +291,10 @@ El punto del que cuelga cada liana era un cuerpo físico sin forma. Eso descoloc
 ## Tirones con viento y tormenta de arena
 
 El aviso del viento se reescribía en cada fotograma, igual que la puntuación, el porcentaje y el botón de la bola dorada. Cada cambio en la capa de encima del juego obliga al móvil a repintarla, y eso se notaba como tirones (más con viento, porque había un cambio más). Ahora solo se toca cuando cambia de verdad: 0 cambios por fotograma en partida normal. Las partículas de la tormenta no se han tocado.
+
+## Barco con casi 100 bloques, primer faraón más fácil, tormenta visible y menos tirones
+
+- **Barco**: había un fallo que ponía el cuerpo de piedra del gólem en los dos primeros barcos (niveles 20 y 113), por eso eran casi todo piedra y caían enseguida. Ahora todos los barcos llevan su casco de colores, castillos de proa y popa, cabina y mástil (95 bloques que se pueden reventar). Grupos de color de hasta 6 en el primero y cada vez más mezclados (hasta 3) en los siguientes.
+- **Faraón**: pirámide de 3 de fondo (menos piezas = física más ligera). En el primer faraón el escudo siempre cambia a un color del que tienes bolas, hay 2 tiros contra la máscara hasta el final y +4 bolas por golpe; esta ayuda se va quitando poco a poco en los siguientes faraones y desaparece a partir de los dos tercios del juego. La tormenta de arena llega tras el 2.º, 3.º y 4.º golpe y dura 2 tiros en el primer faraón (hasta 6 en los últimos); luego amaina.
+- **Tormenta de arena visible**: rachas de arena y granos redondos que van hacia donde sopla el viento (antes eran puntitos casi invisibles), también en el jefe.
+- **Menos tirones al impactar**: la física da como mucho 4 pasos por fotograma (lo justo para 30 fotogramas por segundo; antes 6, que encadenaba fotogramas lentos); el sonido de varias piezas que revientan a la vez se junta en uno; la nota del combo usa 2 osciladores en vez de 3-6; los efectos (destellos y anillos) se preparan al cargar.
