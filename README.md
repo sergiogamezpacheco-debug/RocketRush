@@ -238,9 +238,11 @@ En la portada se ve la estructura del nivel en el que vas, con el motor 3D y la 
 **Jefes** (`src/bosses.js`): el último nivel de cada 3.er mundo (y del 100). Rotan tres tipos y cambian de nombre y aspecto con el paisaje:
 | Tipo | Ejemplo | Cómo se gana |
 |---|---|---|
-| Barco pirata | Capitán Bloquebarba (mundo 3) | Derribar el barco y su tesoro dorado. Cada 3 tiros (2 con menos de la mitad de vida) dispara un cañonazo que quita una bola. |
+| Barco pirata | Capitán Bloquebarba (mundo 3) | Derribar el barco y su tesoro dorado. Su cañón se carga **con cada tiro y con el tiempo** (barra «CAÑONAZO»): si esperas, también dispara. Con la mitad de los bloques derribados carga un 35 % más rápido. Cada cañonazo quita una bola. Prueba: `python3 tools/shipflow.py [nivel]`. |
 | Pirámide | Faraón Arenas (mundo 6) | Su vida está en la **máscara de oro**: **5 golpes**. El escudo cambia de color cada 2 tiros (los ojos de la máscara y la barra avisan del siguiente); para abrirlo hay que romper 4, 5, 6, 7 y 8 bloques de su color, y si cambia antes de completarlo se recupera un poco (-1). La pirámide tiene como mucho 3 bloques del mismo color juntos. Con el escudo roto hay 2 tiros para darle a la máscara (1 en los dos últimos golpes) y la máscara va más despacio. La máscara: quieta, luego de lado a lado (golpes 2 y 3) y al final da vueltas a la pirámide y a veces se esconde detrás. **Maldición de arena**: cada 3 tiros una bola de color de la bandeja se vuelve de arena (no revienta bloques, pero sí vale contra la máscara). Desde el 3.er golpe sopla una tormenta de arena con viento. Empieza con 16 bolas y gana 3 por golpe; tras cada golpe la arena reconstruye la pirámide. Prueba: `python3 tools/pharaohflow.py` (un jugador automático que apunta bien gana más o menos la mitad de las veces, en unos 16-23 tiros). |
 | Gólem | Gólem de hielo (mundo 9) | Camina sobre una losa. Hay que reventar sus 3 núcleos de lava antes de que cargue el golpe sísmico (quita una bola); cada acierto lo aturde. Si un núcleo se cae del gólem (detrás, a un lado o al suelo), se rompe al quedarse quieto: nunca queda uno inalcanzable (`python3 tools/golemflow.py`). |
+**Jefes repetidos más difíciles**: cada jefe tiene una dificultad que sube con el mundo (0 en el mundo 3, 1 en el 100). Barco: el cañón carga antes, y desde el mundo 21 los colores del barco están más mezclados (grupos de 5 a 3 bloques), con unas bolas más para compensar. Faraón: desde la mitad pide 1 bloque más por escudo y desde los dos tercios la maldición llega cada 2 tiros; la máscara da vueltas más rápido. Gólem: camina más rápido y carga el golpe sísmico antes.
+
 Barra de vida arriba, presentación al empezar, explosión final y **cofre de oro**. Contra un jefe no se regalan bombas ni arcoíris por combo. Estrellas: 3 si quedan 3 bolas o más, 2 si queda alguna, 1 si no.
 
 **Bloques nuevos** (`src/sim3d.js`, 19 en total). Cada uno se estrena en un nivel fácil con la tarjeta «¡Bloque nuevo!» y un anillo que lo señala hasta el primer tiro; el nivel siguiente es de práctica, 3 niveles después se combina con lo anterior y luego aparece en los niveles generados (los que ayudan, en todos los paisajes; los obstáculos, en su paisaje y en los nuevos).
@@ -271,7 +273,7 @@ Prueba rápida: `node tools/newblocks.js`.
 1. Combo musical: cada pieza de un tiro suena una nota más aguda; con 5, 10, 15 y 25 piezas salen «¡GENIAL!», «¡INCREÍBLE!», «¡ROCKET RUSH!» e «¡IMPARABLE!» con vibración. Cámara lenta al caer la última pieza.
 2. Gran final: las bolas que sobran salen como cohetes, revientan lo que queda y dan 5 monedas cada una.
 3. «¡Casi!»: dice cuántos bloques faltaban y la primera derrota de cada mundo regala +3 bolas.
-4. Racha de victorias con llama en el botón de jugar: 2 victorias = bomba gratis, 3 o más = + arcoíris. Con 1 victoria o más, el **cohete de salida** (cruza la estructura y revienta la fila con más bloques) sale gratis en la ventana del nivel, junto a las demás ventajas, y solo se usa si lo eliges.
+4. Racha de victorias con llama en el botón de jugar (solo se ve: ya no regala ventajas). En la ventana del nivel **ninguna ventaja es gratis**: si te quedan se usan, y si no se compran ahí mismo al precio de la tienda (cohete 200, bomba 250, arcoíris 300, +2 bolas 200 y bolas de mundo a su precio en monedas). El **cohete de salida** también está en la tienda.
 5. Recompensa variable: cofre de estrellas en lo alto del mapa (cada 30 ★) y caja misteriosa al superar por primera vez cada 5.º nivel (a veces con premio doble).
 
 Pruebas: los tests de siempre (`tools/*flow.py`), ya adaptados a los números de nivel nuevos.
@@ -285,3 +287,7 @@ Ahora cada bloque recuerda su altura de reposo y la cascada solo salta si uno de
 ## Lianas: los bloques ya no se meten unos dentro de otros
 
 El punto del que cuelga cada liana era un cuerpo físico sin forma. Eso descolocaba el sistema que decide qué piezas se tocan, y algunos bloques dejaban de chocar entre sí: en el nivel 1022 (el que sale de fondo en la portada con todo desbloqueado) el tablón rojo se hundía por la derecha dentro de la columna. Ahora el amarre lleva una forma diminuta que no choca con nada. Afectaba a los 8 niveles con liana, también durante la partida.
+
+## Tirones con viento y tormenta de arena
+
+El aviso del viento se reescribía en cada fotograma, igual que la puntuación, el porcentaje y el botón de la bola dorada. Cada cambio en la capa de encima del juego obliga al móvil a repintarla, y eso se notaba como tirones (más con viento, porque había un cambio más). Ahora solo se toca cuando cambia de verdad: 0 cambios por fotograma en partida normal. Las partículas de la tormenta no se han tocado.

@@ -792,6 +792,31 @@
     golem: { snow: 'Gólem de hielo', space: 'Robot lunar', volcano: 'Gólem de magma', temple: 'Guardián del templo', neon: 'Mecha de neón', candy: 'Gólem de gominola' },
   };
   const BOSS_DEFAULT = { ship: 'Galeón pirata', pyramid: 'Pirámide del faraón', golem: 'Gólem de roca' };
+  // recolorea los bloques de color para que ningún grupo (contando los que se tocan por una esquina) pase de maxG; determinista
+  function limitGroups(blocks, maxG, seed) {
+    const PAL = ['r', 'y', 'b', 'g', 'p'], cells = blocks.filter(b => b.c && !b.t && PAL.includes(b.c));
+    for (const a of cells) a._nb = cells.filter(o => o !== a && Math.abs(o.x - a.x) < 1.05 && Math.abs(o.y - a.y) < 1.05 && Math.abs(o.z - a.z) < 1.05);
+    const excess = () => {
+      const seen = new Set(); let e = 0;
+      for (const st0 of cells) {
+        if (seen.has(st0)) continue;
+        const st = [st0]; seen.add(st0); let n = 0;
+        while (st.length) { const a = st.pop(); n++; for (const o of a._nb) if (!seen.has(o) && o.c === st0.c) { seen.add(o); st.push(o); } }
+        e += Math.max(0, n - maxG);
+      }
+      return e;
+    };
+    const rr = seeded(seed);
+    let cur = excess();
+    for (let it = 0; it < 3000 && cur > 0; it++) {
+      const cl = cells[Math.floor(rr() * cells.length)], old = cl.c;
+      let best = old, be = cur;
+      for (const c of PAL) { if (c === old) continue; cl.c = c; const e = excess(); if (e < be || (e === be && rr() < 0.3)) { be = e; best = c; } }
+      cl.c = best; cur = be;
+    }
+    for (const a of cells) delete a._nb;
+    return blocks;
+  }
   function bossLevel(kind, biome, g) {
     const name = (BOSS_NAMES[kind] && BOSS_NAMES[kind][biome]) || BOSS_DEFAULT[kind];
     const extra = Math.max(0, 2 - Math.floor(g / 6));               // los primeros jefes dan un par de bolas más
@@ -800,6 +825,11 @@
       statics: [{ x: 0, y: 0, z: 0, w: 7.4, h: 1.4, d: 3 }],
       balls: 'rgypbrgBypbgr' + 'rg'.slice(0, extra),
       blocks: grid(0, 0, 1.4, [['rrs.sgg', 'rr.o.gg', 'rrpppgg'], ['rr...gg', 'rr...gg', 'rrpppgg'], ['yy...yy', 'yy...yy', 'yypppyy'], ['gg...rr', 'gg...rr', 'ggbbbrr'], ['...', '...', 'bbb'], ['...', '...', 'bbb']]) };
+    // en los mundos altos el barco se repite con los colores más mezclados (grupos más pequeños): cuesta más derribarlo
+    if (kind === 'ship' && g >= 6) {
+      limitGroups(l.blocks, Math.max(3, Math.round(5.5 - 2.6 * g / 33)), 900 + g);
+      l.balls += 'rgybprgy'.slice(0, Math.round(3 + 5 * g / 33));       // y unas bolas más para compensar (el cañón dispara más a menudo)
+    }
     else if (kind === 'pyramid') {
       // pirámide de colores mezclados (el escudo del faraón va cambiando de color) con un núcleo de piedra;
       // como mucho 3 bloques del mismo color juntos (contando los que se tocan por una esquina), para que un tiro no abra el escudo.
@@ -844,7 +874,7 @@
       statics: [{ x: 0, y: 0, z: 0, w: 6, h: 0.4, d: 3 }, { x: 0, y: 0.4, z: 0, w: 0.96, h: 2, d: 1.9 }],
       balls: 'byrpHbyrBpby' + 'by'.slice(0, extra),
       blocks: grid(0, 0, 0.4, [['ss.ss', 'ss.ss'], ['ss.ss', 'ss.ss'], ['sssss', 'sssss'], ['ybbby', 'ssoss'], ['ybbby', 'sssss'], ['sssss', 'sssss'], ['.oso.', '.sss.'], ['.ppp.', '.ppp.']]) };
-    return Object.assign(l, { name, boss: kind, bossName: name, target: 1.5, tier: 'boss', nb: l.balls.length, goal: 'Jefe final del paisaje: derríbalo para abrir el siguiente.' });
+    return Object.assign(l, { name, boss: kind, bossName: name, bossD: Math.min(1, g / 33), target: 1.5, tier: 'boss', nb: l.balls.length, goal: 'Jefe final del paisaje: derríbalo para abrir el siguiente.' });
   }
 
   // ---- reparto ----

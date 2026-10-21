@@ -1123,7 +1123,8 @@
   function updateWeatherChip() {
     const sim = G.sim, el = $('wxChip'); if (!sim || el.hidden || !sim.windBase) return;
     const a = el.querySelector('i'), w = sim.wind;
-    a.textContent = Math.abs(w) < 0.3 ? '·' : (w < 0 ? '←' : '→').repeat(Math.max(1, Math.min(3, Math.round(Math.abs(w) / 1.6))));
+    const v = Math.abs(w) < 0.3 ? '·' : (w < 0 ? '←' : '→').repeat(Math.max(1, Math.min(3, Math.round(Math.abs(w) / 1.6))));
+    if (a.textContent !== v) a.textContent = v;
   }
   function grandFinale(n) {
     const sim = G.sim, cp = G.level.cannon || C.CANNON_POS;
@@ -2211,15 +2212,19 @@
     $('trayCount').classList.toggle('low', q.length <= 1);
   }
   let shownScore = 0;
+  // el HUD se toca solo cuando cambia: reescribir el mismo texto cada fotograma obliga al navegador a repintar la capa de encima del juego
+  // y en móvil se nota como tirones (sobre todo con el aviso del viento, que también se reescribía siempre)
+  const setText = (el, v) => { v = String(v); if (el.textContent !== v) el.textContent = v; };
+  const setHidden = (el, h) => { if (el.hidden !== h) el.hidden = h; };
   function updateHud(dt) {
     const sim = G.sim; if (!sim) return;
     shownScore += (sim.score - shownScore) * Math.min(1, dt * 8);
     if (Math.abs(sim.score - shownScore) < 1) shownScore = sim.score;
-    $('hudScore').textContent = Math.round(shownScore);
+    setText($('hudScore'), Math.round(shownScore));
     const p = sim.progress();
     $('meterFill').style.width = (p * 100).toFixed(1) + '%';
     $('meterFill').classList.toggle('done', p >= sim.target);
-    $('meterPct').textContent = Math.round(p * 100) + '%';
+    setText($('meterPct'), Math.round(p * 100) + '%');
     updateTray();
     const hint = $('hint');
     let txt = '';
@@ -2228,11 +2233,11 @@
     else if (G.mode === 'play' && G.sim.goalReached && G.sim.state === 'play' && !G.aim) txt = 'Sigue disparando para más estrellas, o pulsa Terminar';
     else if (G.mode === 'play' && G.aim) txt = '';
     if (performance.now() < hintUntil) txt = hintMsg;
-    hint.textContent = txt; hint.style.opacity = txt ? 1 : 0;
+    setText(hint, txt); hint.style.opacity = txt ? 1 : 0;
     const ng = save.boosters.golden || 0, gb = $('btnGold');
-    gb.hidden = !(G.mode === 'play' && ng > 0 && sim.state === 'play');
-    gb.disabled = sim.queue[0] === 'golden';
-    $('goldCount').textContent = ng;
+    setHidden(gb, !(G.mode === 'play' && ng > 0 && sim.state === 'play'));
+    if (gb.disabled !== (sim.queue[0] === 'golden')) gb.disabled = sim.queue[0] === 'golden';
+    setText($('goldCount'), ng);
   }
 
   // ---------------- pantallas ----------------
@@ -2449,50 +2454,37 @@
     $('preCrowns').textContent = L.boss ? 'JEFE FINAL' : 'Derriba el ' + Math.round(L.target * 100) + '%';
     $('preBalls').textContent = L.balls.length + ' bolas';
     $('preGoal').textContent = L.goal || '';
-    const free = streakBoosters(), freeOpt = save.streak >= 1 ? ['rocket'] : [];
+    // ninguna ventaja es gratis: si no te queda, se compra aquí mismo al precio de la tienda
     const defs = [['rocket', 'Cohete'], ['bomb', 'Bomba'], ['rainbow', 'Arcoíris'], ['extra', '+2 bolas']];
     // bola del mundo de este nivel (y las demás que ya tengas)
     const wk = worldBallOf(L.world), wks = [wk].concat(WB_KEYS.filter(k => k !== wk && (save.boosters[k] || 0) > 0));
     const wdefs = wks.filter(k => wbOpen(k)).map(k => [k, WBALLS[k].name.replace('Bola ', '').replace(/^de /, '')]);
+    const badge = k => (save.boosters[k] || 0) > 0 ? `<span class="n">${save.boosters[k]}</span>` : `<span class="n buy"><i class="coin"></i>${boosterPrice(k)}</span>`;
     $('preBoosters').innerHTML = defs.map(([k, n]) => {
-      const isFree = free.includes(k), opt = freeOpt.includes(k);
       const ico = k === 'rocket' ? `<div style="margin:2px auto 0;width:44px;height:44px">${ROCKET_SVG}</div>` : `<div class="ball big ${k === 'extra' ? 'bPlus2' : CSSB[k]}" style="margin:2px auto 0;width:44px;height:44px"></div>`;
-      return `<div class="boost ${isFree ? 'sel' : ''}" data-k="${k}"><span class="n ${isFree || opt ? 'free' : ''}">${isFree || opt ? 'GRATIS' : (save.boosters[k] || 0)}</span>${ico}<div>${n}</div></div>`;
-    }).join('') + wdefs.map(([k, n]) => {
-      const have = save.boosters[k] || 0;
-      return `<div class="boost wboost" data-k="${k}"><span class="n ${have ? '' : 'buy'}">${have || ('<i class="gem"></i>' + wbGems(k))}</span><div class="ball big ${CSSB[k]}" style="margin:2px auto 0;width:44px;height:44px"></div><div>${n}<small>nv. ${wbLevel(k)}</small></div></div>`;
-    }).join('');
+      return `<div class="boost" data-k="${k}">${badge(k)}${ico}<div>${n}</div></div>`;
+    }).join('') + wdefs.map(([k, n]) => `<div class="boost wboost" data-k="${k}">${badge(k)}<div class="ball big ${CSSB[k]}" style="margin:2px auto 0;width:44px;height:44px"></div><div>${n}<small>nv. ${wbLevel(k)}</small></div></div>`).join('');
     $('preWb').innerHTML = wdefs.length ? `<b>${WBALLS[wk].name}:</b> ${WB_DESC[wk]}` : '';
+    const DESC = { rocket: '<b>Cohete:</b> al empezar cruza la estructura y revienta la fila con más bloques.', bomb: '<b>Bomba:</b> explota y revienta todo lo que tiene alrededor.', rainbow: '<b>Arcoíris:</b> toma el color del primer bloque que toca.', extra: '<b>+2 bolas:</b> empiezas con dos bolas más.' };
     $('preBoosters').querySelectorAll('.boost').forEach(el => el.addEventListener('click', () => {
       const k = el.dataset.k;
-      if (free.includes(k)) return;
       Audio.click();
-      if (k === 'rocket') {         // cohete de salida: gratis con racha, y si no, de los que tengas guardados
-        if (!freeOpt.length && !preSel.rocket && !(save.boosters.rocket > 0)) { toast('Gana una partida y tendrás el cohete gratis en la siguiente'); return; }
-        preSel.rocket = !preSel.rocket; el.classList.toggle('sel', preSel.rocket);
-        $('preWb').innerHTML = '<b>Cohete:</b> al empezar cruza la estructura y revienta la fila con más bloques.';
-        return;
+      if (!preSel[k] && !(save.boosters[k] > 0)) {             // comprarla aquí mismo, al precio de la tienda
+        const c = boosterPrice(k);
+        if (save.coins < c) { toast(`Te faltan ${c - save.coins} monedas`); openShop(); return; }
+        save.coins -= c; save.boosters[k] = (save.boosters[k] || 0) + 1; persist(); setCoins(); Audio.coin();
+        const nb = el.querySelector('.n'); nb.className = 'n'; nb.textContent = save.boosters[k];
+        toast((WBALLS[k] ? WBALLS[k].name : DESC[k].replace(/<[^>]+>/g, '').split(':')[0]) + ' comprado por ' + c + ' monedas');
       }
-      if (WBALLS[k] && !preSel[k] && !(save.boosters[k] > 0)) {      // comprarla con gemas aquí mismo
-        const g = wbGems(k);
-        if ((save.gems || 0) < g) { toast(`Te faltan ${g - (save.gems || 0)} gemas`); openShop('gems'); return; }
-        save.gems -= g; save.boosters[k] = (save.boosters[k] || 0) + 1; persist(); setCoins(); Audio.coin();
-        el.querySelector('.n').className = 'n'; el.querySelector('.n').textContent = save.boosters[k];
-        toast(WBALLS[k].name + ' comprada por ' + g + ' gemas');
-      }
-      if (!preSel[k] && !(save.boosters[k] > 0)) { toast('No te quedan. Consíguelos en la tienda.'); return; }
       preSel[k] = !preSel[k]; el.classList.toggle('sel', preSel[k]);
-      if (WBALLS[k]) $('preWb').innerHTML = `<b>${WBALLS[k].name}:</b> ${WB_DESC[k]}`;
+      $('preWb').innerHTML = WBALLS[k] ? `<b>${WBALLS[k].name}:</b> ${WB_DESC[k]}` : DESC[k];
     }));
-    const st = $('preStreak');
-    if (save.streak >= 1) {
-      st.hidden = false; st.style.display = 'block';
-      st.innerHTML = '<i class="ico ico-fire"></i> ' + (save.streak >= 3 ? `Racha de ${save.streak} victorias: bomba y arcoíris gratis, y el cohete si lo eliges` : save.streak >= 2 ? `Racha de 2 victorias: bomba gratis y el cohete si lo eliges · con 3, también arcoíris` : `Racha de 1 victoria: cohete gratis si lo eliges · con 2, también bomba`);
-    } else st.style.display = 'none';
+    $('preStreak').style.display = 'none';
     $('pre').classList.add('on'); $('preScroll').scrollTop = 0;
   }
-  // regalos de la racha que entran solos; el cohete se elige (o no) antes de empezar
-  function streakBoosters() { return save.streak >= 3 ? ['bomb', 'rainbow'] : save.streak >= 2 ? ['bomb'] : []; }
+  // precio en la tienda de cada ventaja (en monedas)
+  const BOOST_PRICE = { bomb: 250, rainbow: 300, extra: 200, rocket: 200 };
+  function boosterPrice(k) { return WBALLS[k] ? wbCoins(k) : BOOST_PRICE[k]; }
   const ROCKET_SVG = '<svg viewBox="0 0 64 64" width="44" height="44"><g transform="rotate(45 32 32)"><path d="M26 44 L32 60 L38 44Z" fill="#ffb23a" stroke="#ff5a1a" stroke-width="2.5" stroke-linejoin="round"/><path d="M22 36 L14 48 L24 46Z M42 36 L50 48 L40 46Z" fill="#3d9bff" stroke="#2a1d5c" stroke-width="3" stroke-linejoin="round"/><path d="M32 4 C44 14 44 32 40 46 H24 C20 32 20 14 32 4Z" fill="#ff4f6d" stroke="#2a1d5c" stroke-width="3.5" stroke-linejoin="round"/><circle cx="32" cy="24" r="6" fill="#cfefff" stroke="#2a1d5c" stroke-width="3"/><path d="M26 12 Q32 6 38 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".7"/></g></svg>';
 
   function refundGolden() {
@@ -2686,10 +2678,11 @@
     { id: 'b1', name: 'Bomba', desc: 'Potenciador para empezar un nivel', coins: 250, grant: () => { save.boosters.bomb++; } },
     { id: 'b2', name: 'Bola arcoíris', desc: 'Toma el color del primer bloque', coins: 300, grant: () => { save.boosters.rainbow++; } },
     { id: 'b3', name: '+2 bolas', desc: 'Empiezas con dos bolas más', coins: 200, grant: () => { save.boosters.extra++; } },
+    { id: 'b4', name: 'Cohete de salida', desc: 'Al empezar revienta la fila con más bloques', coins: 200, grant: () => { save.boosters.rocket = (save.boosters.rocket || 0) + 1; } },
   ];
   function openShop(focus) {
     const items = SHOP.filter(s => !(s.once && save.starter) && !(s.id === 'noads' && save.adsRemoved));
-    const SIC = { g1: '<i class="gem"></i>', g2: '<i class="gems2"></i>', g3: '<i class="chest crystal"></i>', starter: '<i class="chest gold"></i>', c1: '<i class="coin"></i>', c2: '<i class="chest wood"></i>', b1: '<i class="ball bBomb"></i>', b2: '<i class="ball bRainbow"></i>', b3: '<i class="ball bPlus2"></i>' };
+    const SIC = { g1: '<i class="gem"></i>', g2: '<i class="gems2"></i>', g3: '<i class="chest crystal"></i>', starter: '<i class="chest gold"></i>', c1: '<i class="coin"></i>', c2: '<i class="chest wood"></i>', b1: '<i class="ball bBomb"></i>', b2: '<i class="ball bRainbow"></i>', b3: '<i class="ball bPlus2"></i>', b4: '<span style="display:inline-block;width:34px;height:34px">' + ROCKET_SVG.replace(/width="44" height="44"/, 'width="34" height="34"') + '</span>' };
     const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}</b><span>${s.desc}</span></div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : s.price}</button></div>`;
     const wrow = k => {
       const open = wbOpen(k), have = save.boosters[k] || 0;
@@ -3422,9 +3415,8 @@
       if (save.coins < L.replayCost) { toast(`Te faltan ${L.replayCost - save.coins} monedas para repetir este nivel extra`); openShop(); return; }
       save.coins -= L.replayCost; setCoins(); Audio.coin();
     }
-    const bs = streakBoosters().slice();
-    if (preSel.rocket) { bs.push('rocket'); if (save.streak < 1) save.boosters.rocket = Math.max(0, (save.boosters.rocket || 0) - 1); }
-    for (const k of Object.keys(preSel)) if (k !== 'rocket' && preSel[k] && save.boosters[k] > 0) { save.boosters[k]--; bs.push(k); }
+    const bs = [];
+    for (const k of Object.keys(preSel)) if (preSel[k] && save.boosters[k] > 0) { save.boosters[k]--; bs.push(k); }
     persist(); startLevel(G.preId, bs);
   });
   // caja misteriosa: premio al azar y, a veces, doble

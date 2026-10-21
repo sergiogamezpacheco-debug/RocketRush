@@ -6,7 +6,7 @@
   const $ = id => document.getElementById(id);
   const rnd = (a, b) => a + Math.random() * (b - a);
   const RULES = {
-    ship: 'Derriba el barco y su tesoro dorado. Cada 3 tiros dispara un cañonazo que te quita una bola.',
+    ship: 'Derriba el barco y su tesoro dorado. Su cañón se carga con cada tiro y con el tiempo: cada cañonazo te quita una bola.',
     pyramid: 'Rompe bloques del color de su escudo antes de que cambie (cada 2 tiros) para abrirlo y dispara a la máscara de oro. Cinco golpes y cae. Cuidado con su maldición de arena.',
     golem: 'Camina de lado a lado. Revienta sus 3 núcleos de lava antes de que cargue el golpe sísmico.',
   };
@@ -93,7 +93,8 @@
     const sim = G.sim;
     S = { key: L.boss, L, sim, t: 0, counted: new Set(), extras: [], hp: 1, done: false, phase: 1, center: centerOf, removed: 0, gold: 0 };
     S.total = sim.blocks.filter(b => b.userData.kind !== 'stone').length;
-    if (S.key === 'ship') { S.every = 3; S.lastShots = 0; S.ball = null; initShip(); }
+    S.d = L.bossD || 0;                // dificultad del jefe: sube cada vez que se repite en mundos más altos (0 → 1)
+    if (S.key === 'ship') { S.charge = 0; S.lastShots = 0; S.ball = null; initShip(); }
     if (S.key === 'pyramid') initPyramid();
     if (S.key === 'golem') initGolem();
     document.body.classList.add('bossmode');
@@ -138,9 +139,13 @@
     const sim = S.sim;
     if (S.hull) { S.hull.rotation.z = Math.sin(S.t * 0.9) * 0.012; if (S.flag) S.flag.rotation.y = Math.sin(S.t * 3) * 0.25; }
     S.hp = Math.max(0, 1 - Math.min(1, S.removed / (0.95 * S.total) + S.gold * 0.2));
-    if (S.phase === 1 && S.hp < 0.5) { S.phase = 2; S.every = 2; banner('¡A TODA VELA!', 'Ahora dispara cada 2 tiros'); X.Audio.horn && X.Audio.horn(); G.shake = Math.max(G.shake, 0.4); }
-    const waiting = sim.shots - S.lastShots;
-    if (!S.ball && !S.done && waiting >= S.every && (sim.sinceFire > 2.4 || (sim.balls.length === 0 && sim.sinceFire > 1.0)) && S.introT <= 0) fireCannonball();
+    if (S.phase === 1 && S.hp < 0.5) { S.phase = 2; banner('¡A TODA VELA!', 'Ahora carga el cañón mucho más rápido'); X.Audio.horn && X.Audio.horn(); G.shake = Math.max(G.shake, 0.4); }
+    // el cañón se carga con cada tiro y con el tiempo (sin disparar también acaba disparando); más rápido en los jefes de mundos altos
+    const d = S.d, rage = S.phase === 2 ? 1.35 : 1;           // con la mitad de los bloques derribados carga más rápido
+    const every = 3.5 - d, full = 25 - 8 * d;                 // tiros y segundos que harían falta para cargarlo (cada uno por su cuenta)
+    const shotsNow = sim.shots - S.lastShots; S.lastShots = sim.shots;
+    if (!S.ball && !S.done && S.introT <= 0) S.charge = Math.min(1, S.charge + (shotsNow / every + dt / full) * rage);
+    if (!S.ball && !S.done && S.charge >= 1 && (sim.balls.length === 0 || sim.sinceFire > 1.6)) { S.charge = 0; fireCannonball(); }
     if (S.ball) {
       const B = S.ball; B.t += dt / 1.25;
       const k = Math.min(1, B.t), p = B.mesh.position;
@@ -148,7 +153,7 @@
       B.mesh.rotation.x += dt * 8;
       if (Math.random() < 0.5) X.spawnSprite(p.x, p.y, p.z, 0x6a6470, 0.5, 1.6, 0.6, { alpha: 0.5 });
       if (k >= 1) {
-        B.mesh.parent && B.mesh.parent.remove(B.mesh); S.ball = null; S.lastShots = sim.shots;
+        B.mesh.parent && B.mesh.parent.remove(B.mesh); S.ball = null;
         G.shake = Math.max(G.shake, 0.8); X.Audio.explode && X.Audio.explode(); X.vibe && X.vibe([40, 30, 80]);
         X.spawnDebris(p.x, p.y, p.z, 0x3a3440, 14, 6, 0.2, 1);
         X.spawnSprite(p.x, p.y, p.z, 0xffa040, 2.4, 1.4, 0.35, { add: true });
@@ -156,9 +161,7 @@
         else ft(p.x, p.y + 0.6, p.z - 1.5, '¡FALLÓ!', '#ffffff', 22);
       }
     }
-    const pips = [];
-    for (let i = 0; i < S.every; i++) pips.push(`<span class="pip${i < Math.min(S.every, waiting) ? ' on' : ''}${waiting >= S.every - 1 && i < waiting ? ' warn' : ''}"></span>`);
-    S.sub = `<span>CAÑONAZO</span>${pips.join('')}<span style="opacity:.75">${S.ball ? '¡fuego!' : waiting >= S.every ? 'al parar la bola' : (S.every - waiting) + ' tiro' + (S.every - waiting === 1 ? '' : 's')}</span>`;
+    S.sub = `<span>CAÑONAZO</span><span class="chg${S.charge > 0.8 ? ' full' : ''}"><i style="width:${Math.round(S.charge * 100)}%"></i></span>${S.ball ? '<span style="color:#ffb050">¡FUEGO!</span>' : ''}`;
   }
   function initShip() {
     const g = new THREE.Group();
@@ -259,6 +262,7 @@
     const sim = S.sim;
     S.hits = 0; S.prog = 0; S.open = false; S.immuneT = 0; S.rebuildT = 0; S.flash = 0; S.curseAt = 0; S.windOn = false;
     S.mpos = { x: 0, y: MASK.y, z: 0 };
+    S.curse = S.d >= 0.66 ? 2 : CURSE; S.needAdd = S.d >= 0.5 ? 1 : 0; S.spin = 1 + 0.4 * S.d;
     S.slots = S.L.blocks.filter(b => b.c && !b.t).map(b => ({ x: b.x, y: b.y, z: b.z }));
     S.shieldC = pickColor(null); S.nextC = pickColor(S.shieldC); S.rotAt = sim.shots;
     const g = new THREE.Group();
@@ -287,7 +291,7 @@
     paintShield();
     if (!force) {
       const c = PC[S.shieldC]; X.centerText('ESCUDO ' + c.name, c.css, 30); X.Audio.swap && X.Audio.swap();
-      if (S.prog > 0) { S.prog--; ft(0, 4, 2, 'El escudo se recupera: ' + S.prog + '/' + NEED[Math.min(HITS - 1, S.hits)], '#e6e2f5', 20); }
+      if (S.prog > 0) { S.prog--; ft(0, 4, 2, 'El escudo se recupera: ' + S.prog + '/' + (NEED[Math.min(HITS - 1, S.hits)] + (S.needAdd || 0)), '#e6e2f5', 20); }
     }
   }
   function openShield() {
@@ -362,7 +366,7 @@
   function pyramidTick(dt) {
     const sim = S.sim, M = S.mask;
     S.phase = Math.min(HITS, S.hits + 1);
-    const need = NEED[Math.min(HITS - 1, S.hits)];
+    const need = (NEED[Math.min(HITS - 1, S.hits)] + (S.needAdd || 0));
     S.hp = Math.max(0, (HITS - S.hits - (S.open ? 0.3 : 0.3 * Math.min(1, S.prog / need))) / HITS);
     if (S.hits >= HITS) S.hp = 0;
     // escudo: aparece y desaparece con suavidad
@@ -373,7 +377,7 @@
     // máscara: flota y mira al cañón; brilla cuando está al descubierto
     // la máscara: quieta (1.er golpe), de lado a lado (2.º y 3.º) y dando vueltas a la pirámide, a veces escondida detrás (4.º y 5.º)
     // con el escudo roto la máscara va más despacio, para que se le pueda dar
-    S.mt = (S.mt || 0) + dt * (S.open ? 0.45 : 1);
+    S.mt = (S.mt || 0) + dt * (S.open ? 0.45 : 1) * S.spin;
     const tg = maskTarget(S.mt);
     const kk = Math.min(1, dt * 2.5);
     S.mpos.x += (tg.x - S.mpos.x) * kk; S.mpos.y += (tg.y - S.mpos.y) * kk; S.mpos.z += (tg.z - S.mpos.z) * kk;
@@ -411,7 +415,7 @@
       else if (sim.shots - S.rotAt >= ROT && idle && sim.sinceFire > 1) rotateShield();
     }
     // maldición de arena: cada 3 tiros convierte una bola de color de la bandeja en bola de arena (no revienta nada, solo empuja)
-    if (!S.done && sim.shots - S.curseAt >= CURSE && idle && sim.sinceFire > 1.4) {
+    if (!S.done && sim.shots - S.curseAt >= S.curse && idle && sim.sinceFire > 1.4) {
       S.curseAt = sim.shots;
       const idx = sim.queue.map((k, i) => i).filter(i => i > 0 && PC[sim.queue[i]]);
       if (idx.length) {
@@ -420,7 +424,7 @@
         $('bossSand').classList.remove('on'); void $('bossSand').offsetWidth; $('bossSand').classList.add('on');
       }
     }
-    const c = PC[S.shieldC], nc = PC[S.nextC] || c, left = ROT - (sim.shots - S.rotAt), cl = Math.max(1, CURSE - (sim.shots - S.curseAt)), wl = Math.max(0, (S.window || 2) - (sim.shots - S.openAt));
+    const c = PC[S.shieldC], nc = PC[S.nextC] || c, left = ROT - (sim.shots - S.rotAt), cl = Math.max(1, S.curse - (sim.shots - S.curseAt)), wl = Math.max(0, (S.window || 2) - (sim.shots - S.openAt));
     const CURSE_I = `<span class="curse" title="Maldición de arena">⌛${cl}</span>`;
     const EYE = `<svg class="eye" viewBox="0 0 22 14"><path d="M1 7Q11-3 21 7Q11 17 1 7z" fill="#fff" stroke="#2a1d5c" stroke-width="2"/><circle cx="11" cy="7" r="3.4" fill="${nc.css}" stroke="#2a1d5c" stroke-width="1.5"/></svg>`;
     S.sub = S.open
@@ -479,13 +483,13 @@
     if (S.stun > 0) S.stun -= dt;
     const moving = S.stun <= 0 && !S.done && S.introT <= 0;
     if (S.plat) {
-      const vx = moving ? 1.15 * 0.6 * Math.cos((S.walk += dt) * 0.6) : 0;
+      const vx = moving ? 1.15 * 0.6 * (1 + 0.6 * S.d) * Math.cos((S.walk += dt * (1 + 0.6 * S.d)) * 0.6) : 0;
       for (const p of S.plats) p.velocity.set(vx, 0, 0);
       S.slab.position.copy(S.plat.position);
     }
     if (coreMat) coreMat.emissiveIntensity = 1.4 + Math.sin(S.t * (4 + S.charge * 10)) * 0.6 + S.charge * 1.5;
     if (S.light) { S.light.position.x = S.plat ? S.plat.position.x : 0; S.light.intensity = 4 + S.charge * 10; }
-    if (moving && !S.done) S.charge = Math.min(1, S.charge + dt / 9);
+    if (moving && !S.done) S.charge = Math.min(1, S.charge + dt / (9 - 3.5 * S.d));
     if (S.charge >= 1 && !S.done) {
       S.charge = 0;
       const px = S.plat ? S.plat.position.x : 0, cp = G.level.cannon;
@@ -521,10 +525,11 @@
 
   function updateBar(force) {
     const pct = Math.max(0, Math.min(1, S.hp));
-    $('bbFill').style.width = (pct * 100).toFixed(1) + '%';
-    $('bbLag').style.width = (pct * 100).toFixed(1) + '%';
-    $('bbPct').textContent = Math.ceil(pct * 100) + '%';
-    $('bbPhase').textContent = S.key === 'ship' ? 'FASE ' + S.phase + '/2' : S.key === 'pyramid' ? 'GOLPES ' + (S.hits || 0) + '/' + HITS : 'NÚCLEOS ' + ((S.cores ? S.cores.length : 3) - (S.coresHit || 0)) + '/' + (S.cores ? S.cores.length : 3);
+    const w = (pct * 100).toFixed(1) + '%', txt = Math.ceil(pct * 100) + '%';
+    if (S.barW !== w) { S.barW = w; $('bbFill').style.width = w; $('bbLag').style.width = w; }
+    if ($('bbPct').textContent !== txt) $('bbPct').textContent = txt;
+    const ph = S.key === 'ship' ? 'FASE ' + S.phase + '/2' : S.key === 'pyramid' ? 'GOLPES ' + (S.hits || 0) + '/' + HITS : 'NÚCLEOS ' + ((S.cores ? S.cores.length : 3) - (S.coresHit || 0)) + '/' + (S.cores ? S.cores.length : 3);
+    if ($('bbPhase').textContent !== ph) $('bbPhase').textContent = ph;
     if (S.sub !== S.subShown || force) { $('bbSub').innerHTML = S.sub || ''; S.subShown = S.sub; }
   }
   function tick(dt) {
@@ -545,5 +550,5 @@
   }
   window.Bosses = { start, stop, tick, hp: () => (S ? S.hp : 1), active: () => !!S, state: () => S,
     // para las pruebas: dónde estará la máscara dentro de dt segundos
-    maskAt: dt => S && S.mask ? maskTarget((S.mt || 0) + dt * (S.open ? 0.45 : 1)) : null };
+    maskAt: dt => S && S.mask ? maskTarget((S.mt || 0) + dt * (S.open ? 0.45 : 1) * (S.spin || 1)) : null };
 })();
