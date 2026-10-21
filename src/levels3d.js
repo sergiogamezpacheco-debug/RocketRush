@@ -802,20 +802,44 @@
       blocks: grid(0, 0, 1.4, [['rrs.sgg', 'rr.o.gg', 'rrpppgg'], ['rr...gg', 'rr...gg', 'rrpppgg'], ['yy...yy', 'yy...yy', 'yypppyy'], ['gg...rr', 'gg...rr', 'ggbbbrr'], ['...', '...', 'bbb'], ['...', '...', 'bbb']]) };
     else if (kind === 'pyramid') {
       // pirámide de colores mezclados (el escudo del faraón va cambiando de color) con un núcleo de piedra;
-      // la máscara dorada del faraón flota encima (la dibuja bosses.js)
+      // como mucho 3 bloques del mismo color juntos (contando los que se tocan por una esquina), para que un tiro no abra el escudo.
+      // La máscara dorada del faraón flota encima (la dibuja bosses.js)
       const blocks = [], HW = [3, 3, 2, 2, 1, 1, 0], HD = [2, 2, 1, 1, 0, 0, 0], PAL = ['r', 'y', 'b', 'g', 'p'];
-      const back = biome === 'desert' ? 'a' : 'y';
+      const back = 'a', cells = [];
       for (let j = 0; j < HW.length; j++) {
         const hw = HW[j], hd = HD[j];
         for (let x = -hw; x <= hw; x++) for (let z = -hd; z <= hd; z++) {
-          let ch;
+          let ch = null;
           if (x === 0 && z === 0 && (j === 1 || j === 2)) ch = 's';                       // núcleo de piedra
           else if (z === -hd && hd > 0) ch = back;                                          // espalda de arena
-          else ch = PAL[(((x + 5) + 2 * j + 3 * (z + 5)) % 5 + 5) % 5];                    // los vecinos casi nunca repiten color
-          blocks.push(...grid(x, z, j, [[ch]]));
+          cells.push({ x, j, z, ch });
         }
       }
-      l = { blocks, viewTop: 10.2, balls: 'rybgpbrgyp' + 'yg'.slice(0, extra) };
+      const near = (a, b) => a !== b && Math.abs(a.x - b.x) <= 1 && Math.abs(a.j - b.j) <= 1 && Math.abs(a.z - b.z) <= 1;
+      for (const cl of cells) cl.nb = cells.filter(o => near(cl, o));
+      const free = cells.filter(cl => !cl.ch);
+      // exceso total: lo que pasan de 3 todos los grupos de un color
+      const excess = () => {
+        const seen = new Set(); let e = 0;
+        for (const st0 of free) {
+          if (seen.has(st0)) continue;
+          const st = [st0]; seen.add(st0); let n = 0;
+          while (st.length) { const a = st.pop(); n++; for (const o of a.nb) if (!seen.has(o) && o.ch === st0.ch) { seen.add(o); st.push(o); } }
+          e += Math.max(0, n - 3);
+        }
+        return e;
+      };
+      const rr = seeded(7700 + g);
+      free.forEach((cl, i) => { cl.ch = PAL[(i * 2 + g) % PAL.length]; });
+      let cur = excess();
+      for (let it = 0; it < 3000 && cur > 0; it++) {           // búsqueda local: cambia el color de una celda si mejora (o empata, para no atascarse)
+        const cl = free[Math.floor(rr() * free.length)], old = cl.ch;
+        let best = old, be = cur;
+        for (const c of PAL) { if (c === old) continue; cl.ch = c; const e = excess(); if (e < be || (e === be && rr() < 0.3)) { be = e; best = c; } }
+        cl.ch = best; cur = be;
+      }
+      for (const cl of cells) blocks.push(...grid(cl.x, cl.z, cl.j, [[cl.ch]]));
+      l = { blocks, viewTop: 10.2, balls: 'rybgprybgprybgpr' + 'yb'.slice(0, extra) };
     } else l = {
       statics: [{ x: 0, y: 0, z: 0, w: 6, h: 0.4, d: 3 }, { x: 0, y: 0.4, z: 0, w: 0.96, h: 2, d: 1.9 }],
       balls: 'byrpHbyrBpby' + 'by'.slice(0, extra),

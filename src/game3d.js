@@ -144,7 +144,7 @@
   // ---------------- paleta ----------------
   const COL = { r: 0xff4f6d, b: 0x3d9bff, g: 0x5fd45a, y: 0xffd23f, p: 0xa66bff };
   const SWAP_COST = 10;   // precio de cambiar la bola del cañón por otra de la bandeja
-  const CSSB = { r: 'bR', b: 'bB', g: 'bG', y: 'bY', p: 'bP', bomb: 'bBomb', rainbow: 'bRainbow', heavy: 'bHeavy', golden: 'bGolden' };
+  const CSSB = { r: 'bR', b: 'bB', g: 'bG', y: 'bY', p: 'bP', bomb: 'bBomb', rainbow: 'bRainbow', heavy: 'bHeavy', golden: 'bGolden', sand: 'bSand' };
   const THEMES = {
     1: { top: 0x48a8ff, mid: 0x9fd8ff, hor: 0xffe8c4, fog: 0xcfe9ff, sea: 0x1f8fd6, sun: 0xfff0d0, hemi: [0xcfe9ff, 0x8a6a4a] },
     2: { top: 0x3b2c8f, mid: 0x9a6ad6, hor: 0xffb08a, fog: 0xc79ad6, sea: 0x3b55b0, sun: 0xffd2a8, hemi: [0xd8c2ff, 0x6a4a6a] },
@@ -1562,6 +1562,7 @@
     bomb: new THREE.MeshPhysicalMaterial({ color: 0x2d2640, roughness: 0.35, metalness: 0.3, clearcoat: 1 }),
     heavy: new THREE.MeshPhysicalMaterial({ color: 0x9d9ab0, roughness: 0.3, metalness: 0.8 }),
     golden: new THREE.MeshPhysicalMaterial({ color: 0xffc83d, roughness: 0.12, metalness: 1, clearcoat: 1, emissive: new THREE.Color(0x7a4a00), envMapIntensity: 1.8 }),
+    sand: new THREE.MeshStandardMaterial({ color: 0xd8b070, roughness: 1 }),       // bola de arena (maldición del faraón)
   };
   // ---------- bolas de los mundos: aspecto ----------
   const wtex = (draw) => canvasTex(256, 128, draw);
@@ -3623,7 +3624,7 @@
   // los jefes (bosses.js) usan estas piezas del juego
   window.RRGame = { G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
-    addBlockView: d => blockView(d),
+    addBlockView: d => blockView(d), weatherChip: w => setWeatherChip({ weather: w }),
     // el jefe ha caído: el nivel se gana con las bolas que quedaban
     bossWin(left) { const sim = G.sim; if (!sim || G.mode !== 'play') return; sim.queue = Array.from({ length: left }, () => 'heavy'); sim.goalReached = true; sim.finish(); G.winAt = G.t - 1; } };
   // inicio

@@ -7,12 +7,12 @@
   const rnd = (a, b) => a + Math.random() * (b - a);
   const RULES = {
     ship: 'Derriba el barco y su tesoro dorado. Cada 3 tiros dispara un cañonazo que te quita una bola.',
-    pyramid: 'Rompe bloques del color de su escudo (cambia cada 2 tiros) para abrirlo y dispara a la máscara de oro. Tres golpes y cae.',
+    pyramid: 'Rompe bloques del color de su escudo antes de que cambie (cada 2 tiros) para abrirlo y dispara a la máscara de oro. Cinco golpes y cae. Cuidado con su maldición de arena.',
     golem: 'Camina de lado a lado. Revienta sus 3 núcleos de lava antes de que cargue el golpe sísmico.',
   };
   // colores del escudo del faraón
   const PC = { r: { hex: 0xff4f6d, css: '#ff4f6d', name: 'ROJO' }, b: { hex: 0x3d9bff, css: '#3d9bff', name: 'AZUL' }, g: { hex: 0x5fd45a, css: '#5fd45a', name: 'VERDE' }, y: { hex: 0xffd23f, css: '#e8b400', name: 'AMARILLO' }, p: { hex: 0xa66bff, css: '#a66bff', name: 'MORADO' } };
-  const MASK = { y: 8.4, r: 1.05 }, NEED = [4, 6, 8], ROT = 2;
+  const MASK = { y: 8.4, r: 1.05 }, HITS = 5, NEED = [4, 5, 6, 7, 8], ROT = 2, CURSE = 3;
   // color de la roca del gólem según el paisaje
   const GOLEM_SKIN = { snow: [0xbfe0ff, 0.2, 0.2], space: [0xb8bcd0, 0.8, 0.3], candy: [0xffa8d8, 0, 0.4], temple: [0x9aa86a, 0, 0.9], neon: [0x3a3a5a, 0.7, 0.3], volcano: [0x3b3236, 0, 0.9], desert: [0xd8b078, 0, 0.9] };
   const css = `
@@ -61,6 +61,7 @@
   .shchip.sm{padding:1px 7px;font-size:11px;border-width:2px;-webkit-text-stroke:2px var(--panel-edge)}
   .shcnt{font-size:15px}
   .openGo{color:#ffd23f;font-size:15px;animation:pipw .4s infinite alternate}
+  .curse{background:#c8a060;border:2px solid var(--panel-edge);border-radius:999px;padding:1px 7px;font-size:12px;color:#fff;-webkit-text-stroke:2px var(--panel-edge);paint-order:stroke fill}
   @keyframes sand{0%{background-position:120% 0;opacity:0}20%{opacity:1}80%{opacity:1}100%{background-position:-60% 0;opacity:0}}
 
 `;
@@ -98,7 +99,8 @@
     document.body.classList.add('bossmode');
     $('hudLevel').textContent = 'JEFE';
     $('bbName').textContent = L.bossName;
-    $('bbSegs').innerHTML = S.key === 'ship' ? '<div class="bbSeg" style="left:50%"></div>' : '<div class="bbSeg" style="left:33.33%"></div><div class="bbSeg" style="left:66.66%"></div>';
+    const segs = S.key === 'ship' ? [50] : S.key === 'pyramid' ? [20, 40, 60, 80] : [33.33, 66.66];
+    $('bbSegs').innerHTML = segs.map(x => `<div class="bbSeg" style="left:${x}%"></div>`).join('');
     $('bossBar').classList.add('on');
     const intro = $('bossIntro');
     intro.innerHTML = `<span class="biTag">JEFE FINAL</span><div class="biName">${L.bossName}</div><div class="biRule">${RULES[S.key]}</div>`;
@@ -255,7 +257,8 @@
   }
   function initPyramid() {
     const sim = S.sim;
-    S.hits = 0; S.prog = 0; S.open = false; S.immuneT = 0; S.rebuildT = 0; S.flash = 0;
+    S.hits = 0; S.prog = 0; S.open = false; S.immuneT = 0; S.rebuildT = 0; S.flash = 0; S.curseAt = 0; S.windOn = false;
+    S.mpos = { x: 0, y: MASK.y, z: 0 };
     S.slots = S.L.blocks.filter(b => b.c && !b.t).map(b => ({ x: b.x, y: b.y, z: b.z }));
     S.shieldC = pickColor(null); S.nextC = pickColor(S.shieldC); S.rotAt = sim.shots;
     const g = new THREE.Group();
@@ -282,12 +285,16 @@
     S.shieldC = n[S.nextC] ? S.nextC : pickColor(S.shieldC);
     S.nextC = pickColor(S.shieldC); S.rotAt = S.sim.shots;
     paintShield();
-    if (!force) { const c = PC[S.shieldC]; X.centerText('ESCUDO ' + c.name, c.css, 30); X.Audio.swap && X.Audio.swap(); }
+    if (!force) {
+      const c = PC[S.shieldC]; X.centerText('ESCUDO ' + c.name, c.css, 30); X.Audio.swap && X.Audio.swap();
+      if (S.prog > 0) { S.prog--; ft(0, 4, 2, 'El escudo se recupera: ' + S.prog + '/' + NEED[Math.min(HITS - 1, S.hits)], '#e6e2f5', 20); }
+    }
   }
   function openShield() {
     S.open = true; S.openAt = S.sim.shots; S.prog = 0;
     G.shake = Math.max(G.shake, 0.6); X.Audio.special && X.Audio.special(); X.vibe && X.vibe([40, 30, 60]);
-    banner('¡ESCUDO ROTO!', 'Dispara a la máscara de oro: tienes 2 tiros');
+    S.window = S.hits >= 3 ? 1 : 2;
+    banner('¡ESCUDO ROTO!', 'Dispara a la máscara de oro: tienes ' + (S.window === 1 ? '1 tiro' : '2 tiros'));
     for (let r = 0; r < 3; r++) X.spawnRing(0, 0.2, 0, PC[S.shieldC].hex, 5 + r * 1.5, 0.5 + r * 0.2);
   }
   function closeShield(hit) {
@@ -304,7 +311,12 @@
     const cols = [S.shieldC, S.nextC, S.shieldC, ...Object.keys(PC)];
     let k = 0;
     for (const s of free.slice(0, n)) {
-      const c = k < 6 ? cols[k % 3] : cols[3 + Math.floor(Math.random() * 5)], delay = 0.15 + k * 0.07; k++;
+      const want = k < 6 ? [cols[k % 3]] : [], pool = want.concat(Object.keys(PC).sort(() => Math.random() - 0.5));
+      const same = c => live.filter(b => b.userData.c === c && Math.abs(b.position.x - s.x) < 1.6 && Math.abs(b.position.y - s.y) < 1.6 && Math.abs(b.position.z - s.z) < 1.6).length;
+      let c = pool[0]; for (const q of pool) if (same(q) < same(c)) c = q;
+      if (same(c) > 1) c = pool.reduce((a, q) => same(q) < same(a) ? q : a, pool[0]);
+      live.push({ position: s, userData: { c } });          // para que los siguientes huecos también lo tengan en cuenta
+      const delay = 0.15 + k * 0.07; k++;
       sim.later(delay, () => {
         if (!S || S.sim !== sim) return;
         const body = sim.addBlock({ x: s.x, y: s.y + 0.04, z: s.z, w: 1, h: 1, d: 1, c });
@@ -324,31 +336,48 @@
     X.spawnSprite(p.x, p.y, p.z + 0.6, 0xffe27a, 3, 1.4, 0.4, { add: true });
     X.spawnDebris(p.x, p.y, p.z + 0.4, 0xffc83d, 18, 6, 0.14, 1);
     for (let r = 0; r < 2; r++) X.spawnRing(p.x, p.y, p.z + 0.3, 0xffd23f, 2.5 + r * 1.5, 0.4 + r * 0.2);
-    ft(p.x, p.y + 1.4, p.z, S.hits < 3 ? '¡GOLPE AL FARAÓN!' : '¡MÁSCARA ROTA!', '#ffd23f', 30);
-    if (S.hits >= 3) { S.hp = 0; return; }
+    ft(p.x, p.y + 1.4, p.z, S.hits < HITS ? '¡GOLPE AL FARAÓN!' : '¡MÁSCARA ROTA!', '#ffd23f', 30);
+    if (S.hits >= HITS) { S.hp = 0; return; }
     closeShield(true);
-    banner('¡EL FARAÓN SE ENFURECE!', 'La arena reconstruye la pirámide · +4 bolas');
+    const move = S.hits === 1 ? ' · ahora la máscara se mueve' : S.hits === 3 ? ' · ahora da vueltas a la pirámide' : '';
+    banner('¡EL FARAÓN SE ENFURECE!', 'La arena reconstruye la pirámide · +3 bolas' + move);
     X.Audio.horn && X.Audio.horn();
     sim.later(0.9, () => {
       if (!S || S.sim !== sim) return;
       rebuild(9 + S.hits * 2);
-      const n = liveColors(), cols = [S.shieldC, S.shieldC, S.nextC, Object.keys(n)[0] || S.shieldC];
-      sim.giveBalls(cols); X.refreshTray();
+      sim.giveBalls([S.shieldC, S.shieldC, S.nextC]); X.refreshTray();
+      if (S.hits >= 2 && !S.windOn) {          // desde la mitad del combate: tormenta de arena con viento
+        S.windOn = true; sim.weather = 'sandstorm'; sim.windBase = (S.hits % 2 ? -1 : 1) * 4.2;
+        X.weatherChip && X.weatherChip('sandstorm');
+        sim.later(2.4, () => { if (S && S.sim === sim) banner('¡TORMENTA DE ARENA!', 'El viento desvía la bola: mira la guía al apuntar'); });
+      }
     });
+  }
+  function maskTarget(t) {
+    const bob = Math.sin(t * 1.6) * 0.18, tg = { x: 0, y: MASK.y + bob, z: 0 };
+    if (S.hits >= 3) { const a = t * 0.45; tg.x = Math.sin(a) * 3.6; tg.z = Math.cos(a) * 3.6; tg.y = 6 + bob; }
+    else if (S.hits >= 1) tg.x = Math.sin(t * 0.75) * 2.6;
+    return tg;
   }
   function pyramidTick(dt) {
     const sim = S.sim, M = S.mask;
-    S.phase = Math.min(3, S.hits + 1);
-    const need = NEED[Math.min(2, S.hits)];
-    S.hp = Math.max(0, (3 - S.hits - (S.open ? 0.3 : 0.3 * Math.min(1, S.prog / need))) / 3);
-    if (S.hits >= 3) S.hp = 0;
+    S.phase = Math.min(HITS, S.hits + 1);
+    const need = NEED[Math.min(HITS - 1, S.hits)];
+    S.hp = Math.max(0, (HITS - S.hits - (S.open ? 0.3 : 0.3 * Math.min(1, S.prog / need))) / HITS);
+    if (S.hits >= HITS) S.hp = 0;
     // escudo: aparece y desaparece con suavidad
     const sh = S.shield; sh.k += ((S.open ? 0 : 1) - sh.k) * Math.min(1, dt * 5);
     sh.g.visible = sh.k > 0.02; sh.g.scale.setScalar(1 + (1 - sh.k) * 0.25);
     sh.dome.material.opacity = (0.08 + Math.sin(S.t * 3) * 0.03) * sh.k; sh.wire.material.opacity = 0.14 * sh.k; sh.ring.material.opacity = 0.9 * sh.k;
     sh.wire.rotation.y += dt * 0.25;
     // máscara: flota y mira al cañón; brilla cuando está al descubierto
-    M.position.y = MASK.y + Math.sin(S.t * 1.6) * 0.18; M.rotation.y = Math.sin(S.t * 0.7) * 0.12;
+    // la máscara: quieta (1.er golpe), de lado a lado (2.º y 3.º) y dando vueltas a la pirámide, a veces escondida detrás (4.º y 5.º)
+    // con el escudo roto la máscara va más despacio, para que se le pueda dar
+    S.mt = (S.mt || 0) + dt * (S.open ? 0.45 : 1);
+    const tg = maskTarget(S.mt);
+    const kk = Math.min(1, dt * 2.5);
+    S.mpos.x += (tg.x - S.mpos.x) * kk; S.mpos.y += (tg.y - S.mpos.y) * kk; S.mpos.z += (tg.z - S.mpos.z) * kk;
+    M.position.set(S.mpos.x, S.mpos.y, S.mpos.z); M.rotation.y = Math.sin(S.t * 0.7) * 0.12;
     S.flash = Math.max(0, S.flash - dt * 2.5);
     M.userData.gold.emissive.setHex(S.flash > 0 ? 0xffffff : S.open ? 0x8a5a00 : 0x3a2200);
     M.userData.gold.emissiveIntensity = S.flash > 0 ? S.flash * 2 : S.open ? 0.8 + Math.sin(S.t * 8) * 0.4 : 1;
@@ -372,20 +401,31 @@
     if (S.done) return;
     const idle = sim.balls.length === 0 && sim.pending.length === 0;
     if (S.open) {
-      if (sim.shots - S.openAt >= 2 && idle && sim.sinceFire > 1.2) closeShield(false);
+      if (sim.shots - S.openAt >= S.window && idle && sim.sinceFire > 1.2) closeShield(false);
     } else {
       const n = liveColors(), total = Object.values(n).reduce((a, b) => a + b, 0);
       S.rebuildT -= dt;
       // se queda sin bloques: la arena rellena la pirámide (nunca se atasca)
-      if (total < 8 && S.rebuildT <= 0 && idle) { if (rebuild(10)) ft(0, 3, 1, '¡LA ARENA LA RECONSTRUYE!', '#ffe6a0', 24); }
-      if (!n[S.shieldC] && S.rebuildT <= 3.5) rotateShield();                         // ya no quedan de ese color
+      if (total < 16 && S.rebuildT <= 0 && idle) { if (rebuild(12)) ft(0, 3, 1, '¡LA ARENA LA RECONSTRUYE!', '#ffe6a0', 24); }
+      if (!n[S.shieldC] && S.rebuildT <= 3.5) rotateShield(true);                     // ya no quedan de ese color
       else if (sim.shots - S.rotAt >= ROT && idle && sim.sinceFire > 1) rotateShield();
     }
-    const c = PC[S.shieldC], nc = PC[S.nextC] || c, left = ROT - (sim.shots - S.rotAt);
+    // maldición de arena: cada 3 tiros convierte una bola de color de la bandeja en bola de arena (no revienta nada, solo empuja)
+    if (!S.done && sim.shots - S.curseAt >= CURSE && idle && sim.sinceFire > 1.4) {
+      S.curseAt = sim.shots;
+      const idx = sim.queue.map((k, i) => i).filter(i => i > 0 && PC[sim.queue[i]]);
+      if (idx.length) {
+        const i = idx[Math.floor(Math.random() * idx.length)]; sim.queue[i] = 'sand'; X.refreshTray();
+        X.centerText('¡MALDICIÓN DE ARENA!', '#e8c47a', 28); X.Audio.thud && X.Audio.thud(6, true); X.vibe && X.vibe([30, 30, 30]);
+        $('bossSand').classList.remove('on'); void $('bossSand').offsetWidth; $('bossSand').classList.add('on');
+      }
+    }
+    const c = PC[S.shieldC], nc = PC[S.nextC] || c, left = ROT - (sim.shots - S.rotAt), cl = Math.max(1, CURSE - (sim.shots - S.curseAt)), wl = Math.max(0, (S.window || 2) - (sim.shots - S.openAt));
+    const CURSE_I = `<span class="curse" title="Maldición de arena">⌛${cl}</span>`;
     const EYE = `<svg class="eye" viewBox="0 0 22 14"><path d="M1 7Q11-3 21 7Q11 17 1 7z" fill="#fff" stroke="#2a1d5c" stroke-width="2"/><circle cx="11" cy="7" r="3.4" fill="${nc.css}" stroke="#2a1d5c" stroke-width="1.5"/></svg>`;
     S.sub = S.open
-      ? `<span class="openGo">¡DISPARA A LA MÁSCARA!</span><span style="opacity:.85">${Math.max(0, 2 - (sim.shots - S.openAt))} tiro${2 - (sim.shots - S.openAt) === 1 ? '' : 's'}</span>`
-      : `<span>ESCUDO</span><span class="shchip" style="background:${c.css}">${c.name}</span><span class="shcnt">${Math.min(S.prog, need)}/${need}</span>${EYE}<span class="shchip sm" style="background:${nc.css}">${nc.name}</span><span style="opacity:.75">en ${Math.max(1, left)} tiro${left === 1 ? '' : 's'}</span>`;
+      ? `<span class="openGo">¡A LA MÁSCARA!</span><span style="opacity:.85">${wl} tiro${wl === 1 ? '' : 's'}</span>${CURSE_I}`
+      : `<span class="shchip" style="background:${c.css}">${c.name}</span><span class="shcnt">${Math.min(S.prog, need)}/${need}</span>${EYE}<span class="shchip sm" style="background:${nc.css}">${nc.name}</span><span style="opacity:.75">en ${Math.max(1, left)}</span>${CURSE_I}`;
   }
 
   let coreMat = null;
@@ -484,7 +524,7 @@
     $('bbFill').style.width = (pct * 100).toFixed(1) + '%';
     $('bbLag').style.width = (pct * 100).toFixed(1) + '%';
     $('bbPct').textContent = Math.ceil(pct * 100) + '%';
-    $('bbPhase').textContent = S.key === 'ship' ? 'FASE ' + S.phase + '/2' : S.key === 'pyramid' ? 'FASE ' + S.phase + '/3' : 'NÚCLEOS ' + ((S.cores ? S.cores.length : 3) - (S.coresHit || 0)) + '/' + (S.cores ? S.cores.length : 3);
+    $('bbPhase').textContent = S.key === 'ship' ? 'FASE ' + S.phase + '/2' : S.key === 'pyramid' ? 'GOLPES ' + (S.hits || 0) + '/' + HITS : 'NÚCLEOS ' + ((S.cores ? S.cores.length : 3) - (S.coresHit || 0)) + '/' + (S.cores ? S.cores.length : 3);
     if (S.sub !== S.subShown || force) { $('bbSub').innerHTML = S.sub || ''; S.subShown = S.sub; }
   }
   function tick(dt) {
@@ -503,5 +543,7 @@
     if (!S.done) updateBar();
     if (!S.done && S.hp <= 0) victory();
   }
-  window.Bosses = { start, stop, tick, hp: () => (S ? S.hp : 1), active: () => !!S, state: () => S };
+  window.Bosses = { start, stop, tick, hp: () => (S ? S.hp : 1), active: () => !!S, state: () => S,
+    // para las pruebas: dónde estará la máscara dentro de dt segundos
+    maskAt: dt => S && S.mask ? maskTarget((S.mt || 0) + dt * (S.open ? 0.45 : 1)) : null };
 })();
