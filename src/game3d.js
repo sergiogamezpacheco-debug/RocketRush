@@ -1193,7 +1193,7 @@
   // textos grandes del centro: si llegan varios a la vez, salen uno detrás de otro (nunca encima)
   const ctQueue = []; let ctCur = null, ctFree = 0, ctTimer = 0;
   function centerText(txt, color, size) {
-    if (ctQueue.some(q => q.txt === txt) || (ctCur && ctCur.textContent === txt && performance.now() < ctFree)) return;
+    if (ctQueue.some(q => q.txt === txt) || (ctCur && ctCur.__src === txt && performance.now() < ctFree)) return;
     ctQueue.push({ txt, color, size });
     if (ctQueue.length > 4) ctQueue.splice(0, ctQueue.length - 4);
     pumpCenter();
@@ -1205,7 +1205,7 @@
     if (ctCur && now < ctFree) { ctTimer = setTimeout(pumpCenter, ctFree - now); return; }
     if (ctCur) { const old = ctCur; old.style.transition = 'opacity .12s'; old.style.opacity = '0'; setTimeout(() => old.remove(), 130); }
     const q = ctQueue.shift(), el = document.createElement('div');
-    el.className = 'ft'; el.textContent = q.txt; el.style.left = '50%'; el.style.top = '38%';
+    el.className = 'ft'; el.textContent = q.txt; el.__src = q.txt; el.style.left = '50%'; el.style.top = '38%';
     el.style.color = q.color || '#fff'; el.style.fontSize = (q.size || 30) + 'px'; el.style.animationDuration = '1.6s';
     ftBox.appendChild(el); setTimeout(() => el.remove(), 1600);
     ctCur = el; ctFree = now + 700;                 // cada texto se ve al menos 0,7 s antes de dar paso al siguiente
@@ -2239,7 +2239,7 @@
   let shownScore = 0;
   // el HUD se toca solo cuando cambia: reescribir el mismo texto cada fotograma obliga al navegador a repintar la capa de encima del juego
   // y en móvil se nota como tirones (sobre todo con el aviso del viento, que también se reescribía siempre)
-  const setText = (el, v) => { v = String(v); if (el.textContent !== v) el.textContent = v; };
+  const setText = (el, v) => { v = String(v); if (el.__esv !== v) { el.__esv = v; el.textContent = v; } };   // compara con el original (en otro idioma el texto que se ve está traducido)
   const setHidden = (el, h) => { if (el.hidden !== h) el.hidden = h; };
   function updateHud(dt) {
     const sim = G.sim; if (!sim) return;
@@ -3029,7 +3029,7 @@
     return null;
   }
   function shareGame() {
-    const text = `¡Juega conmigo a Rocket Rush! Añádeme como amigo con mi código ${myCode()} y los dos ganamos premios.`;
+    const text = (window.I18N ? I18N.t : s => s)(`¡Juega conmigo a Rocket Rush! Añádeme como amigo con mi código ${myCode()} y los dos ganamos premios.`);
     stats().shares++; persist();
     try {
       if (window.ChromaAndroid && window.ChromaAndroid.share) window.ChromaAndroid.share(text);
@@ -3162,7 +3162,7 @@
       const next = s.st === 'done' ? d.n + 1 : s.day;
       const title = isChest(next) ? '¡Hoy toca ' + chestOf(next).name + '!' : 'Tu racha de ' + d.n + (d.n === 1 ? ' día' : ' días') + ' te espera';
       const text = isChest(next) ? 'Entra y ábrelo antes de medianoche para no perder la racha.' : 'Entra hoy y recoge el premio del día ' + next + '.';
-      A.scheduleReminder(String(when.getTime()), title, text);
+      A.scheduleReminder(String(when.getTime()), window.I18N ? I18N.t(title) : title, window.I18N ? I18N.t(text) : text);
     } catch (e) { /* sin recordatorios */ }
   }
   function updateDailyBadges() {
@@ -3679,6 +3679,18 @@
     bossWin(left) { const sim = G.sim; if (!sim || G.mode !== 'play') return; sim.queue = Array.from({ length: left }, () => 'heavy'); sim.goalReached = true; sim.finish(); G.winAt = G.t - 1; } };
   // inicio
   resize(); prewarmFx();
+  // idioma: se elige la primera vez y se puede cambiar en Ajustes
+  function langButtons(box, onPick) {
+    if (!window.I18N) return;
+    const cur = I18N.chosen() ? I18N.lang : I18N.guess();
+    box.innerHTML = I18N.LANGS.map(l => `<button data-l="${l.code}" class="${l.code === cur ? 'on' : ''}">${l.name}</button>`).join('');
+    box.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { Audio.click && Audio.click(); I18N.set(b.dataset.l); save.lang = b.dataset.l; persist(); box.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); onPick && onPick(); }));
+  }
+  langButtons($('sLang'));
+  if (window.I18N && !I18N.chosen()) {
+    $('langPick').hidden = false;
+    langButtons($('lpGrid'), () => { $('langPick').hidden = true; langButtons($('sLang')); });
+  }
   ensureSeason(); applySkin();
   goTitle(); setCoins(); scheduleReminder();
   requestAnimationFrame(() => requestAnimationFrame(autoDailySoon));   // cuenta desde que la portada ya se ve

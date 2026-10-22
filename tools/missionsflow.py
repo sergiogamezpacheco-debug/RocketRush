@@ -9,6 +9,7 @@ CODE = """(pid) => { const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let h=7; for (c
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     pg=b.new_context(viewport={'width':390,'height':844}).new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
+    pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
     stars={i:3 for i in range(1,13)}
     pg.add_init_script("localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:13, stars:%s, stats:{blocks:140,specials:12,movers:1,cascades:3,shares:0,ads:0,golden:0,skin:0}, daily:{n:0,last:null,best:0,shields:0,adRescue:-99,auto:Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)}}))" % str(stars).replace("'",'"'))
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(1500); ev(pg,"() => ChromaGame.manual(true)")

@@ -24,6 +24,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     # 0) jugador nuevo: no hay racha hasta ganar el nivel 1
     pg=b.new_context(viewport={'width':360,'height':780}).new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
+    pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(2200); ev(pg,"() => ChromaGame.manual(true)")
     print('nuevo, en la portada a los 2 s: ventana', on(pg,'daily'))
     pg.click('#btnPlay'); ticks(pg,1)
@@ -31,6 +32,7 @@ with sync_playwright() as p:
     pg.close()
     # 1) jugador con niveles ganados
     ctx=b.new_context(viewport={'width':360,'height':780}); pg=ctx.new_page(); pg.on('pageerror',lambda e: errs.append(str(e)))
+    pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
     pg.add_init_script(FAKE+"if(!sessionStorage.x){sessionStorage.x=1;localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:6, stars:{1:3,2:3,3:2,4:3,5:1}, coins:800, gems:5}))}")
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); t0=ev(pg,"() => performance.now()"); ev(pg,"() => ChromaGame.manual(true)")
     ticks(pg,1,True); pg.screenshot(path=OUT+'d0_titulo.png')

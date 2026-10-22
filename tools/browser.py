@@ -7,6 +7,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     ctx=b.new_context(viewport={'width':390,'height':844},device_scale_factor=1,is_mobile=True,has_touch=True)
     pg=ctx.new_page(); errs=[]; logs=[]
+    pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
     pg.on('pageerror',lambda e: errs.append(str(e)))
     pg.on('console',lambda m: logs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
     t0=time.time()

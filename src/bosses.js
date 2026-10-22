@@ -8,8 +8,8 @@
   const RULES = {
     ship: 'Derriba el barco y su tesoro dorado. Su cañón se carga con cada tiro y con el tiempo: cada cañonazo te quita una bola.',
     pyramid: 'Rompe bloques del color de su escudo antes de que cambie (cada 2 tiros) para abrirlo y dispara a la máscara de oro. Cinco golpes y cae. Cuidado con su maldición de arena.',
-    golem: 'Camina de lado a lado. Revienta sus 3 núcleos de lava antes de que cargue el golpe sísmico.',
-    golemArmor: 'Camina de lado a lado. Sus 3 núcleos de lava llevan coraza: dales varias veces antes de que cargue el golpe sísmico.',
+    golem: 'Camina de lado a lado. Sus 3 núcleos de lava se encienden de uno en uno: revienta el encendido antes de que cargue el golpe sísmico, o derriba todos sus bloques de colores.',
+    golemArmor: 'Camina de lado a lado. Sus 3 núcleos de lava se encienden de uno en uno y llevan coraza: dale varias veces al encendido, o derriba todos sus bloques de colores.',
   };
   // colores del escudo del faraón
   const PC = { r: { hex: 0xff4f6d, css: '#ff4f6d', name: 'ROJO' }, b: { hex: 0x3d9bff, css: '#3d9bff', name: 'AZUL' }, g: { hex: 0x5fd45a, css: '#5fd45a', name: 'VERDE' }, y: { hex: 0xffd23f, css: '#e8b400', name: 'AMARILLO' }, p: { hex: 0xa66bff, css: '#a66bff', name: 'MORADO' } };
@@ -445,7 +445,22 @@
       : `<span class="shchip" style="background:${c.css}">${c.name}</span><span class="shcnt">${Math.min(S.prog, need)}/${need}</span>${EYE}<span class="shchip sm" style="background:${nc.css}">${nc.name}</span><span style="opacity:.75">en ${Math.max(1, left)}</span>${CURSE_I}`;
   }
 
-  let coreMat = null;
+  let coreMat = null, sealedMat = null;
+  // enciende el siguiente núcleo sellado que quede
+  function nextCore(first) {
+    const sim = S.sim;
+    const id = S.order.find(i => { const d = sim.blocks[i].userData; return d.sealed && d.alive && !d.destroyed && !S.counted.has(i); });
+    S.activeCore = id === undefined ? null : id;
+    if (S.activeCore === null) return;
+    const b = sim.blocks[id], d = b.userData, m = G.meshes[id];
+    d.kind = 'gold'; d.sealed = false; d.armor = S.armor; b.wakeUp();
+    if (m) { m.userData.body.material = coreMat; m.scale.setScalar(1); }
+    if (!first) {
+      const p = b.position;
+      for (let k = 0; k < 10; k++) X.spawnSprite(p.x + rnd(-0.4, 0.4), p.y + rnd(-0.4, 0.4), p.z + 0.5, 0xff7a2a, 0.7, 1.4, 0.5, { add: true });
+      ft(p.x, p.y + 1.2, p.z + 0.5, '¡NÚCLEO ENCENDIDO!', '#ffb050', 24);
+    }
+  }
   function initGolem() {
     const sim = S.sim;
     S.plats = sim.world.bodies.filter(b => b.userData && b.userData.kind === 'plat');
@@ -464,8 +479,12 @@
     S.cores = sim.blocks.filter(b => b.userData.kind === 'gold').map(b => b.userData.id);
     // del primero al último: los núcleos llevan coraza (1 golpe en el primero, 2 desde el 4.º gólem, 3 desde el 8.º)
     S.armor = S.d < 0.3 ? 0 : S.d < 0.7 ? 1 : 2;
-    for (const id of S.cores) sim.blocks[id].userData.armor = S.armor;
-    for (const id of S.cores) { const m = G.meshes[id]; if (m) m.userData.body.material = coreMat; }
+    // solo hay un núcleo encendido cada vez (primero los de delante); los demás están sellados en roca hasta que les toca
+    S.order = S.cores.slice().sort((a, b) => sim.blocks[b].position.z - sim.blocks[a].position.z || sim.blocks[b].position.y - sim.blocks[a].position.y);
+    sealedMat = sealedMat || new THREE.MeshStandardMaterial({ color: 0x4a2a1c, emissive: 0x1a0600, roughness: 0.85 });
+    for (const id of S.cores) { const d = sim.blocks[id].userData; d.kind = 'stone'; d.sealed = true; const m = G.meshes[id]; if (m) m.userData.body.material = sealedMat; }
+    S.activeCore = null;
+    nextCore(true);
     const sk = GOLEM_SKIN[S.L.biome];
     if (sk) { const rock = new THREE.MeshStandardMaterial({ color: sk[0], metalness: sk[1], roughness: sk[2] }); for (const b of sim.blocks) if (b.userData.kind === 'stone') { const m = G.meshes[b.userData.id]; if (m) m.userData.body.material = rock; } }
     const light = new THREE.PointLight(0xff5a10, 6, 9, 2); light.position.set(0, 5, 2); X.world.add(light); S.extras.push(light); S.light = light;
@@ -507,6 +526,10 @@
     const sim = S.sim;
     if (!S.done) looseCores(dt);
     S.hp = Math.max(0, (S.cores.length - S.coresHit) / S.cores.length);
+    // sin bloques de colores en pie, el gólem está desmontado: cae solo
+    if (!S.done && S.introT <= 0 && !sim.liveBlocks().some(b => b.userData.kind === 'block' && !b.userData.popping && b.position.y > -1)) {
+      S.coresHit = S.cores.length; S.hp = 0; banner('¡GÓLEM DESMONTADO!', 'Sin cuerpo no hay núcleos que lo aguanten');
+    }
     if (S.stun > 0) S.stun -= dt;
     const moving = S.stun <= 0 && !S.done && S.introT <= 0;
     if (S.plat) {
@@ -541,10 +564,11 @@
         else if (d.popping && S.t - S.immuneT > 0.9) { S.immuneT = S.t; ft(p.x, p.y + 0.6, p.z, '¡INMUNE!', '#e6e2f5', 20); }
       }
     } else if (S.key === 'golem') {
-      if (d.kind === 'gold') {
+      if (S.cores.includes(d.id) && !S.done && S.coresHit < S.cores.length) {   // un núcleo (encendido, o sellado que alguna explosión ha roto): cuenta y se enciende otro
         S.coresHit++; S.charge = 0; S.stun = 2.5;
         G.shake = Math.max(G.shake, 0.5); X.Audio.crown && X.Audio.crown();
         ft(p.x, p.y + 0.8, p.z, S.coresHit < S.cores.length ? '¡ATURDIDO!' : '¡NÚCLEO!', '#ffd23f', 28);
+        if (d.id === S.activeCore || !S.activeCore || S.counted.has(S.activeCore)) S.sim.later(0.6, () => { if (S && S.key === 'golem' && !S.done) nextCore(false); });
       }
     }
     if (S.hp !== undefined) { const el = $('bbHp'); el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit'); }
@@ -554,9 +578,9 @@
     const pct = Math.max(0, Math.min(1, S.hp));
     const w = (pct * 100).toFixed(1) + '%', txt = Math.ceil(pct * 100) + '%';
     if (S.barW !== w) { S.barW = w; $('bbFill').style.width = w; $('bbLag').style.width = w; }
-    if ($('bbPct').textContent !== txt) $('bbPct').textContent = txt;
+    if ($('bbPct').__esv !== txt) { $('bbPct').__esv = txt; $('bbPct').textContent = txt; }
     const ph = S.key === 'ship' ? 'FASE ' + S.phase + '/2' : S.key === 'pyramid' ? 'GOLPES ' + (S.hits || 0) + '/' + HITS : 'NÚCLEOS ' + ((S.cores ? S.cores.length : 3) - (S.coresHit || 0)) + '/' + (S.cores ? S.cores.length : 3);
-    if ($('bbPhase').textContent !== ph) $('bbPhase').textContent = ph;
+    if ($('bbPhase').__esv !== ph) { $('bbPhase').__esv = ph; $('bbPhase').textContent = ph; }
     if (S.sub !== S.subShown || force) { $('bbSub').innerHTML = S.sub || ''; S.subShown = S.sub; }
   }
   function tick(dt) {
