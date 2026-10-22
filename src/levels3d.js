@@ -870,7 +870,8 @@
     } else l = {
       statics: [{ x: 0, y: 0, z: 0, w: 6, h: 0.4, d: 3 }, { x: 0, y: 0.4, z: 0, w: 0.96, h: 2, d: 1.9 }],
       balls: 'byrpHbyrBpby' + 'by'.slice(0, extra),
-      blocks: grid(0, 0, 0.4, [['ss.ss', 'ss.ss'], ['ss.ss', 'ss.ss'], ['sssss', 'sssss'], ['ybbby', 'ssoss'], ['ybbby', 'sssss'], ['sssss', 'sssss'], ['.oso.', '.sss.'], ['.ppp.', '.ppp.']]) };
+      // piernas de piedra (lo sostienen); rodillas, cadera, pecho, hombros y cabeza de colores, con los 3 núcleos de lava
+      blocks: grid(0, 0, 0.4, [['ss.ss', 'ss.ss'], ['rr.gg', 'ss.ss'], ['gyyyr', 'sbbbs'], ['ybbby', 'psosp'], ['ybbby', 'prrrp'], ['rgggr', 'yyyyy'], ['.oso.', '.ppp.'], ['.ppp.', '.bbb.']]) };
     // en los mundos altos el barco se repite con los colores más mezclados (grupos más pequeños): cuesta más derribarlo
     // (en el primero, grupos de hasta 6, para que no caiga en 4 tiros con una cascada)
     // dificultad según el orden entre los jefes de su mismo tipo: 0 el primero, 1 el último
@@ -878,6 +879,11 @@
     for (let w = 1; w <= NWORLDS; w++) if (isBossWorld(w) && worldInfo(w).boss === kind) order.push(worldInfo(w).g);
     const d = order.length > 1 ? Math.max(0, order.indexOf(g)) / (order.length - 1) : 0;
     if (kind === 'ship') limitGroups(l.blocks, Math.max(3, Math.round(6 - 3 * d)), 900 + g);
+    if (kind === 'golem') {           // del primero al último: colores más mezclados y alguna placa de piedra más (por detrás)
+      limitGroups(l.blocks, Math.max(3, Math.round(5 - 2 * d)), 700 + g);
+      const back = l.blocks.filter(b => b.c && !b.t && b.z < 0 && b.y > 1.5).sort((a, b) => a.y - b.y || a.x - b.x);
+      for (const b of back.slice(0, Math.round(6 * d))) { b.t = 's'; delete b.c; }
+    }
     if (kind === 'ship' && d > 0) l.balls += 'rgybprgy'.slice(0, Math.round(2 + 6 * d));   // y unas bolas más para compensar (el cañón dispara más a menudo)
     return Object.assign(l, { name, boss: kind, bossName: name, bossD: d, target: 1.5, tier: 'boss', nb: l.balls.length, goal: 'Jefe final del paisaje: derríbalo para abrir el siguiente.' });
   }

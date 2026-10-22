@@ -9,6 +9,7 @@
     ship: 'Derriba el barco y su tesoro dorado. Su cañón se carga con cada tiro y con el tiempo: cada cañonazo te quita una bola.',
     pyramid: 'Rompe bloques del color de su escudo antes de que cambie (cada 2 tiros) para abrirlo y dispara a la máscara de oro. Cinco golpes y cae. Cuidado con su maldición de arena.',
     golem: 'Camina de lado a lado. Revienta sus 3 núcleos de lava antes de que cargue el golpe sísmico.',
+    golemArmor: 'Camina de lado a lado. Sus 3 núcleos de lava llevan coraza: dales varias veces antes de que cargue el golpe sísmico.',
   };
   // colores del escudo del faraón
   const PC = { r: { hex: 0xff4f6d, css: '#ff4f6d', name: 'ROJO' }, b: { hex: 0x3d9bff, css: '#3d9bff', name: 'AZUL' }, g: { hex: 0x5fd45a, css: '#5fd45a', name: 'VERDE' }, y: { hex: 0xffd23f, css: '#e8b400', name: 'AMARILLO' }, p: { hex: 0xa66bff, css: '#a66bff', name: 'MORADO' } };
@@ -104,7 +105,7 @@
     $('bbSegs').innerHTML = segs.map(x => `<div class="bbSeg" style="left:${x}%"></div>`).join('');
     $('bossBar').classList.add('on');
     const intro = $('bossIntro');
-    intro.innerHTML = `<span class="biTag">JEFE FINAL</span><div class="biName">${L.bossName}</div><div class="biRule">${RULES[S.key]}</div>`;
+    intro.innerHTML = `<span class="biTag">JEFE FINAL</span><div class="biName">${L.bossName}</div><div class="biRule">${RULES[S.key === 'golem' && S.armor ? 'golemArmor' : S.key]}</div>`;
     intro.classList.remove('on'); void intro.offsetWidth; intro.classList.add('on');
     S.introT = 3.4;
     X.Audio.horn && X.Audio.horn();
@@ -461,32 +462,46 @@
     }
     coreMat = coreMat || new THREE.MeshStandardMaterial({ color: 0xff7a2a, emissive: 0xff3a00, emissiveIntensity: 1.6, roughness: 0.4 });
     S.cores = sim.blocks.filter(b => b.userData.kind === 'gold').map(b => b.userData.id);
+    // del primero al último: los núcleos llevan coraza (1 golpe en el primero, 2 desde el 4.º gólem, 3 desde el 8.º)
+    S.armor = S.d < 0.3 ? 0 : S.d < 0.7 ? 1 : 2;
+    for (const id of S.cores) sim.blocks[id].userData.armor = S.armor;
     for (const id of S.cores) { const m = G.meshes[id]; if (m) m.userData.body.material = coreMat; }
     const sk = GOLEM_SKIN[S.L.biome];
     if (sk) { const rock = new THREE.MeshStandardMaterial({ color: sk[0], metalness: sk[1], roughness: sk[2] }); for (const b of sim.blocks) if (b.userData.kind === 'stone') { const m = G.meshes[b.userData.id]; if (m) m.userData.body.material = rock; } }
     const light = new THREE.PointLight(0xff5a10, 6, 9, 2); light.position.set(0, 5, 2); X.world.add(light); S.extras.push(light); S.light = light;
     S.walk = 0; S.stun = 0; S.charge = 0; S.coresHit = 0;
+    // las piezas del gólem agarran más entre sí: al caminar no se le desmonta el cuerpo solo
+    for (const b of sim.blocks) if (b.material) { b.material.friction = 1; b.linearDamping = Math.max(b.linearDamping, 0.08); }
     // sitio de cada núcleo dentro del cuerpo (relativo a la losa, que camina)
     const px0 = S.plat ? S.plat.position.x : 0;
     S.home = {}; S.rest = {};
     for (const id of S.cores) { const b = sim.blocks[id]; S.home[id] = { x: b.position.x - px0, y: b.position.y, z: b.position.z }; S.rest[id] = 0; }
   }
-  // un núcleo que se cae del gólem (detrás, a un lado o al suelo) se rompe al quedarse quieto: nunca queda uno inalcanzable
+  // un núcleo que se cae del gólem (detrás, a un lado o al suelo) no se queda inalcanzable: sube flotando delante del gólem
+  // y se queda allí, siguiéndolo, hasta que le das
   function looseCores(dt) {
     const sim = S.sim, px = S.plat ? S.plat.position.x : 0;
-    for (const id of S.cores) {
+    S.cores.forEach((id, i) => {
       const b = sim.blocks[id], d = b.userData, h = S.home[id];
-      if (!d.alive || d.destroyed || d.popping || S.counted.has(id)) continue;
+      if (!d.alive || d.destroyed || d.popping || S.counted.has(id)) return;
+      if (d.floatCore) {             // ya flota: va hasta su sitio delante del gólem
+        // en los gólems de más adelante el núcleo flotante se mueve de lado a lado
+        const tx = px + (i - 1) * 1.4 + Math.sin(S.t * (1 + 1.5 * S.d) + i * 2) * 1.3 * S.d, ty = 2.4 + Math.sin(S.t * 2 + i) * 0.15, tz = 1.9, k = Math.min(1, dt * 3);
+        b.position.set(b.position.x + (tx - b.position.x) * k, b.position.y + (ty - b.position.y) * k, b.position.z + (tz - b.position.z) * k);
+        b.velocity.set(0, 0, 0); b.angularVelocity.set(0, 2, 0);
+        if (Math.random() < 0.15) X.spawnSprite(b.position.x, b.position.y - 0.5, b.position.z, 0xff7a2a, 0.5, 1, 0.5, { add: true, vy: -0.5 });
+        return;
+      }
       const off = Math.hypot(b.position.x - px - h.x, b.position.y - h.y, b.position.z - h.z);
       const still = b.velocity.length() < 0.5 + (S.plat ? Math.abs(S.plat.velocity.x) : 0);
       S.rest[id] = off > 1.2 && still ? S.rest[id] + dt : 0;
-      if (S.rest[id] > 0.8) {
+      if (S.rest[id] > 0.8 || b.position.y < -0.5) {
+        d.floatCore = true; b.type = CANNON.Body.KINEMATIC; b.updateMassProperties(); b.quaternion.set(0, 0, 0, 1);
         const p = b.position;
-        for (let i = 0; i < 8; i++) X.spawnSprite(p.x + rnd(-0.4, 0.4), p.y + rnd(-0.3, 0.5), p.z + rnd(-0.3, 0.4), 0xff7a2a, 0.6, 1.2, 0.6, { add: true });
-        ft(p.x, p.y + 1.2, p.z + 0.6, '¡SE HA CAÍDO Y SE ROMPE!', '#ffb050', 22);
-        sim.popSingle(b, 0.05);
+        for (let k = 0; k < 8; k++) X.spawnSprite(p.x + rnd(-0.4, 0.4), p.y + rnd(-0.3, 0.5), p.z + rnd(-0.3, 0.4), 0xff7a2a, 0.6, 1.2, 0.6, { add: true });
+        ft(p.x, p.y + 1.2, p.z + 0.6, '¡EL NÚCLEO VUELVE!', '#ffb050', 22);
       }
-    }
+    });
   }
   function golemTick(dt) {
     const sim = S.sim;
@@ -552,6 +567,7 @@
     for (const b of sim.blocks) {
       const d = b.userData;
       if (S.counted.has(d.id)) continue;
+      if (S.key === 'golem' && S.cores && S.cores.includes(d.id) && d.alive && !d.destroyed && !d.popping) continue;   // un núcleo que cae al agua vuelve flotando
       if (!d.alive || d.destroyed || d.popping || b.position.y < (S.key === 'ship' ? 0.9 : -1.2)) { S.counted.add(d.id); onRemoved(b, d); }
     }
     if (S.key === 'ship') shipTick(dt);

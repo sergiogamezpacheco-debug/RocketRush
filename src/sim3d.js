@@ -414,7 +414,13 @@
       if (d.ball === 'bomb' && od.kind !== 'island' || d.ball === 'bomb' && v > 2) { this.explode(ball.position.x, ball.position.y, ball.position.z, C.BOMB_R, true); this.killBall(ball, false); return; }
       if (v > 1.5 && this.impactBudget > 0) { this.impactBudget--; this.emit({ type: 'thud', x: px, y: py, z: pz, v }); }
       if (this.special(other, d.ball, ball, v)) return;
-      if (od.kind === 'gold' && !od.popping && !od.destroyed) this.popSingle(other, 0.02);
+      if (od.kind === 'gold' && !od.popping && !od.destroyed) {
+        if (d.armorT) { /* esta bola ya le ha quitado una capa: no hace más */ }
+        else if (od.armor > 0) {                    // oro con coraza (núcleos de los gólems de más adelante): cada bola le quita una capa
+          od.armor--; d.armorT = 1; other.wakeUp();
+          this.emit({ type: 'armorHit', id: od.id, x: other.position.x, y: other.position.y, z: other.position.z, left: od.armor });
+        } else this.popSingle(other, 0.02);
+      }
       else if (od.kind === 'glass' && v > 1.5) this.shatter(other);
       else if (od.kind === 'sand' && v > 1) this.crumble(other);
       else if (od.kind === 'prize' && v > 1) this.breakPrize(other);

@@ -22,7 +22,9 @@ with sync_playwright() as p:
     for k in range(14):
         r=pg.evaluate("""(k) => { const S=Bosses.state(), s=ChromaGame.G.sim; if(!s.canFire()) return 'no';
           let x=(k*9301+%d*49297)%%233280; const rnd=()=>{x=(x*9301+49297)%%233280; return x/233280;};
-          const HEAVY=%s; const bs=s.liveBlocks().filter(b=>b.userData.kind!=='gold'); if(!bs.length) return 'none';
+          const HEAVY=%s; const core=s.liveBlocks().find(b=>b.userData.kind==='gold' && (b.userData.floatCore || b.position.z>0.2));
+          if (core && rnd()<0.6) { s.queue[0]=s.queue[0]||'r'; s.fire(core.position.x,core.position.y,core.position.z+0.4); return 'núcleo'; }
+          const bs=s.liveBlocks().filter(b=>b.userData.kind!=='gold'); if(!bs.length) { if(core){ s.fire(core.position.x,core.position.y,core.position.z+0.4); return 'núcleo'; } return 'none'; }
           const t=bs[Math.floor(rnd()*bs.length)]; s.queue[0]=rnd()<HEAVY?'heavy':(t.userData.c||'r'); s.fire(t.position.x,t.position.y,t.position.z); return s.queue[0]; }""" % (seed, heavy), k)
         pg.evaluate("() => { const s=ChromaGame.G.sim; while(s.queue.length<4) s.queue.push('heavy'); }")
         T(150)

@@ -1969,6 +1969,9 @@
         case 'spring': { spawnRing(e.x, e.y + 0.5, e.z, 0x7dffb0, 1.8, 0.4); floatText(e.x, e.y + 1.2, e.z, '¡BOING!', '#7dffb0', 26, true); Audio.chirp(); G.shake = Math.max(G.shake, 0.2); vibe(30);
           const g = G.meshes[e.id]; if (g && !g.userData.dented) { g.userData.dented = true; g.scale.set(1.04, 0.82, 1.04); g.traverse(o => { if (o.isMesh && o.material && o.material.color && !o.material._dent) { o.material = o.material.clone(); o.material._dent = true; o.material.color.multiplyScalar(0.72); if (o.material.emissive) o.material.emissive.setHex(0x3a0a0a); } }); }
           break; }
+        case 'armorHit': { spawnDebris(e.x, e.y, e.z, 0xffb050, 12, 5, 0.14, 0.9); spawnSprite(e.x, e.y, e.z + 0.5, 0xffe0a0, 1.6, 1.2, 0.3, { add: true });
+          floatText(e.x, e.y + 1, e.z, e.left ? '¡CORAZA! quedan ' + (e.left + 1) : '¡CORAZA ROTA!', '#ffb050', 24, true); Audio.thud(8, true); G.shake = Math.max(G.shake, 0.25);
+          const g = G.meshes[e.id]; if (g) g.scale.setScalar(0.85 + 0.05 * e.left); break; }
         case 'springPop': stats().blocks++; stats().specials++; spawnDebris(e.x, e.y, e.z, 0x7dffb0, 16, 6, 0.14, 1); spawnSprite(e.x, e.y, e.z + 0.4, 0xd8fff0, 2, 1.2, 0.35, { add: true });
           floatText(e.x, e.y + 1.2, e.z, '¡CRAC!', '#7dffb0', 28, true); Audio.pop && Audio.pop(1); G.shake = Math.max(G.shake, 0.25); vibe([20, 20, 30]); break;
         case 'geyserCharge': for (let i = 0; i < 4; i++) spawnSprite(e.x + rnd(-0.3, 0.3), e.y + 0.6, e.z, 0xffffff, 0.8, 1.6, 0.7, { vy: 1.5, alpha: 0.6 }); Audio.fuse(); break;
@@ -2061,7 +2064,7 @@
             showHint('Pasa un velero con bola ' + e.balls.map(k => nm[k] || k).join(' y bola '), 3000);
           }
           break;
-        case 'moverHit': { stats().movers++;
+        case 'moverHit': { stats().movers++; if (e.kind === 'bird') stats().birds = (stats().birds || 0) + 1; else stats().ships = (stats().ships || 0) + 1;
           const names = { r: 'roja', b: 'azul', g: 'verde', y: 'amarilla', p: 'morada', bomb: 'bomba', rainbow: 'arcoíris' };
           const mv = G.sim && G.sim.movers.find(x => x.id === e.id);
           if (e.kind === 'bird') {
@@ -2316,7 +2319,11 @@
     if (TD.phase === 'idle' && TD.t > 3.2) {
       const sim = G.sim, sil = sim.silhouette();
       sim.queue.unshift('golden'); sim.sinceFire = 1; sim.state = 'play';
-      if (sim.fire(0, Math.max(1, sil.top * 0.45), 0)) { TD.phase = 'shot'; TD.t = 0; sim.events.length = 0; }
+      // a un bloque de verdad: el de delante más cercano al centro y a media altura (hay estructuras con el centro hueco)
+      const live = sim.liveBlocks().filter(b => b.userData.kind !== 'portal' && b.userData.kind !== 'cloud');
+      const front = live.length ? Math.max(...live.map(b => b.position.z)) : 0, midY = Math.max(1, sil.top * 0.45);
+      const tgt = live.filter(b => b.position.z > front - 0.6).sort((a, b) => (Math.abs(a.position.x) + Math.abs(a.position.y - midY)) - (Math.abs(b.position.x) + Math.abs(b.position.y - midY)))[0];
+      if (tgt ? sim.fire(tgt.position.x, tgt.position.y, tgt.position.z) : sim.fire(0, midY, 0)) { TD.phase = 'shot'; TD.t = 0; sim.events.length = 0; }
       else sim.queue.shift();
     } else if (TD.phase === 'shot' && TD.t > 3.6) {
       TD.phase = 'grow'; TD.t = 0;
@@ -2979,6 +2986,10 @@
     // difíciles: con unas pocas gemas
     { id: 'movers', cat: 'Difíciles', icon: '🎯', tiers: [1, 10, 30, 75], title: n => n === 1 ? 'Derriba algo que cruce el cielo o el mar' : `Derriba ${n} objetos que crucen el cielo o el mar`, hint: 'pájaro, velero, globo, teleférico, mono, dragón, ovni o satélite', stat: () => stats().movers,
       reward: i => [{ xp: 80, coins: 250, gems: 1 }, { xp: 150, coins: 500, gems: 2 }, { xp: 250, coins: 800, gems: 3 }, { xp: 400, coins: 1200, gems: 5 }][i] },
+    { id: 'birds', cat: 'Difíciles', icon: '🐦', tiers: [3, 15, 40], title: n => `Derriba al pájaro ${n} veces`, stat: () => stats().birds || 0,
+      reward: i => [{ xp: 100, coins: 300, gems: 2 }, { xp: 200, coins: 600, gems: 3 }, { xp: 350, coins: 1000, gems: 5 }][i] },
+    { id: 'ships', cat: 'Difíciles', icon: '⛵', tiers: [10, 30, 75], title: n => `Derriba el barco ${n} veces`, hint: 'el velero del mar o lo que cruza en su lugar en cada paisaje: globo, teleférico, mono, dragón u ovni', stat: () => stats().ships || 0,
+      reward: i => [{ xp: 150, coins: 500, gems: 3 }, { xp: 300, coins: 900, gems: 4 }, { xp: 500, coins: 1500, gems: 6 }][i] },
     { id: 'hard', cat: 'Difíciles', icon: '💀', tiers: [1, 5, 10, 25, 50, 100], title: n => n === 1 ? 'Supera un nivel difícil' : `Supera ${n} niveles difíciles`, stat: () => countLv((L, s) => L.hard && s > 0),
       reward: i => ({ xp: 80 + i * 70, coins: 250 + i * 200, gems: [1, 2, 3, 4, 6, 8][i] }) },
     { id: 'hard3', cat: 'Difíciles', icon: '👑', tiers: [1, 5, 20, 50], title: n => n === 1 ? 'Consigue 3 estrellas en un nivel difícil' : `Consigue 3 estrellas en ${n} niveles difíciles`, stat: () => countLv((L, s) => L.hard && s >= 3),
