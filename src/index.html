@@ -767,6 +767,55 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
 .csum .g i{display:block;width:46px;height:46px}
 .csum .ok{display:inline-block;margin-top:10px;font-size:18px;font-weight:900;color:#fff;padding:6px 26px;border-radius:16px;background:linear-gradient(170deg,#9cf28a,#3fc95a 55%,#22a046);box-shadow:0 0 0 3px #e8b84a,0 0 0 5px #5a3a08,0 5px 0 #5a3a08;text-shadow:0 2px 0 rgba(0,80,20,.5)}
 @media (prefers-reduced-motion:reduce){.crays,.chint,.cbox.idle{animation:none}}
+
+/* ---- social: amigos, clasificaciones y perfil ---- */
+#social{justify-content:flex-start;padding-top:max(14px,env(safe-area-inset-top));background:linear-gradient(180deg,#24305c,#3a2f8a)}
+.sochead{width:100%;max-width:520px;padding:6px 10px 8px}
+.sochead .stabs{margin:2px 0 0}
+.socnet{font-size:11.5px;font-weight:800;color:var(--lav);margin-top:6px;min-height:14px;display:flex;align-items:center;justify-content:center;gap:6px}
+.socnet i{width:9px;height:9px;border-radius:50%;background:#9a93b8;display:inline-block}.socnet i.on{background:#5fe36a}.socnet i.wait{background:#ffc83d}.socnet i.bad{background:#ff5f6d}
+#socList{margin-top:8px}
+.sbox{border:2px solid #e8c46a;border-radius:18px;padding:10px 12px;margin-bottom:12px;color:#fff;background:linear-gradient(160deg,rgba(158,118,255,.95),rgba(84,60,214,.95));box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 4px 0 rgba(20,8,60,.45);text-align:left}
+.smsg{font-size:12.5px;font-weight:800;margin-top:6px}.smsg.good{color:#b4ffa8}.smsg.bad{color:#ffc2c8}
+.shead{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:900;color:var(--goldtx);letter-spacing:.5px;text-transform:uppercase;margin:14px 4px 6px;text-align:left}
+.shead span{background:rgba(255,255,255,.18);border-radius:9px;padding:0 7px;color:#fff}
+.sempty{font-size:13px;font-weight:800;color:var(--lav);padding:18px 10px;text-align:center}
+.scard{display:flex;align-items:center;gap:10px;border:2px solid #e8c46a;border-radius:16px;padding:9px 10px;margin-bottom:10px;color:#fff;text-align:left;background:linear-gradient(160deg,rgba(158,118,255,.95),rgba(84,60,214,.95));box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 4px 0 rgba(20,8,60,.45)}
+.scard.inc{border-color:#9cf28a;box-shadow:0 0 0 3px rgba(156,242,138,.45)}.scard.out{opacity:.8}
+.savat{flex:none;width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:25px;line-height:1}
+.savat.big{width:64px;height:64px;font-size:40px;border-radius:18px}
+.sbody{flex:1;min-width:0}.sbody small{display:block;font-size:11.5px;font-weight:800;color:var(--lav)}
+.srow{display:flex;align-items:center;gap:5px;min-width:0}
+.sname{font-size:15px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.sflag{flex:none;font-size:14px}
+.schips{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.schips span{display:flex;align-items:center;gap:3px;font-size:11.5px;font-weight:900;background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.28);border-radius:9px;padding:1px 6px}
+.schips i{font-style:normal;font-size:11px}
+.sbtns{flex:none;display:flex;align-items:center;gap:6px}.sbtns .btn{width:auto;margin:0;padding:7px 10px}
+.sx{font:inherit;font-weight:900;font-size:13px;color:#fff;background:rgba(20,8,60,.35);border:0;border-radius:10px;min-width:32px;height:32px;padding:0 8px;cursor:pointer}
+.sx.sure{background:#d6304a}
+.sscope,.smetrics{display:flex;gap:6px;margin:2px 0 8px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.sscope::-webkit-scrollbar,.smetrics::-webkit-scrollbar{display:none}
+.sscope button,.smetrics button{flex:none;display:flex;align-items:center;gap:4px;font:inherit;font-weight:800;font-size:12.5px;color:#fff;padding:7px 10px;border-radius:12px;border:0;cursor:pointer;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 2px rgba(255,230,128,.4)}
+.sscope button{flex:1;justify-content:center}
+.sscope button.on,.smetrics button.on{background:#ffe680;color:#7a2a00}
+.sscope i,.smetrics i{font-style:normal}
+.lbrow{display:flex;align-items:center;gap:9px;border-radius:14px;padding:6px 10px;margin-bottom:6px;color:#fff;text-align:left;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.16)}
+.lbrow.me{background:linear-gradient(160deg,rgba(255,230,128,.35),rgba(255,180,26,.3));border-color:#ffe680}
+.lbrow .savat{width:34px;height:34px;font-size:20px;border-radius:10px}
+.lbpos{flex:none;width:30px;text-align:center;font-weight:900;font-size:15px}
+.lbname{flex:1;min-width:0;display:flex;align-items:center;gap:5px}
+.lbval{flex:none;font-size:15px;font-weight:900;display:flex;align-items:center;gap:4px}.lbval i{font-style:normal;font-size:13px}
+.lbsep{text-align:center;color:var(--lav);font-weight:900;letter-spacing:3px;margin:2px 0 6px}
+#socName{text-transform:none}
+.sme{display:flex;gap:12px;align-items:flex-start}.sform{flex:1;min-width:0}.sform small{display:block;font-size:11px;font-weight:800;color:var(--lav);margin-top:4px}
+.sform select{width:100%;margin-top:2px;border:2px solid #e8c46a;border-radius:12px;padding:7px 8px;font:inherit;font-weight:800;font-size:14px;background:#fff;color:var(--ink)}
+.savs{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:-4px 0 4px}
+.savs button{aspect-ratio:1;font-size:20px;line-height:1;border-radius:10px;border:0;cursor:pointer;background:rgba(255,255,255,.12);padding:0}
+.savs button.on{background:#ffe680;box-shadow:0 0 0 2px #fff}
+.sstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sstat{border-radius:14px;padding:8px 4px;color:#fff;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.18);display:flex;flex-direction:column;align-items:center;gap:1px}
+.sstat i{font-style:normal;font-size:18px}.sstat b{font-size:17px;font-weight:900}.sstat small{font-size:10px;font-weight:800;color:var(--lav);line-height:1.15}
+@media (max-width:360px){.savs{grid-template-columns:repeat(5,1fr)}.sstats{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -822,6 +871,7 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
     <button class="sb" id="btnMisT" aria-label="Misiones"><span>&#127919;</span><b>Misiones</b><i class="bdg" id="misDotT" hidden>0</i></button>
   </div>
   <div class="tside right">
+    <button class="sb" id="btnSocT" aria-label="Amigos"><span>&#128101;</span><b>Amigos</b><i class="bdg" id="socDotT" hidden>0</i></button>
     <button class="sb" id="btnShopT" aria-label="Tienda"><span>&#128722;</span><b>Tienda</b></button>
     <button class="sb" id="btnSetT" aria-label="Ajustes"><span>&#9881;&#65039;</span><b>Ajustes</b></button>
   </div>
@@ -891,6 +941,19 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
     <div id="friendMsg"></div>
   </div>
   <div class="mapscroll" id="misList"></div>
+</div>
+
+<div class="screen" id="social">
+  <div class="topbar">
+    <button class="iconbtn" id="socBack" aria-label="Volver">&#8592;</button>
+    <span class="wallet"><span class="coins"><i class="coin"></i><span class="coinTxt">0</span></span><span class="coins"><i class="gem"></i><span class="gemTxt">0</span></span></span>
+    <button class="iconbtn" id="socSync" aria-label="Actualizar">&#8635;</button>
+  </div>
+  <div class="passhead sochead">
+    <div class="stabs" id="socTabs"><button data-t="friends">&#128101; Amigos</button><button data-t="ranks">&#127942; Clasificación</button><button data-t="me">&#128578; Perfil</button></div>
+    <div class="socnet" id="socNet"></div>
+  </div>
+  <div class="mapscroll" id="socList"></div>
 </div>
 
 <div class="screen dim" id="win">

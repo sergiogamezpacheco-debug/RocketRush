@@ -56,12 +56,12 @@
   const ATTRS = ['aria-label', 'title', 'placeholder'];
   function doNode(n) {
     if (n.nodeType === 3) {
-      const p = n.parentNode; if (!p || p.nodeName === 'SCRIPT' || p.nodeName === 'STYLE') return;
+      const p = n.parentNode; if (!p || p.nodeName === 'SCRIPT' || p.nodeName === 'STYLE' || (p.closest && p.closest('[translate="no"]'))) return;
       if (n.nodeValue !== n.__tr) n.__es = n.nodeValue;          // texto nuevo puesto por el juego (en español)
       const v = translate(n.__es);
       n.__tr = v; if (n.nodeValue !== v) n.nodeValue = v;
     } else if (n.nodeType === 1) {
-      if (n.nodeName === 'SCRIPT' || n.nodeName === 'STYLE') return;
+      if (n.nodeName === 'SCRIPT' || n.nodeName === 'STYLE' || n.getAttribute('translate') === 'no') return;   // nombres de jugadores, códigos…
       for (const a of ATTRS) {
         if (!n.hasAttribute(a)) continue;
         const cur = n.getAttribute(a), key = '__es_' + a;

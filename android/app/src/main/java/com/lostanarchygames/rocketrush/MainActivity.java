@@ -1,4 +1,4 @@
-package com.rocketrush.game;
+package com.lostanarchygames.rocketrush;
 
 import android.app.Activity;
 import android.content.Context;
@@ -11,11 +11,19 @@ import android.os.Vibrator;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-/** Envoltorio nativo: carga el juego desde los recursos de la app, sin conexión. */
+import androidx.webkit.WebViewAssetLoader;
+
+/**
+ * Envoltorio nativo: carga el juego desde los recursos de la app, sin conexión.
+ * El juego se sirve como https://appassets.androidplatform.net/assets/index.html (sale de la propia APK, no de internet):
+ * así el WebView lo trata como una página segura y puede hablar con Firebase y guardar la sesión.
+ */
 public class MainActivity extends Activity {
 
     private WebView web;
@@ -31,15 +39,23 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setAllowFileAccess(true);
+        s.setAllowFileAccess(false);
         // sin caché: cada versión nueva de la APK carga siempre el juego recién instalado
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);
         web.clearCache(true);
-        web.setWebViewClient(new WebViewClient());
+        final WebViewAssetLoader assets = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return assets.shouldInterceptRequest(request.getUrl());
+            }
+        });
         web.addJavascriptInterface(new Bridge(), "ChromaAndroid");
         setContentView(web);
         hideSystemUi();
-        web.loadUrl("file:///android_asset/index.html");
+        web.loadUrl("https://appassets.androidplatform.net/assets/index.html");
     }
 
     /** Funciones que el juego puede llamar desde JavaScript. */

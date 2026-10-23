@@ -1,0 +1,53 @@
+rules_version = '2';
+// Rocket Rush — reglas de Firestore (fase 1: perfil y amigos · fase 2: clasificaciones)
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // Perfil público de cada jugador: lo lee cualquiera con sesión (amigos y clasificaciones); solo lo escribe su dueño
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update: if isMe(uid)
+        && request.resource.data.keys().hasOnly(['name', 'avatar', 'code', 'lang', 'country', 'stats', 'club', 'createdAt', 'updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 20
+        && request.resource.data.avatar is string && request.resource.data.avatar.size() <= 16
+        && request.resource.data.country is string && request.resource.data.country.size() <= 3
+        && request.resource.data.stats is map;
+      allow delete: if isMe(uid);
+    }
+
+    // Código de amigo (RR-XXXX) → jugador. Cada código es de un solo jugador y no se puede robar
+    match /codes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Amistades: un documento por pareja (uidA_uidB, en orden). Uno pide, el otro acepta; cualquiera de los dos la borra
+    match /friendships/{pair} {
+      function mine() { return resource.data.a == request.auth.uid || resource.data.b == request.auth.uid; }
+      // leer una que no existe está permitido (así se sabe si ya hay solicitud); el id ya lleva los dos uid
+      allow get: if signedIn() && (resource == null || mine());
+      allow list: if signedIn() && mine();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['a', 'b', 'from', 'status', 'at'])
+        && request.resource.data.from == request.auth.uid
+        && request.auth.uid in [request.resource.data.a, request.resource.data.b]
+        && request.resource.data.a < request.resource.data.b
+        && pair == request.resource.data.a + '_' + request.resource.data.b
+        && request.resource.data.status == 'pending';
+      allow update: if signedIn() && mine()
+        && request.auth.uid != resource.data.from
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'since'])
+        && request.resource.data.status == 'accepted';
+      allow delete: if signedIn() && mine();
+    }
+
+    // Todo lo demás (clubes, mundo semanal, liga): solo desde las funciones del servidor, por ahora cerrado
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

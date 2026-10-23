@@ -1,4 +1,4 @@
-package com.rocketrush.game;
+package com.lostanarchygames.rocketrush;
 
 import android.app.AlarmManager;
 import android.app.Notification;

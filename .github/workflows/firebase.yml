@@ -1,0 +1,26 @@
+name: Publicar reglas de Firebase
+
+# Sube las reglas y los índices de Firestore cuando cambian (o a mano desde la pestaña Actions).
+# Necesita el secreto FIREBASE_SERVICE_ACCOUNT (el .json de la cuenta de servicio del proyecto); sin él no hace nada.
+on:
+  push:
+    branches: [main]
+    paths: ['firebase/**', 'firebase.json']
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Publicar reglas e índices
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then echo "Falta el secreto FIREBASE_SERVICE_ACCOUNT: no se publica nada"; exit 0; fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx --yes firebase-tools@14 deploy --only firestore --project rocket-rush-7297c --non-interactive --force

@@ -311,3 +311,21 @@ Español, inglés, portugués, francés, alemán e italiano. La primera vez que 
 - El juego sigue escrito en español. `src/i18n.js` traduce todo lo que sale en pantalla (textos de la página y los que el juego va poniendo: botones, avisos, nombres de niveles y mundos, misiones, jefes, textos flotantes…) con la tabla de `src/i18n-data.js` (unos 1.100 textos): frase exacta, plantilla con trozos variables (`Nivel {x} · {x}`), textos compuestos con « · » y frases conocidas dentro de textos más largos. Lo que no está en pantalla (mensaje al compartir, aviso de la racha) se traduce con `I18N.t()`.
 - Para añadir textos nuevos: `python3 tools/i18n_extract.py` (saca los textos en español del código), `python3 tools/i18n_missing.py en` (juega en inglés y lista lo que siga en español) y `python3 tools/i18n_merge.py tabla.py` (añade las traducciones a la tabla).
 - Las pruebas fijan el español (`localStorage rocketrush.lang = es`) para que no salga la ventana de idioma.
+
+## Amigos, clasificaciones y perfil (Firebase)
+El botón **Amigos** de la portada abre tres pestañas:
+- **Amigos**: tu código de amigo (el mismo `RR-` de siempre), compartirlo y añadir el de otro. Añadir envía una **solicitud**; cuando el otro la acepta, aparecéis en la lista del otro con nivel, estrellas, racha diaria, victorias seguidas, mejor tiro, victorias (con % de partidas ganadas) y jefes derrotados. La portada avisa con un número cuando tienes solicitudes. La misión «Añade amigos» cuenta los amigos que han aceptado.
+- **Clasificación**: mundial, de tu país o entre amigos, por nivel, estrellas, racha diaria, victorias, victorias seguidas, mejor tiro, jefes y nivel de jugador. Se ven los 50 primeros y, si no estás entre ellos, tu puesto debajo.
+- **Perfil**: nombre (máx. 16 letras), avatar, país y todas tus estadísticas. Esta pestaña funciona sin conexión.
+
+Estadísticas nuevas que guarda el juego: partidas jugadas, victorias, victorias seguidas (actual y récord) y **mejor tiro** (bloques derribados desde un disparo hasta el siguiente).
+
+Cómo funciona por dentro (`src/social.js`):
+- Habla con Firebase por su API REST, sin librerías: el juego sigue igual sin internet y, cuando hay conexión, sube el perfil (como mucho cada 20 s y solo si cambió) y descarga amigos y clasificaciones.
+- Cuenta **anónima** por móvil; la sesión se guarda en el propio móvil. Si se desinstala el juego se pierde (más adelante se podrá vincular a Google).
+- Firestore: `users/{uid}` (perfil público), `codes/{código}` → uid, `friendships/{uidA_uidB}` (pendiente → aceptada). Las reglas están en `firebase/firestore.rules` y los índices de las clasificaciones por país en `firebase/firestore.indexes.json`.
+- El workflow «Publicar reglas de Firebase» las sube solo si existe el secreto `FIREBASE_SERVICE_ACCOUNT` en GitHub. Sin él, las reglas se pegan a mano en la consola.
+- Los nombres de los jugadores llevan `translate="no"` para que el traductor del juego no los cambie.
+- Prueba: `python3 tools/socialflow.py`: dos jugadores con un Firebase simulado (solicitud, aceptar, clasificaciones, puesto fuera del top 50, perfil, sin conexión, inglés y quitar amigo).
+
+**Paquete nuevo**: la app ahora es `com.lostanarchygames.rocketrush`. Se instala como app distinta: hay que desinstalar la antigua y el progreso empieza de cero (el modo prueba de Ajustes desbloquea todo). El juego se carga desde la APK como `https://appassets.androidplatform.net/assets/index.html` (WebViewAssetLoader), que es lo que necesita Firebase; la app pide permiso de internet.

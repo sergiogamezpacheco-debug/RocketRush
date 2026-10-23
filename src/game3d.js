@@ -43,7 +43,7 @@
     save.unlocked = Math.min(LEVELS.length, last + 1);
     save.worlds3 = true;
   }
-  function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* sin almacenamiento */ } }
+  function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* sin almacenamiento */ } if (window.Social) window.Social.dirty(); }
 
   // ---------------- audio ----------------
   const Audio = (() => {
@@ -1865,10 +1865,15 @@
   }
   function handleEvents() {
     const sim = G.sim;
+    // mejor tiro: bloques derribados desde el último disparo (solo jugando de verdad)
+    if (G.mode === 'play' && !G.demo && sim.state === 'play' && G.shotBase != null) {
+      const n = sim.popped + sim.fallen - G.shotBase, st = stats();
+      if (n > (st.bestShot || 0)) st.bestShot = n;
+    }
     for (const e of sim.events) {
       if (COMBO_EV[e.type] && G.mode === 'play') comboStep(e);
       switch (e.type) {
-        case 'shoot': G.combo = 0; if (WBALLS[e.kind]) stats().wballs = (stats().wballs || 0) + 1; {
+        case 'shoot': G.combo = 0; if (WBALLS[e.kind]) stats().wballs = (stats().wballs || 0) + 1; G.shotBase = sim.popped + sim.fallen; {
           Audio.shoot(); G.recoil = 1; vibe(14);
           const m = sim.muzzle();
           spawnSprite(m.x, m.y, m.z - 0.5, 0xffd27a, 0.7, 1.2, 0.14, { add: true, alpha: 0.9 });
@@ -2266,7 +2271,7 @@
   }
 
   // ---------------- pantallas ----------------
-  const screens = ['title', 'map', 'pass', 'missions', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard'];
+  const screens = ['title', 'map', 'pass', 'missions', 'social', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard'];
   function show(id) { for (const s of screens) $(s).classList.toggle('on', s === id); }
   function hideAll() { for (const s of screens) $(s).classList.remove('on'); }
   // mensaje sobre la bandeja de bolas (no tapa el cielo ni la estructura)
@@ -2564,6 +2569,7 @@
     G.mode = 'play'; G.paused = false; G.ended = false; G.endT = 0; G.finalT = 0; G.slowT = 0; G.timeScale = 1;
     G.lastSlow = false; G.combo = 0; hintUntil = 0;
     setWeatherChip(L);
+    G.shotBase = null; stats().plays = (stats().plays || 0) + 1; persist();
     G.casi = 0; G.firstShot = false; G.swapped = false; G.winShown = false; G.winAt = 0; G.extraUsed = false; shownScore = 0; lastTray = '';
     $('btnFinish').hidden = true; G.cannonKind = null;
     G.aimTarget.set(0, 1.5, 0);
@@ -2603,6 +2609,7 @@
     coins += sim.coins || 0;
     G.pendingCoins = coins; save.coins += coins;
     save.streak = Math.min(save.streak + 1, 9); save.played++;
+    { const st = stats(); st.wins = (st.wins || 0) + 1; st.winRun = (st.winRun || 0) + 1; st.bestRun = Math.max(st.bestRun || 0, st.winRun); if (L.boss) st.bossWins = (st.bossWins || 0) + 1; }
     { const sp = streakPrize(L); const el = $('winStreak'); el.hidden = !sp; if (sp) el.innerHTML = `<i class="ico ico-fire"></i><small>RACHA ${save.streak}</small> ${sp}`; }
     // ¿se acaba de abrir el nivel extra de este mundo?
     G.newBonus = null;
@@ -3019,9 +3026,11 @@
   }
   // los códigos antiguos (CC-) siguen valiendo
   function normCode(t) { const c = (t || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return c.length === 10 && /^(RR|CC)/.test(c) ? c.slice(2) : c; }
+  const codeCore = () => normCode(myCode());
+  const validCode = c => c.length === 8 && ![...c].some(ch => ALPH.indexOf(ch) < 0) && chk(c.slice(0, 6)) === c.slice(6);
   function addFriend(text) {
     const c = normCode(text);
-    if (c.length !== 8 || [...c].some(ch => ALPH.indexOf(ch) < 0) || chk(c.slice(0, 6)) !== c.slice(6)) return 'Ese código no es válido. Revisa que esté bien escrito.';
+    if (!validCode(c)) return 'Ese código no es válido. Revisa que esté bien escrito.';
     if (c.slice(0, 6) === save.pid) return 'Ese es tu propio código.';
     save.friends = save.friends || [];
     if (save.friends.includes(c)) return 'Ya tienes a ese amigo.';
@@ -3445,7 +3454,15 @@
   on('misBack', () => (G.mode === 'title' ? goTitle() : goMap()));
   on('misShop', () => openShop('gems'));
   on('btnShare', shareGame);
-  on('btnAddFriend', () => {
+  on('btnAddFriend', async () => {
+    // con Firebase: se envía una solicitud de amistad de verdad (y cuenta para la misión cuando la acepta)
+    if (window.Social) {
+      const el = $('friendMsg'); el.style.color = ''; el.textContent = 'Buscando…';
+      const r = await window.Social.addByCode($('friendCode').value);
+      el.style.color = r.err ? '#d6304a' : '#22914b'; el.textContent = r.err || r.ok;
+      if (r.ok) { $('friendCode').value = ''; Audio.win(); }
+      renderMissions(); return;
+    }
     const err = addFriend($('friendCode').value);
     $('friendMsg').style.color = err ? '#d6304a' : '#22914b';
     $('friendMsg').textContent = err || '¡Amigo añadido! Ya tienes ' + save.friends.length + (save.friends.length === 1 ? ' amigo.' : ' amigos.');
@@ -3527,8 +3544,8 @@
   on('loseCoins', () => { const cost = +$('loseCost').textContent; if (save.coins >= cost) { save.coins -= cost; persist(); continueWithBalls(); } });
   on('loseGift', () => { if (G.giftWorld) { save.casiFree = save.casiFree || {}; save.casiFree[G.giftWorld] = true; persist(); } continueWithBalls(); });
   on('loseStarter', () => { const it = SHOP.find(x => x.id === 'starter'); it.grant(); persist(); setCoins(); Audio.coin(); toast('Compra de prueba hecha (no se ha cobrado nada)'); showLose(); });
-  on('loseRetry', () => { save.streak = 0; persist(); hideAll(); G.mode = 'pre'; openPre(G.level.id); });
-  on('loseMap', () => { save.streak = 0; persist(); goMap(); });
+  on('loseRetry', () => { save.streak = 0; stats().winRun = 0; persist(); hideAll(); G.mode = 'pre'; openPre(G.level.id); });
+  on('loseMap', () => { save.streak = 0; stats().winRun = 0; persist(); goMap(); });
   on('ncOk', () => { Audio.click(); closeNewCard(); });
   on('btnFinish', () => { if (G.mode === 'play' && G.sim && G.sim.finish()) handleEvents(); });
   on('btnPause', () => { if (G.mode !== 'play') return; G.paused = true; refreshToggles(); show('pause'); });
@@ -3572,6 +3589,7 @@
     if (open('daily')) { if (!$('dBtns').innerHTML) return true; closeDaily(true); return true; }
     if (open('settings')) { $('settings').classList.remove('on'); return true; }
     if (open('missions')) { G.mode === 'title' ? goTitle() : goMap(); return true; }
+    if (open('social')) { goTitle(); return true; }
     if (open('pre')) { $('pre').classList.remove('on'); if (G.mode !== 'map') goMap(); return true; }
     if (G.mode === 'play') {
       if (open('pause')) { G.paused = false; hideAll(); return true; }
@@ -3674,6 +3692,8 @@
   // los jefes (bosses.js) usan estas piezas del juego
   window.RRGame = { G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
+    // para social.js (perfil, amigos y clasificaciones)
+    stats, plState, starsTotal, countLv, LEVELS, myCode, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast,
     addBlockView: d => blockView(d), weatherChip: w => setWeatherChip({ weather: w }), weatherFx: w => { Weather.set(w); const el = $('wxChip'); if (!w) el.hidden = true; },
     // el jefe ha caído: el nivel se gana con las bolas que quedaban
     bossWin(left) { const sim = G.sim; if (!sim || G.mode !== 'play') return; sim.queue = Array.from({ length: left }, () => 'heavy'); sim.goalReached = true; sim.finish(); G.winAt = G.t - 1; } };
