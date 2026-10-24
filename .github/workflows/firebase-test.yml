@@ -1,0 +1,42 @@
+name: Probar Firebase
+
+# Prueba amigos y clasificaciones contra el Firebase real con jugadores de prueba (se borran al terminar).
+# Antes publica reglas e índices si existe el secreto FIREBASE_SERVICE_ACCOUNT.
+on:
+  push:
+    branches: [main]
+    paths: ['src/social.js', 'tools/firebase_live.mjs', 'tools/socialflow.py', '.github/workflows/firebase-test.yml']
+  workflow_dispatch: {}
+
+jobs:
+  probar:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Publicar reglas e índices
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then echo "Sin secreto FIREBASE_SERVICE_ACCOUNT: se prueban las reglas que haya en la consola"; exit 0; fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx --yes firebase-tools@14 deploy --only firestore --project rocket-rush-7297c --non-interactive --force
+      - name: Reglas y servidor (API directa)
+        run: node tools/firebase_live.mjs
+      - name: El juego de verdad en el navegador (dos jugadores)
+        if: always()
+        run: |
+          node tools/build.js
+          pip install --quiet playwright
+          python -m playwright install --with-deps chromium > /dev/null
+          (python -m http.server 8123 > /dev/null 2>&1 &)
+          sleep 1
+          LIVE=1 GAME_URL=http://localhost:8123/dist/index.html python -u tools/socialflow.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-firebase
+          path: dist/shots/soc_*.png
