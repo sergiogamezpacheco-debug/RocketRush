@@ -121,75 +121,79 @@ with sync_playwright() as p:
         pg.ctx = ctx
         pages.append(pg)
     A, B = pages
-    for pg in pages: pg.wait_for_function("() => window.Social && Social.uid && Social.net === 'online'", timeout=30000)
-    for pg in pages: pg.evaluate("() => { ChromaGame.manual(true); document.getElementById('daily').classList.remove('on'); RRGame.goTitle(); }")
-    print('sesiones:', ev(A, "() => Social.uid"), ev(B, "() => Social.uid"), '· docs:', sorted(DB))
-    codeA = ev(A, "() => RRGame.myCode()")
-    # Beto abre Amigos y añade a Ana
-    B.click('#btnSocT'); idle(B)
-    B.fill('#socCode', codeA); B.click('#socAdd'); idle(B)
-    B.wait_for_function("() => { const m = document.querySelector('.smsg'); return m && m.textContent !== 'Buscando…'; }", timeout=20000)
-    m = ev(B, "() => document.querySelector('.smsg') && document.querySelector('.smsg').textContent")
-    check('Solicitud enviada' in (m or ''), 'Beto envía solicitud a Ana: ' + str(m))
-    B.fill('#socCode', codeA); B.click('#socAdd'); idle(B)
-    B.wait_for_function("() => { const m = document.querySelector('.smsg'); return m && m.textContent !== 'Buscando…'; }", timeout=20000)
-    m = ev(B, "() => document.querySelector('.smsg').textContent")
-    check('Ya le enviaste' in m and ev(B, "() => Social._fr.out.length") == 1, 'repetir la solicitud: ' + m)
-    # Ana ve la solicitud y la acepta
-    A.evaluate("() => { Social._fr.at = 0; Social.sync(); }"); idle(A)
-    check(ev(A, "() => !document.getElementById('socDotT').hidden && document.getElementById('socDotT').textContent") == '1', 'aviso de solicitud en la portada de Ana')
-    A.click('#btnSocT'); idle(A)
-    A.screenshot(path=OUT + 'soc_solicitud.png')
-    A.click('.scard.inc [data-act=ok]'); idle(A)
-    fa = ev(A, "() => Social._fr.list.map(x=>x.u.name)")
-    check(len(fa) == 1 and fa[0].startswith('Beto') and len(ev(A, "() => RRGame.save.friends")) == 1, 'Ana acepta: amigos ' + str(fa) + ' · cuenta para la misión')
-    A.screenshot(path=OUT + 'soc_amigos.png')
-    B.click('#socSync'); idle(B)
-    fb = ev(B, "() => Social._fr.list.map(x=>x.u.name + ' nivel ' + x.u.stats.level)")
-    check(len(fb) == 1 and fb[0].startswith('Ana'), 'Beto ve a Ana con sus datos: ' + str(fb))
-    # clasificación mundial por nivel y por mejor tiro
-    A.click('#socTabs [data-t=ranks]'); idle(A)
-    rk = ev(A, "() => [...document.querySelectorAll('.lbrow')].map(r=>r.innerText.replace(/\\s+/g,' '))")
-    check(len(rk) >= 2 and any('Ana' in x for x in rk), 'clasificación mundial por nivel: ' + str(rk[:5]))
-    A.click('.smetrics [data-m=bestShot]'); idle(A)
-    print('ranking mejor tiro:', ev(A, "() => [...document.querySelectorAll('.lbrow')].map(r=>r.innerText.replace(/\\s+/g,' '))"))
-    A.click('.sscope [data-sc=friends]'); idle(A)
-    print('ranking amigos:', ev(A, "() => [...document.querySelectorAll('.lbrow')].map(r=>r.innerText.replace(/\\s+/g,' '))"))
-    A.click('.sscope [data-sc=local]'); idle(A)
-    rk = ev(A, "() => [...document.querySelectorAll('.lbrow')].map(r=>r.innerText.replace(/\\s+/g,' '))")
-    check(len(rk) == 2, 'clasificación de mi país: ' + str(rk) + ' ' + ev(A, "() => (document.querySelector('.sempty')||{}).textContent || ''"))
-    A.screenshot(path=OUT + 'soc_ranking.png')
-    # puesto cuando no sale en el top: 60 jugadores de relleno por delante
-    for i in range(0 if LIVE else 60): DB['users/z%d' % i] = {'name': {'stringValue': 'Z%d' % i}, 'country': {'stringValue': 'MX'}, 'stats': {'mapValue': {'fields': {'level': {'integerValue': str(100 + i)}}}}}
-    B.click('#socTabs [data-t=ranks]'); idle(B); B.click('#socSync'); idle(B)
-    if not LIVE: print('Beto fuera del top 50: filas', ev(B, "() => document.querySelectorAll('.lbrow').length"), '· su puesto:', ev(B, "() => document.querySelector('.lbsep + .lbrow .lbpos').textContent"))
-    # perfil: cambiar nombre y avatar
-    A.click('#socTabs [data-t=me]'); idle(A)
-    A.fill('#socName', '  Ana <b>la</b> Grande  '); A.click('#socSaveName'); A.click('.savs [data-av="🐲"]'); A.wait_for_timeout(2200); idle(A)
-    srv = A.evaluate("""async () => { const a = JSON.parse(localStorage.getItem('rocketrush.auth'));
-      const r = await fetch('https://firestore.googleapis.com/v1/projects/rocket-rush-7297c/databases/' + (window.RR_FS_DB || '(default)') + '/documents/users/' + a.uid, { headers: { Authorization: 'Bearer ' + a.id } });
-      const j = await r.json(); return j.fields.name.stringValue + ' ' + j.fields.avatar.stringValue; }""")
-    check(srv.endswith('🐲') and srv.startswith('Ana'), 'perfil subido al servidor: ' + srv)
-    A.screenshot(path=OUT + 'soc_perfil.png')
-    # sin conexión
-    OFFLINE['on'] = True; A.ctx.set_offline(True)
-    A.click('#socTabs [data-t=friends]'); A.click('#socSync'); idle(A)
-    check('Sin conexión' in ev(A, "() => document.getElementById('socNet').textContent"), 'aviso sin conexión')
-    OFFLINE['on'] = False; A.ctx.set_offline(False)
-    # en inglés: los nombres no se traducen
-    A.evaluate("() => I18N.set('en')"); A.click('#socSync'); idle(A)
-    print('en inglés:', ev(A, "() => document.querySelector('.shead').textContent + ' | ' + document.querySelector('.scard .sname').textContent + ' | ' + document.querySelector('.scard small').textContent"))
-    A.screenshot(path=OUT + 'soc_en.png')
-    # quitar amigo (dos toques)
-    A.click('.scard [data-act=del]'); A.click('.scard [data-act=del]'); idle(A)
-    check(ev(A, "() => Social._fr.list.length") == 0, 'quitar amigo')
-    if LIVE:   # limpieza: se borran perfil, código y cuenta de los dos jugadores de prueba
-        for pg in pages:
-            print('limpieza:', pg.evaluate("""async () => { const a = JSON.parse(localStorage.getItem('rocketrush.auth')), H = { Authorization: 'Bearer ' + a.id };
-              const D = 'https://firestore.googleapis.com/v1/projects/rocket-rush-7297c/databases/' + (window.RR_FS_DB || '(default)') + '/documents/';
-              const s = [(await fetch(D + 'codes/' + RRGame.codeCore(), { method: 'DELETE', headers: H })).status, (await fetch(D + 'users/' + a.uid, { method: 'DELETE', headers: H })).status];
-              s.push((await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=AIzaSyC9Rbs2qrzJaSugbHCjOTpuH_QQZKw8DNc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: a.id }) })).status);
-              return s.join(' '); }"""))
+    try:
+        for pg in pages: pg.wait_for_function("() => window.Social && Social.uid && Social.net === 'online'", timeout=30000)
+        for pg in pages: pg.evaluate("() => { ChromaGame.manual(true); document.getElementById('daily').classList.remove('on'); RRGame.goTitle(); }")
+        print('sesiones:', ev(A, "() => Social.uid"), ev(B, "() => Social.uid"), '· docs:', sorted(DB))
+        codeA = ev(A, "() => RRGame.myCode()")
+        # Beto abre Amigos y añade a Ana
+        B.click('#btnSocT'); idle(B)
+        B.fill('#socCode', codeA); B.click('#socAdd'); idle(B)
+        B.wait_for_function("() => { const m = document.querySelector('.smsg'); return m && m.textContent !== 'Buscando…'; }", timeout=20000)
+        m = ev(B, "() => document.querySelector('.smsg') && document.querySelector('.smsg').textContent")
+        check('Solicitud enviada' in (m or ''), 'Beto envía solicitud a Ana: ' + str(m))
+        B.fill('#socCode', codeA); B.click('#socAdd'); idle(B)
+        B.wait_for_function("() => { const m = document.querySelector('.smsg'); return m && m.textContent !== 'Buscando…'; }", timeout=20000)
+        m = ev(B, "() => document.querySelector('.smsg').textContent")
+        check('Ya le enviaste' in m and ev(B, "() => Social._fr.out.length") == 1, 'repetir la solicitud: ' + m)
+        # Ana ve la solicitud y la acepta
+        A.evaluate("() => { Social._fr.at = 0; Social.sync(); }"); idle(A)
+        check(ev(A, "() => !document.getElementById('socDotT').hidden && document.getElementById('socDotT').textContent") == '1', 'aviso de solicitud en la portada de Ana')
+        A.click('#btnSocT'); idle(A)
+        A.screenshot(path=OUT + 'soc_solicitud.png')
+        A.click('.scard.inc [data-act=ok]'); idle(A)
+        fa = ev(A, "() => Social._fr.list.map(x=>x.u.name)")
+        check(len(fa) == 1 and fa[0].startswith('Beto') and len(ev(A, "() => RRGame.save.friends")) == 1, 'Ana acepta: amigos ' + str(fa) + ' · cuenta para la misión')
+        A.screenshot(path=OUT + 'soc_amigos.png')
+        B.click('#socSync'); idle(B)
+        fb = ev(B, "() => Social._fr.list.map(x=>x.u.name + ' nivel ' + x.u.stats.level)")
+        check(len(fb) == 1 and fb[0].startswith('Ana'), 'Beto ve a Ana con sus datos: ' + str(fb))
+        # clasificación mundial por nivel y por mejor tiro
+        A.click('#socTabs [data-t=ranks]'); idle(A)
+        rk = ev(A, "() => [...document.querySelectorAll('.lbrow')].map(r=>r.innerText.replace(/\\s+/g,' '))")
+        check(len(rk) >= 2 and any('Ana' in x for x in rk), 'clasificación mundial por nivel: ' + str(rk[:5]))
+        A.click('.smetrics [data-m=bestShot]'); idle(A)
+        print('ranking mejor tiro:', ev(A, "() => [...document.querySelectorAll('.lbrow')].map(r=>r.innerText.replace(/\\s+/g,' '))"))
+        A.click('.sscope [data-sc=friends]'); idle(A)
+        print('ranking amigos:', ev(A, "() => [...document.querySelectorAll('.lbrow')].map(r=>r.innerText.replace(/\\s+/g,' '))"))
+        A.click('.sscope [data-sc=local]'); idle(A)
+        rk = ev(A, "() => [...document.querySelectorAll('.lbrow')].map(r=>r.innerText.replace(/\\s+/g,' '))")
+        check(any('Ana' in x for x in rk) and any('Beto' in x for x in rk) and all('🇿🇿' in x or not LIVE for x in rk), 'clasificación de mi país: ' + str(rk) + ' ' + ev(A, "() => (document.querySelector('.sempty')||{}).textContent || ''"))
+        A.screenshot(path=OUT + 'soc_ranking.png')
+        # puesto cuando no sale en el top: 60 jugadores de relleno por delante
+        for i in range(0 if LIVE else 60): DB['users/z%d' % i] = {'name': {'stringValue': 'Z%d' % i}, 'country': {'stringValue': 'MX'}, 'stats': {'mapValue': {'fields': {'level': {'integerValue': str(100 + i)}}}}}
+        B.click('#socTabs [data-t=ranks]'); idle(B); B.click('#socSync'); idle(B)
+        if not LIVE: print('Beto fuera del top 50: filas', ev(B, "() => document.querySelectorAll('.lbrow').length"), '· su puesto:', ev(B, "() => document.querySelector('.lbsep + .lbrow .lbpos').textContent"))
+        # perfil: cambiar nombre y avatar
+        A.click('#socTabs [data-t=me]'); idle(A)
+        A.fill('#socName', '  Ana <b>la</b> Grande  '); A.click('#socSaveName'); A.click('.savs [data-av="🐲"]'); A.wait_for_timeout(2200); idle(A)
+        srv = A.evaluate("""async () => { const a = JSON.parse(localStorage.getItem('rocketrush.auth'));
+          const r = await fetch('https://firestore.googleapis.com/v1/projects/rocket-rush-7297c/databases/' + (window.RR_FS_DB || '(default)') + '/documents/users/' + a.uid, { headers: { Authorization: 'Bearer ' + a.id } });
+          const j = await r.json(); return j.fields.name.stringValue + ' ' + j.fields.avatar.stringValue; }""")
+        check(srv.endswith('🐲') and srv.startswith('Ana'), 'perfil subido al servidor: ' + srv)
+        A.screenshot(path=OUT + 'soc_perfil.png')
+        # sin conexión
+        OFFLINE['on'] = True; A.ctx.set_offline(True)
+        A.click('#socTabs [data-t=friends]'); A.click('#socSync'); idle(A)
+        check('Sin conexión' in ev(A, "() => document.getElementById('socNet').textContent"), 'aviso sin conexión')
+        OFFLINE['on'] = False; A.ctx.set_offline(False)
+        # en inglés: los nombres no se traducen
+        A.evaluate("() => I18N.set('en')"); A.click('#socSync'); idle(A)
+        print('en inglés:', ev(A, "() => document.querySelector('.shead').textContent + ' | ' + document.querySelector('.scard .sname').textContent + ' | ' + document.querySelector('.scard small').textContent"))
+        A.screenshot(path=OUT + 'soc_en.png')
+        # quitar amigo (dos toques)
+        A.click('.scard [data-act=del]'); A.click('.scard [data-act=del]'); idle(A)
+        check(ev(A, "() => Social._fr.list.length") == 0, 'quitar amigo')
+    finally:
+        if LIVE:   # limpieza: se borran perfil, código y cuenta de los dos jugadores de prueba
+            for pg in pages:
+                try: print('limpieza:', pg.evaluate("""async () => { const a = JSON.parse(localStorage.getItem('rocketrush.auth')), H = { Authorization: 'Bearer ' + a.id };
+                  const D = 'https://firestore.googleapis.com/v1/projects/rocket-rush-7297c/databases/' + (window.RR_FS_DB || '(default)') + '/documents/';
+                  for (const x of [...Social._fr.list, ...Social._fr.inc, ...Social._fr.out]) await fetch(D + 'friendships/' + x.f._id, { method: 'DELETE', headers: H });
+                  const s = [(await fetch(D + 'codes/' + RRGame.codeCore(), { method: 'DELETE', headers: H })).status, (await fetch(D + 'users/' + a.uid, { method: 'DELETE', headers: H })).status];
+                  s.push((await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=AIzaSyC9Rbs2qrzJaSugbHCjOTpuH_QQZKw8DNc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: a.id }) })).status);
+                  return s.join(' '); }"""))
+                except Exception as ex: print('limpieza fallida:', ex)
     check(not errs, 'sin errores de la página ' + str(errs[:6]))
     b.close()
     print('\n' + ('Todo bien' if not FAILS else '%d fallos' % len(FAILS)))

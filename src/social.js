@@ -266,7 +266,7 @@
   }
 
   // ---------------- pantalla ----------------
-  let tab = 'friends', metric = 'level', scope = 'world', busy = false, msg = null, loadErr = '';
+  let tab = 'friends', metric = 'level', scope = 'world', busy = false, msg = null, loadErr = '', sureP = null;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const fmt = n => (+n || 0).toLocaleString(window.I18N ? I18N.lang : 'es');
   const pct = s => s && s.plays ? Math.round(100 * (s.wins || 0) / s.plays) : 0;
@@ -304,7 +304,7 @@
     const u = x.u, s = u.stats || {}, pair = x.f._id;
     const btns = kind === 'inc' ? `<button class="btn small green" data-act="ok" data-p="${esc(pair)}">Aceptar</button><button class="sx" data-act="no" data-p="${esc(pair)}" aria-label="Rechazar">✕</button>`
       : kind === 'out' ? `<button class="sx" data-act="no" data-p="${esc(pair)}" aria-label="Cancelar">✕</button>`
-        : `<button class="sx" data-act="del" data-p="${esc(pair)}" aria-label="Quitar amigo">✕</button>`;
+        : `<button class="sx${sureP === pair ? ' sure' : ''}" data-act="del" data-p="${esc(pair)}" aria-label="Quitar amigo">${sureP === pair ? '¿Quitar?' : '✕'}</button>`;
     return `<div class="scard ${kind}">${avatar(u)}<div class="sbody"><div class="srow">${nameOf(u)}</div>
       <small>${kind === 'inc' ? 'Quiere ser tu amigo' : kind === 'out' ? 'Esperando respuesta' : `Nivel ${fmt(s.level)} · ⭐ ${fmt(s.stars)}`}</small>
       ${kind === 'ok' ? statChips(s) : ''}</div><div class="sbtns">${btns}</div></div>`;
@@ -374,7 +374,9 @@
     const list = $('socList');
     list.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => {
       X.Audio.click && X.Audio.click();
-      if (b.dataset.act === 'del' && !b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = T('¿Quitar?'); return; }
+      // quitar amigo: el primer toque pide confirmación (se recuerda aunque la lista se vuelva a pintar)
+      if (b.dataset.act === 'del' && sureP !== b.dataset.p) { sureP = b.dataset.p; render(); return; }
+      sureP = null;
       b.disabled = true; act(b.dataset.act, b.dataset.p);
     }));
     list.querySelectorAll('[data-sc]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); scope = b.dataset.sc; refresh(); }));

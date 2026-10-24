@@ -41,6 +41,7 @@ jobs:
           ok=0
           gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" -q > /dev/null 2>&1
           python3 tools/deploy_indexes.py "$(gcloud auth print-access-token)" 2>&1 | tee res/deploy.txt || ok=1
+          python3 tools/clean_test_users.py "$(gcloud auth print-access-token)" 2>&1 | tee -a res/deploy.txt
           npx --yes firebase-tools@14 deploy --only firestore:rules --project rocket-rush-7297c --non-interactive --force 2>&1 | tee -a res/deploy.txt || ok=1
           exit $ok
       - name: Bases de datos del proyecto (diagnóstico)
@@ -86,4 +87,3 @@ jobs:
           cp -r /tmp/res/. .
           git add -A; git commit -qm "Resultados de la prueba de Firebase (${GITHUB_SHA::7})"
           git push -qf origin resultados-pruebas
-# relanzado 2026-10-24T21:51:07Z
