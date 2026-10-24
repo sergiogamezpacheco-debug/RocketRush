@@ -23,7 +23,9 @@ jobs:
           if [ -z "$SA" ]; then echo "Falta el secreto FIREBASE_SERVICE_ACCOUNT: no se publica nada"; exit 0; fi
           printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          # índices por la API de Firestore (basta el rol de índices); reglas con firebase-tools (necesita el rol de reglas)
           ok=0
-          npx --yes firebase-tools@14 deploy --only firestore:indexes --project rocket-rush-7297c --non-interactive --force || ok=1
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" -q > /dev/null 2>&1
+          python3 tools/deploy_indexes.py "$(gcloud auth print-access-token)" || ok=1
           npx --yes firebase-tools@14 deploy --only firestore:rules --project rocket-rush-7297c --non-interactive --force || ok=1
           exit $ok
