@@ -1,7 +1,9 @@
 // Prueba contra el Firebase REAL (se ejecuta en GitHub Actions: node tools/firebase_live.mjs).
 // Crea dos jugadores anónimos de prueba, comprueba lo que las reglas dejan hacer y lo que no, y al final lo borra todo.
 const KEY = 'AIzaSyC9Rbs2qrzJaSugbHCjOTpuH_QQZKw8DNc', PID = 'rocket-rush-7297c';
-const ROOT = `projects/${PID}/databases/(default)/documents`, FS = 'https://firestore.googleapis.com/v1/' + ROOT;
+const DB = process.env.FS_DB || '(default)';
+console.log('base de datos: ' + DB);
+const ROOT = `projects/${PID}/databases/${DB}/documents`, FS = 'https://firestore.googleapis.com/v1/' + ROOT;
 let fails = 0, warns = 0;
 const ok = (c, msg, warnOnly) => { console.log((c ? 'OK   ' : warnOnly ? 'AVISO' : 'FALLO') + ' ' + msg); if (!c) warnOnly ? warns++ : fails++; };
 

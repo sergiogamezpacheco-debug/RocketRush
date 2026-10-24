@@ -6,7 +6,15 @@ on:
   push:
     branches: [main]
     paths: ['src/social.js', 'tools/firebase_live.mjs', 'tools/socialflow.py', '.github/workflows/firebase-test.yml']
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      db:
+        description: 'Base de datos de Firestore'
+        default: '(default)'
+
+# Base de datos a probar: (default) salvo que se elija otra al lanzarlo a mano
+env:
+  FS_DB: ${{ github.event.inputs.db || 'rocketrush' }}
 
 permissions:
   contents: write     # para dejar los resultados en la rama resultados-pruebas

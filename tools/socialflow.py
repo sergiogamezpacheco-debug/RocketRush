@@ -115,6 +115,7 @@ with sync_playwright() as p:
         pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.on('console', lambda m: m.type == 'warning' and 'RR social' in m.text and errs.append(m.text))
         pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
+        if os.environ.get('FS_DB'): pg.add_init_script("window.RR_FS_DB = %s" % json.dumps(os.environ['FS_DB']))
         pg.add_init_script("if(!sessionStorage.g){sessionStorage.g=1;localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:%d, prof:{name:'%s',avatar:'🦊',country:'%s'}, stats:{wins:%d,plays:%d,bestShot:%d}}))}" % (lv, name + (' (prueba)' if LIVE else ''), 'ZZ' if LIVE else 'ES', lv - 1, lv + 3, lv // 2))
         pg.goto(os.environ.get('GAME_URL') or 'file://' + os.path.join(HERE, 'dist', 'index.html'))
         pg.ctx = ctx
@@ -164,7 +165,7 @@ with sync_playwright() as p:
     A.click('#socTabs [data-t=me]'); idle(A)
     A.fill('#socName', '  Ana <b>la</b> Grande  '); A.click('#socSaveName'); A.click('.savs [data-av="🐲"]'); A.wait_for_timeout(2200); idle(A)
     srv = A.evaluate("""async () => { const a = JSON.parse(localStorage.getItem('rocketrush.auth'));
-      const r = await fetch('https://firestore.googleapis.com/v1/projects/rocket-rush-7297c/databases/(default)/documents/users/' + a.uid, { headers: { Authorization: 'Bearer ' + a.id } });
+      const r = await fetch('https://firestore.googleapis.com/v1/projects/rocket-rush-7297c/databases/' + (window.RR_FS_DB || '(default)') + '/documents/users/' + a.uid, { headers: { Authorization: 'Bearer ' + a.id } });
       const j = await r.json(); return j.fields.name.stringValue + ' ' + j.fields.avatar.stringValue; }""")
     check(srv.endswith('🐲') and srv.startswith('Ana'), 'perfil subido al servidor: ' + srv)
     A.screenshot(path=OUT + 'soc_perfil.png')
@@ -183,7 +184,7 @@ with sync_playwright() as p:
     if LIVE:   # limpieza: se borran perfil, código y cuenta de los dos jugadores de prueba
         for pg in pages:
             print('limpieza:', pg.evaluate("""async () => { const a = JSON.parse(localStorage.getItem('rocketrush.auth')), H = { Authorization: 'Bearer ' + a.id };
-              const D = 'https://firestore.googleapis.com/v1/projects/rocket-rush-7297c/databases/(default)/documents/';
+              const D = 'https://firestore.googleapis.com/v1/projects/rocket-rush-7297c/databases/' + (window.RR_FS_DB || '(default)') + '/documents/';
               const s = [(await fetch(D + 'codes/' + RRGame.codeCore(), { method: 'DELETE', headers: H })).status, (await fetch(D + 'users/' + a.uid, { method: 'DELETE', headers: H })).status];
               s.push((await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=AIzaSyC9Rbs2qrzJaSugbHCjOTpuH_QQZKw8DNc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: a.id }) })).status);
               return s.join(' '); }"""))

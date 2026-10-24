@@ -11,7 +11,7 @@
   const $ = id => document.getElementById(id);
   const T = s => (window.I18N ? I18N.t(s) : s);
   const CFG = { apiKey: 'AIzaSyC9Rbs2qrzJaSugbHCjOTpuH_QQZKw8DNc', projectId: 'rocket-rush-7297c' };
-  const ROOT = `projects/${CFG.projectId}/databases/(default)/documents`;
+  const ROOT = `projects/${CFG.projectId}/databases/${window.RR_FS_DB || '(default)'}/documents`;   // RR_FS_DB: solo para pruebas
   const FS = 'https://firestore.googleapis.com/v1/' + ROOT;
   const IDT = 'https://identitytoolkit.googleapis.com/v1', STS = 'https://securetoken.googleapis.com/v1';
   const AUTH_KEY = 'rocketrush.auth', PUSH_KEY = 'rocketrush.pushed';
