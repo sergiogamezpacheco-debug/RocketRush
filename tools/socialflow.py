@@ -131,8 +131,8 @@ with sync_playwright() as p:
     B.wait_for_function("() => { const m = document.querySelector('.smsg'); return m && m.textContent !== 'Buscando…'; }", timeout=20000)
     m = ev(B, "() => document.querySelector('.smsg') && document.querySelector('.smsg').textContent")
     check('Solicitud enviada' in (m or ''), 'Beto envía solicitud a Ana: ' + str(m))
-    B.wait_for_function("() => { const m = document.querySelector('.smsg'); return m && m.textContent !== 'Buscando…'; }", timeout=20000)
     B.fill('#socCode', codeA); B.click('#socAdd'); idle(B)
+    B.wait_for_function("() => { const m = document.querySelector('.smsg'); return m && m.textContent !== 'Buscando…'; }", timeout=20000)
     m = ev(B, "() => document.querySelector('.smsg').textContent")
     check('Ya le enviaste' in m and ev(B, "() => Social._fr.out.length") == 1, 'repetir la solicitud: ' + m)
     # Ana ve la solicitud y la acepta
