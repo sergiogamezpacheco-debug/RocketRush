@@ -117,7 +117,7 @@ with sync_playwright() as p:
         pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
         if os.environ.get('FS_DB'): pg.add_init_script("window.RR_FS_DB = %s" % json.dumps(os.environ['FS_DB']))
         pg.add_init_script("if(!sessionStorage.g){sessionStorage.g=1;localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:%d, prof:{name:'%s',avatar:'🦊',country:'%s'}, stats:{wins:%d,plays:%d,bestShot:%d}}))}" % (lv, name + (' (prueba)' if LIVE else ''), 'ZZ' if LIVE else 'ES', lv - 1, lv + 3, lv // 2))
-        pg.goto(os.environ.get('GAME_URL') or 'file://' + os.path.join(HERE, 'dist', 'index.html'))
+        pg.goto(os.environ.get('GAME_URL') or 'file://' + os.path.join(HERE, 'dist', 'index.html'), wait_until='domcontentloaded', timeout=60000)
         pg.ctx = ctx
         pages.append(pg)
     A, B = pages
