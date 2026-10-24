@@ -45,23 +45,6 @@ jobs:
           # sin el rol «Administrador de Firebase Rules» no se pueden publicar: aviso, no error (se pegan a mano en la consola)
           npx --yes firebase-tools@14 deploy --only firestore:rules --project rocket-rush-7297c --non-interactive --force 2>&1 | tee -a res/deploy.txt || echo "::warning::No se han publicado las reglas: falta el rol Administrador de Firebase Rules (pégalas a mano si cambian)"
           exit $ok
-      - name: Bases de datos del proyecto (diagnóstico)
-        if: always()
-        shell: bash
-        env:
-          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          [ -z "$SA" ] && exit 0
-          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
-          { echo "cuenta de servicio: $(python3 -c "import json;print(json.load(open('$RUNNER_TEMP/sa.json'))['client_email'])")"
-            gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" -q 2>&1 | tail -1
-            TOK=$(gcloud auth print-access-token)
-            echo "--- bases de datos Firestore:"
-            curl -s -H "Authorization: Bearer $TOK" https://firestore.googleapis.com/v1/projects/rocket-rush-7297c/databases | python3 -c "import json,sys;j=json.load(sys.stdin);print(json.dumps(j.get('error') or [{k:d.get(k) for k in ('name','locationId','type','concurrencyMode')} for d in j.get('databases',[])],indent=1))"
-            echo "--- permisos de la cuenta de servicio (roles):"
-            gcloud projects get-iam-policy rocket-rush-7297c --flatten=bindings[].members --filter="bindings.members:$(python3 -c "import json;print(json.load(open('$RUNNER_TEMP/sa.json'))['client_email'])")" --format='value(bindings.role)' 2>&1 | head -20
-          } 2>&1 | tee res/diagnostico.txt
-          rm -f "$RUNNER_TEMP/sa.json"
       - name: Reglas y servidor (API directa)
         if: always()
         shell: bash
