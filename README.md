@@ -329,3 +329,10 @@ Cómo funciona por dentro (`src/social.js`):
 - Prueba: `python3 tools/socialflow.py`: dos jugadores con un Firebase simulado (solicitud, aceptar, clasificaciones, puesto fuera del top 50, perfil, sin conexión, inglés y quitar amigo).
 
 **Paquete nuevo**: la app ahora es `com.lostanarchygames.rocketrush`. Se instala como app distinta: hay que desinstalar la antigua y el progreso empieza de cero (el modo prueba de Ajustes desbloquea todo). El juego se carga desde la APK como `https://appassets.androidplatform.net/assets/index.html` (WebViewAssetLoader), que es lo que necesita Firebase; la app pide permiso de internet.
+
+### Pruebas contra el Firebase real
+El workflow **«Probar Firebase»** se lanza cuando cambian `src/social.js` o las pruebas. Primero publica los índices (`tools/deploy_indexes.py`, por la API de Firestore) y las reglas (con firebase-tools, que necesita el rol «Administrador de Firebase Rules»). Después ejecuta:
+- `tools/firebase_live.mjs`: lo que las reglas permiten y lo que no, los códigos, las amistades y las clasificaciones.
+- `tools/socialflow.py` con `LIVE=1`: el juego de verdad con dos jugadores.
+
+Los jugadores de prueba son del país «ZZ» y se borran al terminar. Los resultados y las capturas quedan en la rama `resultados-pruebas`. La base de datos tiene que llamarse exactamente `(default)`, con paréntesis: es la única que entra en la cuota gratis.
