@@ -42,7 +42,8 @@ jobs:
           gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" -q > /dev/null 2>&1
           python3 tools/deploy_indexes.py "$(gcloud auth print-access-token)" 2>&1 | tee res/deploy.txt || ok=1
           python3 tools/clean_test_users.py "$(gcloud auth print-access-token)" 2>&1 | tee -a res/deploy.txt
-          npx --yes firebase-tools@14 deploy --only firestore:rules --project rocket-rush-7297c --non-interactive --force 2>&1 | tee -a res/deploy.txt || ok=1
+          # sin el rol «Administrador de Firebase Rules» no se pueden publicar: aviso, no error (se pegan a mano en la consola)
+          npx --yes firebase-tools@14 deploy --only firestore:rules --project rocket-rush-7297c --non-interactive --force 2>&1 | tee -a res/deploy.txt || echo "::warning::No se han publicado las reglas: falta el rol Administrador de Firebase Rules (pégalas a mano si cambian)"
           exit $ok
       - name: Bases de datos del proyecto (diagnóstico)
         if: always()
