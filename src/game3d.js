@@ -965,12 +965,13 @@
     return { set, update };
   })();
   const BIOMES = { sea: { env: [sea, decor], platform: island } };
-  const biomeBuilders = { desert: buildDesert, snow: buildSnow, jungle: buildJungle, volcano: buildVolcano, space: buildSpace, candy: buildCandy, crystal: buildCrystal, temple: buildTemple, forest: buildForest, fair: buildFair, neon: buildNeon };
+  const biomeBuilders = { desert: buildDesert, snow: buildSnow, jungle: buildJungle, volcano: buildVolcano, space: buildSpace, candy: buildCandy, crystal: buildCrystal, temple: buildTemple, forest: buildForest, fair: buildFair, neon: buildNeon, halloween: () => window.Halloween.build() };
   let biome = 'sea';
   function setBiome(name) {
     if (!BIOMES[name] && biomeBuilders[name]) BIOMES[name] = biomeBuilders[name]();
     biome = BIOMES[name] ? name : 'sea';
     for (const k in BIOMES) { const on = k === biome; for (const o of BIOMES[k].env) o.visible = on; BIOMES[k].platform.visible = on; }
+    if (BIOMES[biome].water) sea.visible = true;            // paisajes con agua (Halloween: el galeón navega)
     sunDisc.visible = !BIOMES[biome].noSun;
   }
 
@@ -1272,10 +1273,11 @@
     temple: { top: 0x3f8fb8, mid: 0xa8d8c0, hor: 0xf0e2b0, fog: 0xc8d8b0, sea: 0x2f9a8a, sun: 0xfff0c8, hemi: [0xf0f0c8, 0x5a5a3a], biome: 'temple', fogNear: 40, fogFar: 140 },
     forest: { top: 0x2a5a6a, mid: 0x7ab8a8, hor: 0xd8f0d0, fog: 0x9ac8b0, sea: 0x2a7a6a, sun: 0xfff8e0, hemi: [0xd8ffe8, 0x2a4a2a], biome: 'forest', fogNear: 28, fogFar: 110 },
     fair: { top: 0x3a2a8f, mid: 0xb06ad6, hor: 0xffc08a, fog: 0xd8a0d0, sea: 0x4a3ab0, sun: 0xffe0b8, hemi: [0xf0d8ff, 0x6a4a6a], biome: 'fair', fogNear: 45, fogFar: 150 },
+    halloween: { top: 0x090316, mid: 0x2a0f4a, hor: 0x8a2a5a, fog: 0x2a1240, sea: 0x1c1036, sun: 0xc8b4ff, hemi: [0x9a7ae0, 0x1a0a24], biome: 'halloween', fogNear: 45, fogFar: 190, sunI: 1.6, hemiI: 0.8, stars: true },
     neon: { top: 0x070a24, mid: 0x1a1a52, hor: 0x7a2a9a, fog: 0x1a1240, sea: 0x101a50, sun: 0xb8c8ff, hemi: [0xa0b0ff, 0x2a1a4a], biome: 'neon', fogNear: 40, fogFar: 160, sunI: 1.5, hemiI: 0.9 } };
   const mixC = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
   function themeFor(world) {
-    const W = WORLDS[world - 1] || { biome: 'sea', variant: 'día' };
+    const W = G.hwWorld ? { biome: 'halloween', variant: 'noche' } : (WORLDS[world - 1] || { biome: 'sea', variant: 'día' });
     const base = Object.assign({}, BIOME_THEME[W.biome] || THEMES[1], { variant: W.variant, weather: W.weather });
     if (W.biome === 'sea') { delete base.biome; if (world <= 3) Object.assign(base, THEMES[1]); }
     const v = W.variant;
@@ -1445,6 +1447,7 @@
     clearLevelView();
     for (const b of G.sim.blocks) blockView(b.userData);
     syncView(0);
+    if (biome === 'halloween' && window.Halloween) window.Halloween.decorate(G);
   }
   // la pieza que se ve de un bloque (también los que aparecen durante la partida)
   function blockView(d) {
@@ -1827,7 +1830,8 @@
         if (!g) { g = makeCarrier(m); scene.add(g); G.moverMeshes.set(m.id, g); }
         syncCarrier(m, g, sim); continue;
       }
-      if (!g) { g = m.kind === 'bird' ? (biome === 'space' ? makeSatellite() : makeBird()) : makeShip(m); g.rotation.y = m.dir > 0 ? 0 : Math.PI; scene.add(g); G.moverMeshes.set(m.id, g); }
+      const HW = biome === 'halloween' && window.Halloween;
+      if (!g) { g = m.kind === 'bird' ? (HW ? HW.makeWitch() : biome === 'space' ? makeSatellite() : makeBird()) : HW ? HW.makePirate(m) : makeShip(m); g.rotation.y = m.dir > 0 ? 0 : Math.PI; scene.add(g); G.moverMeshes.set(m.id, g); }
       g.position.set(m.x, m.y, m.z);
       if (m.kind === 'bird') {
         const f = m.active ? (biome === 'space' ? 0 : Math.sin(G.t * 16 + m.ph) * 0.9) : 0.2;
@@ -3659,6 +3663,7 @@
     for (const b of balloons) b.position.y = b.userData.y0 + Math.sin(G.t * 0.6 + b.userData.ph) * 0.6;
     seaNormal.offset.set(G.t * 0.004, G.t * 0.006);
     if (BIOMES[biome].update) BIOMES[biome].update(dt);
+    if (biome === 'halloween' && window.Halloween) window.Halloween.tick(G);
     Weather.update(dt);
     // cámara: en menús gira despacio alrededor; jugando, fija tras el cañón con temblor
     if (G.mode === 'play') {
@@ -3690,7 +3695,7 @@
   }
 
   // los jefes (bosses.js) usan estas piezas del juego
-  window.RRGame = { G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
+  window.RRGame = { hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL }, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
     stats, plState, starsTotal, countLv, LEVELS, myCode, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast,
