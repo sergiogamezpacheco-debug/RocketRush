@@ -120,6 +120,8 @@
 
   // ---------------- perfil ----------------
   const AVATARS = ['🚀', '💣', '🦊', '🐼', '🐸', '🐯', '🦁', '🐙', '🤖', '👾', '🐲', '🦄', '🐧', '🐨', '🐵', '🦖', '⚡', '🔥', '⭐', '👑'];
+  const HW_AVATARS = ['🧛', '🧙', '👻', '🎃', '💀', '🕷️'];       // se compran en la tienda de Halloween
+  const avatars = () => X.save.hwAvatars ? AVATARS.concat(HW_AVATARS) : AVATARS;
   const COUNTRIES = ['ES', 'MX', 'AR', 'CO', 'CL', 'PE', 'VE', 'EC', 'UY', 'PY', 'BO', 'CR', 'PA', 'DO', 'GT', 'HN', 'SV', 'NI', 'CU', 'PR', 'US', 'CA',
     'BR', 'PT', 'FR', 'DE', 'IT', 'GB', 'IE', 'NL', 'BE', 'CH', 'AT', 'LU', 'PL', 'CZ', 'RO', 'GR', 'SE', 'NO', 'DK', 'FI', 'TR', 'MA', 'DZ', 'TN', 'EG',
     'SN', 'NG', 'ZA', 'AO', 'MZ', 'IN', 'CN', 'JP', 'KR', 'PH', 'ID', 'AU', 'NZ'];
@@ -344,7 +346,7 @@
     return `<div class="sbox sme"><span class="savat big">${esc(p.avatar)}</span>
         <div class="sform"><small>Tu nombre</small><div class="addfriend" style="margin-top:2px"><input id="socName" maxlength="16" autocomplete="off" translate="no" value="${esc(myName())}"><button class="btn small green" id="socSaveName">Guardar</button></div>
         <small>País</small><select id="socCountry" translate="no">${opts}</select></div></div>
-      <div class="savs">${AVATARS.map(a => `<button data-av="${a}" class="${a === p.avatar ? 'on' : ''}">${a}</button>`).join('')}</div>
+      <div class="savs">${avatars().map(a => `<button data-av="${a}" class="${a === p.avatar ? 'on' : ''}">${a}</button>`).join('')}</div>
       <div class="shead">Tus estadísticas</div>
       <div class="sstats">${st('🏁', fmt(s.level), 'Niveles superados')}${st('⭐', fmt(s.stars), 'Estrellas')}${st('🎖', fmt(s.lv), 'Nivel de jugador')}
         ${st('🔥', fmt(s.daily), 'Racha diaria')}${st('📅', fmt(s.dailyBest), 'Mejor racha diaria')}${st('🏅', fmt(s.bestRun), 'Victorias seguidas (récord)')}

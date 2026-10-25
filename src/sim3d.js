@@ -1153,7 +1153,7 @@
           this.nextBird = t + 16 + this.rand() * 16;
           this.emit({ type: 'moverSpawn', kind: 'bird' });
         }
-        if (t >= this.nextShip && !this.movers.some(m => m.kind === 'ship' && m.active) && this.level.biome && this.level.biome !== 'sea') {
+        if (t >= this.nextShip && !this.movers.some(m => m.kind === 'ship' && m.active) && this.level.biome && this.level.biome !== 'sea' && this.level.biome !== 'halloween') {
           this.spawnCarrier(this.level.biome);
           this.nextShip = t + 22 + this.rand() * 16;
         } else if (t >= this.nextShip && !this.movers.some(m => m.kind === 'ship' && m.active)) {

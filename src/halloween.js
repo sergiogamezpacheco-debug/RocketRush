@@ -170,9 +170,49 @@
     const platform = H.makePlatform({ top: new T.MeshStandardMaterial({ map: slab, roughness: 0.9 }), side: std(0x2a2236, { roughness: 0.9 }), trim: std(0xff7a1a, { emissive: 0xff5a00, emissiveIntensity: 0.35, roughness: 0.4 }), under,
       flags: [0xff7a1a, 0x6a2aa8, 0x16101c, 0x7ad04a], line: 0x16101c, postTop: 2.6,
       post: () => { const p = new T.Group(); p.add(mesh(new T.CylinderGeometry(0.07, 0.1, 2.2, 6), MAT.bark, 0, 1.1, 0)); const pk = pumpkin(0.7); pk.position.y = 2.45; pk.lookAt(0, 2.45, 0); p.add(pk); lanterns.push(pk); return p; } });
+    // relámpagos: en la portada cada 1-2 s; jugando (y en el mapa), cada 5 s
+    const boltMat = new T.MeshBasicMaterial({ color: 0xf4eeff, fog: false, transparent: true, opacity: 0.95, blending: T.AdditiveBlending, depthWrite: false });
+    let bolt = null; const LT = { next: H.G.t + 1.5, t0: -1, base: null, n: 0 };
+    const boltGlow = new T.Sprite(new T.SpriteMaterial({ map: H.TEX.soft, color: 0xc8b8ff, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, fog: false })); boltGlow.scale.set(140, 140, 1); env.add(boltGlow);
+    function newBolt() {
+      if (bolt) { env.remove(bolt); bolt.geometry.dispose(); }
+      const x0 = rnd(-80, 70), z = rnd(-190, -150), pts = []; let x = x0, y = 95;
+      while (y > C.SEA_Y + 4) { pts.push(new T.Vector3(x, y, z)); y -= rnd(5, 11); x += rnd(-6, 6); }
+      bolt = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts, false, 'catmullrom', 0.1), pts.length * 3, 0.55, 5, false), boltMat);
+      const br = pts[Math.floor(pts.length * (0.3 + Math.random() * 0.3))], b2 = [br.clone()]; let bx = br.x, by = br.y, s = Math.random() < 0.5 ? -1 : 1;
+      for (let i = 0; i < 4; i++) { by -= rnd(5, 9); bx += s * rnd(4, 9); b2.push(new T.Vector3(bx, by, z)); }
+      bolt.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(b2), 12, 0.3, 4, false), boltMat));
+      boltGlow.position.set(x0, 60, z + 5); env.add(bolt);
+    }
+    function flashLevel(k) {           // k: 0 (nada) … 1 (destello)
+      if (!LT.base) LT.base = { hemi: H.hemi.intensity, top: H.skyMat.uniforms.top.value.clone(), mid: H.skyMat.uniforms.mid.value.clone() };
+      const B = LT.base;
+      H.hemi.intensity = B.hemi + k * 2.8;
+      H.skyMat.uniforms.top.value.copy(B.top).lerp(new T.Color(0x8a78d8), k * 0.8);
+      H.skyMat.uniforms.mid.value.copy(B.mid).lerp(new T.Color(0xc8b8ff), k * 0.7);
+      boltGlow.material.opacity = k * 0.8; if (bolt) bolt.visible = k > 0.25;
+      const el = document.getElementById('ltFlash'); if (el) el.style.opacity = (k * (H.G.mode === 'title' ? 0.55 : 0.3)).toFixed(3);
+      if (k === 0) { LT.base = null; }
+    }
+    function lightning(t) {
+      if (LT.t0 < 0 && t >= LT.next) {
+        LT.t0 = t; LT.n++; newBolt();
+        const title = H.G.mode === 'title';
+        const big = title ? LT.n % 3 === 0 : true;
+        if (X.Audio && X.Audio.thunder) X.Audio.thunder(big);
+        if (!title && X.vibe) X.vibe(12);
+      }
+      if (LT.t0 >= 0) {
+        const e = t - LT.t0, k = e < 0.06 ? 1 : e < 0.12 ? 0.25 : e < 0.2 ? 0.85 : e < 0.45 ? 0.85 * (1 - (e - 0.2) / 0.25) : 0;
+        flashLevel(Math.max(0, k));
+        if (e >= 0.45) { LT.t0 = -1; LT.next = t + (H.G.mode === 'title' ? rnd(1, 2) : 5); }
+      }
+    }
     return { env: [env], platform, noSun: true, water: true,
+      leave() { if (LT.t0 >= 0 || LT.base) flashLevel(0); LT.t0 = -1; },
       update(dt) {
         const t = H.G.t;
+        lightning(t);
         for (const b of bats) { const u = b.userData, a = t * u.w + u.ph; b.position.set(u.o.x + Math.cos(a) * u.r, u.o.y + Math.sin(t * 1.3 + u.ph) * 1.2, u.o.z + Math.sin(a) * u.r * 0.6); b.rotation.y = -a + (u.w > 0 ? 0 : Math.PI); const f = Math.sin(t * u.f + u.ph) * 0.9; u.wings[0].rotation.y = f; u.wings[1].rotation.y = -f; }
         for (const p of lanterns) { const f = p.children[p.children.length - 1]; if (f && f.material === MAT.face) f.material.opacity = 0.85 + Math.sin(t * 9 + p.id) * 0.15; }
         for (let i = 0; i < mist.length; i++) mist[i].position.x += Math.sin(t * 0.2 + i) * dt * 0.8;
@@ -321,22 +361,66 @@
     for (const s of [-1, 1]) { const e = mesh(new T.ConeGeometry(0.16, 0.22, 8), m, s * 0.33, 0, 0); e.rotation.z = s * Math.PI / 2; g.add(e); }
     return g;
   }
-  // pone caramelos encima de algunos bloques (el que cae, suelta su caramelo)
-  function decorate(G) {
-    const sim = G.sim; if (!sim) return;
-    const top = sim.blocks.filter(b => b.userData.c).sort((a, b) => b.position.y - a.position.y);
-    const pick = [top[0], top[Math.floor(top.length * 0.3)], top[Math.floor(top.length * 0.55)], top[top.length - 2]].filter(Boolean);
+  // pone caramelos encima de algunos bloques: cuando el bloque revienta o cae, el caramelo es tuyo
+  function decorate(G, n) {
+    const sim = G.sim; G.candies = []; G.candyHosts = 0; if (!sim) return;
+    const cand = sim.blocks.filter(b => b.userData.c && !b.userData.float).sort((a, b) => b.position.y - a.position.y);
+    if (!cand.length) return;
+    const pick = [];
+    for (let i = 0; i < n && cand.length; i++) { const k = Math.min(cand.length - 1, Math.floor(i * cand.length / n + Math.random() * cand.length / (n * 2))); pick.push(cand.splice(k, 1)[0]); }
     pick.forEach((b, i) => {
       const host = G.meshes[b.userData.id]; if (!host) return;
-      const c = i % 2 ? wrapped([0xff7a1a, 0xa66bff][i % 2 ? 1 : 0]) : candyCane();
+      const cane = i % 2 === 0, c = cane ? candyCane() : wrapped([0xff7a1a, 0xa66bff, 0x5fd45a][i % 3]);
       c.position.set(0, 0.85, 0.2); c.userData.candy = true; c.userData.ph = i; host.add(c);
+      G.candies.push({ id: b.userData.id, mesh: c, n: cane ? 2 : 1 });
     });
+    G.candyHosts = G.candies.length;
+    if (H.chip) H.chip();
   }
-  function tick(G) {
+  const _v = new T.Vector3();
+  // bruja que cruza la portada riéndose
+  const TW = { g: null, t0: -99 };
+  function titleWitch(G) {
+    const on = G.mode === 'title' && G.hwWorld;
+    if (!on) { if (TW.g) TW.g.visible = false; return; }
+    if (!TW.g) { TW.g = makeWitch(); TW.g.scale.setScalar(3.4); H.scene.add(TW.g); TW.t0 = G.t - 6; }
+    const e = G.t - TW.t0, dur = 7.5;
+    if (e > dur + 2.5) { TW.t0 = G.t; TW.dir = Math.random() < 0.5 ? 1 : -1; if (X.Audio && X.Audio.cackle) X.Audio.cackle(); }
+    const k = (G.t - TW.t0) / dur, dir = TW.dir || 1;
+    TW.g.visible = k >= 0 && k <= 1;
+    if (!TW.g.visible) return;
+    TW.g.position.set(dir * (-40 + k * 80) - 6, 16 + Math.sin(k * Math.PI * 3) * 2 - k * 3, -62);
+    TW.g.rotation.set(0, dir > 0 ? -0.15 : Math.PI + 0.15, Math.sin(G.t * 2) * 0.06);
+    const f = Math.sin(G.t * 10) * 0.5; TW.g.userData.wings[0].rotation.x = -0.4 - f; TW.g.userData.wings[1].rotation.x = 0.4 + f;
+  }
+  // cámara de la portada: mira al castillo, con un vaivén suave
+  function titleCam(cam, t) {
+    cam.position.set(Math.sin(t * 0.07) * 2, 3, -20);
+    cam.lookAt(-18 + Math.sin(t * 0.05) * 1.5, 30, -128);
+  }
+  function tick(G, dt) {
     for (const g of (G.moverMeshes ? G.moverMeshes.values() : [])) {
       if (g.userData.hair) g.userData.hair.forEach((h, i) => { h.rotation.y = Math.sin(G.t * 9 + i) * 0.18; });
       if (g.userData.flag) g.userData.flag.rotation.y = Math.sin(G.t * 4) * 0.25;
-    } for (const m of G.meshes || []) if (m) for (const c of m.children) if (c.userData.candy) { c.rotation.y = G.t * 1.6 + c.userData.ph; c.position.y = 0.85 + Math.sin(G.t * 3 + c.userData.ph) * 0.08; } }
+    }
+    if (TW.g || G.mode === 'title') titleWitch(G);
+    if (!G.candies || !G.candies.length) return;
+    const sim = G.sim;
+    for (let i = G.candies.length - 1; i >= 0; i--) {
+      const c = G.candies[i];
+      c.mesh.rotation.y = G.t * 1.6 + c.mesh.userData.ph; c.mesh.position.y = 0.85 + Math.sin(G.t * 3 + c.mesh.userData.ph) * 0.08;
+      if (G.mode !== 'play' || !sim || G.demo) continue;
+      const b = sim.blocks[c.id], d = b && b.userData;
+      const gone = !d || d.alive === false || d.destroyed || (d.hy != null && b.position.y < d.hy - 0.45);
+      if (!gone) continue;
+      c.mesh.getWorldPosition(_v);
+      if (c.mesh.parent) c.mesh.parent.remove(c.mesh);
+      G.candies.splice(i, 1);
+      if (H.active && H.active()) H.collect(c.n, _v.x, _v.y, _v.z);
+    }
+  }
 
-  window.Halloween = { build, makeWitch, makePirate, decorate, tick, pumpkin };
+  window.Halloween = { build, makeWitch, makePirate, decorate, tick, titleCam, pumpkin };
+  // la portada ya se pintó antes de cargar este archivo: se vuelve a abrir con el castillo
+  if (X.G.mode === 'title' && H.active && H.active() && X.goTitle) X.goTitle();
 })();
