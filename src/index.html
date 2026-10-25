@@ -816,6 +816,71 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
 .sstat{border-radius:14px;padding:8px 4px;color:#fff;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.18);display:flex;flex-direction:column;align-items:center;gap:1px}
 .sstat i{font-style:normal;font-size:18px}.sstat b{font-size:17px;font-weight:900}.sstat small{font-size:10px;font-weight:800;color:var(--lav);line-height:1.15}
 @media (max-width:360px){.savs{grid-template-columns:repeat(5,1fr)}.sstats{grid-template-columns:repeat(2,1fr)}}
+/* ---- evento de Halloween ---- */
+.pk{width:100%;height:100%;filter:drop-shadow(0 3px 0 rgba(40,10,0,.45))}
+.hwpump{position:absolute;right:max(6px,env(safe-area-inset-right));top:max(4px,env(safe-area-inset-top));z-index:6;width:78px;border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;cursor:pointer;animation:hwbob 2.4s ease-in-out infinite}
+.hwpump .pkw{width:62px;height:58px;filter:drop-shadow(0 0 14px rgba(255,140,30,.85))}
+.hwcd{margin-top:-6px;background:linear-gradient(180deg,#2a1240,#140822);color:#ffd27a;border:2px solid #ff9a2a;border-radius:12px;padding:2px 8px;font-weight:900;font-size:13px;box-shadow:0 3px 0 #000a;white-space:nowrap}
+.hwpump b{font-size:10px;font-weight:900;color:#fff;letter-spacing:1px;text-shadow:0 2px 0 #000;margin-top:2px}
+@keyframes hwbob{50%{transform:translateY(-5px) rotate(-3deg)}}
+.hwnav{display:flex;gap:8px;width:100%;max-width:520px;margin-top:8px}
+.hwnav button{flex:1;position:relative;display:flex;align-items:center;justify-content:center;gap:6px;height:46px;border-radius:15px;border:3px solid var(--gb);font:inherit;font-weight:900;font-size:13.5px;color:#fff;cursor:pointer;
+  background:linear-gradient(160deg,rgba(158,118,255,.97),rgba(84,60,214,.97));box-shadow:0 0 0 2px var(--gbd),inset 0 3px 0 rgba(255,255,255,.4),0 4px 0 var(--gbs);text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.hwnav button.on{background:linear-gradient(160deg,#fff0a0,#ffc83d 55%,#e09a12);color:#5a3a00;text-shadow:none}
+.hwnav button span{font-size:20px;line-height:1}
+.hwnav button.hwb{background:linear-gradient(160deg,#5a2a7a,#26103c);border-color:#ff9a2a;box-shadow:0 0 0 2px #3a1400,0 0 12px rgba(255,140,30,.6),inset 0 3px 0 rgba(255,255,255,.2),0 4px 0 #1a0800}
+.hwnav .hwb .pkw{width:30px;height:28px}
+.hwnav .hwb i{position:absolute;top:-10px;right:-6px;font-style:normal;font-size:10.5px;background:#ff7a12;color:#fff;border:2px solid #fff;border-radius:9px;padding:0 5px}
+.hwnav .clb i{position:absolute;top:-8px;right:-6px;font-style:normal;font-size:10px;background:#3dc8ff;color:#fff;border:2px solid #fff;border-radius:9px;padding:0 5px}
+/* mundo de Halloween */
+#hwmap{z-index:4;justify-content:flex-start;padding-top:max(14px,env(safe-area-inset-top));overflow:hidden;
+  
+  background:radial-gradient(circle at 78% 9%,#fff8d8 0 34px,rgba(255,240,180,.35) 36px,transparent 80px),linear-gradient(180deg,#120726 0%,#2b0f46 45%,#5a1e4a 80%,#ff7a1a 130%)}
+#hwmap .stars2{position:absolute;inset:0;background-image:radial-gradient(1.5px 1.5px at 20% 12%,#fff,transparent),radial-gradient(1px 1px at 40% 6%,#fff,transparent),radial-gradient(1.5px 1.5px at 60% 18%,#fff,transparent),radial-gradient(1px 1px at 10% 28%,#fff,transparent),radial-gradient(1px 1px at 90% 30%,#fff,transparent);pointer-events:none}
+.hwhead{position:relative;width:100%;max-width:520px;margin-top:8px;border-radius:24px;padding:10px 12px;color:#fff;text-align:left;display:flex;gap:10px;align-items:center;
+  background:linear-gradient(160deg,rgba(90,40,130,.95),rgba(30,10,50,.95));border:3px solid #ff9a2a;box-shadow:0 0 0 2px #3a1400,0 0 18px rgba(255,140,30,.45),0 6px 0 #1a0800}
+.hwhead .pkw{flex:none;width:58px;height:54px}
+.hwhead h2{font-size:20px;font-weight:900;margin:0;color:#ffd27a;text-shadow:0 2px 0 #000}
+.hwhead small{display:block;font-size:12px;font-weight:800;color:#e8d4ff}
+.hwbar{height:10px;border-radius:9px;background:rgba(0,0,0,.4);margin-top:5px;overflow:hidden}.hwbar i{display:block;height:100%;width:24%;background:linear-gradient(90deg,#ffb347,#ff5e1a)}
+.hwcandy{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.45);border:2px solid #ff9a2a;border-radius:16px;padding:3px 10px;font-weight:900;color:#fff;font-size:16px}
+.hwsec{position:relative;background:linear-gradient(160deg,rgba(80,30,110,.55),rgba(20,8,40,.55));border:3px solid rgba(255,154,42,.6);border-radius:22px;padding:12px;margin-bottom:16px}
+.hwsec h3{color:#ffd27a;font-size:16px;margin:0 0 8px;text-align:left;text-shadow:0 2px 0 #000}.hwsec h3 small{color:#d8c4ff;font-size:11.5px;margin-left:6px}
+.hwgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.hwlv{position:relative;aspect-ratio:1;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;font-size:19px;color:#fff;text-shadow:0 2px 0 #3a1400;
+  background:linear-gradient(160deg,#ffae4a,#e8600c);border:3px solid #ffd27a;box-shadow:0 0 0 2px #3a1400,inset 0 3px 0 rgba(255,255,255,.4),0 4px 0 #3a1400}
+.hwlv .s{font-size:9px;letter-spacing:-1px;color:#fff6a0;text-shadow:none}
+.hwlv.lk{background:linear-gradient(160deg,#4a3a5e,#2a1f3a);border-color:#6e5a8a;color:#9a8ab0;text-shadow:none}
+.hwlv.cur{background:linear-gradient(160deg,#c8ff7a,#5fd42a);border-color:#fff;animation:pulse 1.4s ease-in-out infinite;color:#1e4a00;text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.hwlv .cd{position:absolute;bottom:-7px;right:-6px;font-size:13px;filter:drop-shadow(0 1px 0 #000)}
+.hwlv.boss{font-size:10.5px;background:linear-gradient(160deg,#7a2aa8,#2a0a40);border-color:#ff9a2a;gap:2px}
+.hwlv.boss span{font-size:22px;line-height:1}
+.bat{position:absolute;font-size:22px;opacity:.85;filter:drop-shadow(0 0 4px #000)}
+/* tienda de Halloween */
+.hwshoptop{box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 8px;padding:8px 10px;border-radius:16px;color:#fff;background:linear-gradient(160deg,#5a2a7a,#26103c);border:2px solid #ff9a2a;text-align:left}
+.hwshoptop b{font-size:15px;color:#ffd27a}.hwshoptop small{display:block;font-size:11.5px;color:#e8d4ff;font-weight:800}
+.hwitem{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:16px;margin-bottom:8px;background:#fff;border:2px solid #ffb347;text-align:left}
+.hwitem .ic{flex:none;width:52px;height:52px;border-radius:14px;background:linear-gradient(160deg,#3a1a5a,#1a0a2a);display:flex;align-items:center;justify-content:center;font-size:30px}
+.hwitem div{flex:1;min-width:0}.hwitem b{display:block;font-size:14.5px;font-weight:900;color:#2a1a40}.hwitem small{font-size:11.5px;font-weight:700;color:#6c6390}
+.hwbuy{flex:none;font:inherit;font-weight:900;font-size:15px;border:0;border-radius:14px;padding:8px 11px;color:#fff;background:linear-gradient(170deg,#ffb347,#ff7a12 60%,#d45a00);box-shadow:0 0 0 2px #5a2400,inset 0 2px 0 rgba(255,255,255,.4),0 3px 0 #5a2400}
+.tag2{display:inline-block;font-size:10px;font-weight:900;color:#fff;background:#8a2be2;border-radius:7px;padding:0 5px;margin-left:4px;vertical-align:middle}
+
+.hwpump[hidden],.hwnav button[hidden]{display:none}
+.hwnav button{font-size:12.5px}
+.hwlv{font:inherit;font-weight:900;font-size:19px;cursor:pointer;padding:0}
+.hwlv.hard{box-shadow:0 0 0 2px #3a1400,0 0 0 4px #ff4f6d,inset 0 3px 0 rgba(255,255,255,.4),0 4px 0 #3a1400}
+.hwsec.lk h3{color:#b8a8d8}
+.hwhead{flex:none}.hwbar i{transition:width .4s}
+#hwmap .mapscroll{position:relative}
+.hwown{flex:none;font-size:22px;color:#2f9a3a;font-weight:900;padding:0 10px}
+.stabs.withhw button{padding:7px 6px;font-size:11.5px}.stabs .hwtab{font-size:19px;padding:4px 9px!important;background:linear-gradient(160deg,#ffb347,#ff7a12);box-shadow:inset 0 0 0 2px #fff2b0}
+.stabs .hwtab.on{background:linear-gradient(160deg,#fff0a0,#ffb347)}
+.candychip{position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(max(10px,env(safe-area-inset-top)) + 64px);background:rgba(20,8,40,.85);border:2px solid #ff9a2a;border-radius:14px;padding:3px 10px;font-weight:900;color:#fff;font-size:15px;pointer-events:none}
+.candychip[hidden]{display:none}
+#title.hw .ttrail,#title.hw .trocket{display:none!important}
+#title.hw .tmascot::after{content:'';position:absolute;left:50%;top:-30px;width:56px;height:45px;transform:translateX(-50%) rotate(-12deg);pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 48'%3E%3Cpath d='M4 40 Q30 30 56 40 Q30 48 4 40Z' fill='%231c1028' stroke='%231a0a2e' stroke-width='3'/%3E%3Cpath d='M18 38 L28 6 L36 0 L34 10 L42 38Z' fill='%232a1840' stroke='%231a0a2e' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M20 31 L41 31' stroke='%23ff7a1a' stroke-width='5'/%3E%3C/svg%3E") center/contain no-repeat}
+#ltFlash{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(circle at 50% 18%,rgba(240,232,255,.9),rgba(190,170,255,.35) 60%,rgba(150,120,255,0));opacity:0}
 </style>
 </head>
 <body>
@@ -828,6 +893,7 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
 <symbol id="starME" viewBox="0 0 100 96"><path d="M50 4l13 28 30 4-22 21 6 30-27-15-27 15 6-30L7 36l30-4z" fill="rgba(30,10,90,.35)" stroke="rgba(255,255,255,.5)" stroke-width="7" stroke-linejoin="round"/></symbol>
 </defs></svg>
 <canvas id="game"></canvas>
+<div id="ltFlash"></div>
 
 <div id="hud">
   <div class="hudtop">
@@ -848,6 +914,7 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
   <button class="btn green finish" id="btnFinish" hidden>TERMINAR</button>
   <button class="goldbtn" id="btnGold" hidden aria-label="Usar bola dorada"><span class="ball bGolden"></span><span class="gtxt"><small>DORADA</small><b id="goldCount">1</b></span></button>
   <div class="hint" id="hint"></div>
+  <div class="candychip" id="candyChip" hidden>🍬 <b>0</b></div>
   <div class="wxchip" id="wxChip" hidden><b>VIENTO</b><i></i></div>
 </div>
 <div id="ftexts"></div>
@@ -875,6 +942,7 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
     <button class="sb" id="btnShopT" aria-label="Tienda"><span>&#128722;</span><b>Tienda</b></button>
     <button class="sb" id="btnSetT" aria-label="Ajustes"><span>&#9881;&#65039;</span><b>Ajustes</b></button>
   </div>
+  <button class="hwpump" id="hwPump" hidden aria-label="Halloween"><div class="pkw"></div><span class="hwcd">⏳ <span class="hwcdTxt"></span></span><b>HALLOWEEN</b></button>
   <div class="tbottom">
     <div class="lvbub" id="titleLv">Nivel 1</div>
     <button class="btn green tplay" id="btnPlay">¡A DEMOLER!<span class="sflame" id="streakFlame" hidden><i class="ico ico-fire"></i><b>1</b></span></button>
@@ -890,6 +958,7 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
     <button class="iconbtn" id="btnShop" aria-label="Tienda">+</button>
   </div>
   <button class="plstrip" id="btnMis" aria-label="Nivel de jugador y misiones"><span class="plb" id="plStripLv">1</span><span class="plbar"><i id="plStripBar"></i></span><span class="mistx" id="misCount">Misiones</span><i class="dot" id="misDot" hidden></i></button>
+  <div class="hwnav"><button class="on" id="navWorlds"><span>&#128506;&#65039;</span><b>Mundos</b></button><button class="clb" id="navClub"><span>&#128737;&#65039;</span><b>Club</b></button><button class="hwb" id="navHw" hidden><span class="pkw"></span><b>Halloween</b><i class="hwcdTxt"></i></button></div>
   <div class="mapscroll" id="mapList"></div>
 </div>
 
@@ -908,6 +977,18 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
     </div>
     <div class="row prego"><button class="btn gray" id="preBack" style="flex:.45">&#10005;</button><button class="btn green" id="preGo">¡A DEMOLER!</button></div>
   </div>
+</div>
+
+<div class="screen" id="hwmap">
+  <div class="stars2"></div><span class="bat" style="left:12%;top:150px">&#129415;</span><span class="bat" style="left:62%;top:110px;font-size:16px">&#129415;</span>
+  <div class="topbar">
+    <button class="iconbtn" id="hwBack" aria-label="Volver">&#8592;</button>
+    <span class="hwcandy">🍬 <span class="candyTxt">0</span></span>
+    <span class="wallet"><span class="coins"><i class="coin"></i><span class="coinTxt">0</span></span></span>
+    <button class="iconbtn" id="hwShop" aria-label="Tienda">&#128722;</button>
+  </div>
+  <div class="hwhead"><span class="pkw">&#127875;</span><div style="flex:1"><h2>Noche de Halloween</h2><small>Termina en <span class="hwcdTxt"></span> · <span id="hwProg">0</span>/50 niveles</small><div class="hwbar"><i id="hwBar"></i></div></div></div>
+  <div class="mapscroll" id="hwList"></div>
 </div>
 
 <div class="screen" id="pass">

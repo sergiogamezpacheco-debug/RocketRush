@@ -336,3 +336,35 @@ El workflow **«Probar Firebase»** se lanza cuando cambian `src/social.js` o la
 - `tools/socialflow.py` con `LIVE=1`: el juego de verdad con dos jugadores.
 
 Los jugadores de prueba son del país «ZZ» y se borran al terminar. Los resultados y las capturas quedan en la rama `resultados-pruebas`. La base de datos tiene que llamarse exactamente `(default)`, con paréntesis: es la única que entra en la cuota gratis.
+
+## Evento de Halloween (hasta el 1 de noviembre a las 23:59, hora de España)
+Todo el evento se apaga solo al acabar el plazo: `HW_END` en `src/game3d.js`. Para probarlo después, pon `save.hwForce = true` en el modo prueba.
+
+- **Portada:** durante el evento muestra el paisaje de Halloween en 3D, sin bloques.
+  - Castillo encantado con murciélagos alrededor de los torreones y luna llena.
+  - La bruja pasa volando y se ríe.
+  - Relámpagos cada 1-2 s, con trueno de vez en cuando.
+  - Música de Halloween y sombrero de bruja en la mascota.
+  - Arriba a la derecha, una calabaza con la cuenta atrás que abre el mundo de Halloween.
+- **Mapa:** bajo la barra de misiones hay una fila con tres botones.
+  - **Mundos** te lleva al nivel en curso.
+  - **Club** dice que llega pronto.
+  - **Halloween** muestra la calabaza y el tiempo que queda.
+- **Mundo de Halloween** (`Levels.HW`, ids 20001-20050):
+  - 50 niveles en 5 zonas: Calle de las calabazas, Cementerio maldito, Mansión encantada, Bosque de las brujas y Castillo del vampiro.
+  - El 10.º de cada zona es un jefe: Capitán Calavera, Gólem del cementerio, Faraón maldito, Galeón fantasma y Rey Vampiro.
+  - La dificultad va de fácil a media-difícil. Los niveles están afinados con `tools/hwtune.js` y guardados en `src/gentune.js` como `hw1…hw50`.
+  - Tiene su propio progreso (`save.hw.unlocked`) y no toca el del juego normal.
+- **Paisaje de Halloween** (`src/halloween.js`):
+  - Castillo, islotes con tumbas, árboles muertos, calabazas iluminadas, niebla morada y plataforma con farolillos de calabaza.
+  - Relámpagos cada 5 s, con destello y trueno.
+  - El pájaro es una **bruja en escoba** que se ríe y el velero es un **galeón pirata de velas negras**. Al darles se ganan 2 bolas, igual que siempre.
+- **Caramelos 🍬** (`save.candy`):
+  - Durante el evento hay bastones de caramelo y caramelos encima de algunos bloques: 4 en los niveles de Halloween y 2 en los normales. Si el bloque revienta o cae, el caramelo es tuyo.
+  - Superar un nivel de Halloween da 3 caramelos más 2 por estrella; un jefe da 25.
+- **Tienda de Halloween** (pestaña 🎃): se paga con caramelos.
+  - Cañón Calabaza, cofre embrujado y avatares de Halloween para el perfil (vampiro, bruja, fantasma, calabaza, calavera y araña).
+  - Bola dorada, 3 bombas, 2 arcoíris, 10 gemas y 500 monedas.
+- **Pruebas:**
+  - `python3 tools/hwflow.py`: portada, mapa, partida con caramelos, victoria y tienda.
+  - `node tools/hwcheck.js`: comprueba que los 50 niveles se quedan quietos sin disparar.

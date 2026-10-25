@@ -47,7 +47,7 @@
 
   // ---------------- audio ----------------
   const Audio = (() => {
-    let ac = null, master = null, sfx = null, mus = null, noiseBuf = null, musicOn = false, musicTimer = null;
+    let ac = null, master = null, sfx = null, mus = null, noiseBuf = null, musicOn = false, musicTimer = null, musicStyle = 'normal';
     let popRun = 0, popT = 0;
     function init() {
       if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
@@ -109,12 +109,36 @@
       coin() { if (!ok()) return; tone(1320, 0.08, 'square', 0.07, 1); tone(1760, 0.12, 'square', 0.07, 1, 0.06); },
       chirp() { if (!ok()) return; tone(2200, 0.09, 'sine', 0.12, 1.5); tone(2600, 0.08, 'sine', 0.1, 1.4, 0.12); tone(2300, 0.1, 'sine', 0.1, 1.6, 0.24); },
       horn() { if (!ok()) return; tone(165, 0.9, 'sawtooth', 0.08, 0.98); tone(220, 0.9, 'triangle', 0.08, 0.98); },
+      // risa de bruja: «ji-ji-ji-ji» con voz nasal (diente de sierra por dos filtros de formante) que va bajando
+      cackle() {
+        if (!ok()) return;
+        const t0 = ac.currentTime + 0.02, n = 9;
+        for (let i = 0; i < n; i++) {
+          const t = t0 + i * 0.105 + (i > 5 ? (i - 5) * 0.02 : 0), f = 620 - i * 26 + (i % 2 ? 40 : 0);
+          const o = ac.createOscillator(), g = ac.createGain(), f1 = ac.createBiquadFilter(), f2 = ac.createBiquadFilter(), v = ac.createOscillator(), vg = ac.createGain();
+          o.type = 'sawtooth'; o.frequency.setValueAtTime(f * 1.12, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.07);
+          v.frequency.value = 28; vg.gain.value = f * 0.04; v.connect(vg); vg.connect(o.frequency);
+          f1.type = 'bandpass'; f1.frequency.value = 900 + (i % 2) * 300; f1.Q.value = 5; f2.type = 'bandpass'; f2.frequency.value = 2600; f2.Q.value = 6;
+          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.095);
+          o.connect(f1); o.connect(f2); f1.connect(g); f2.connect(g); g.connect(sfx);
+          o.start(t); v.start(t); o.stop(t + 0.12); v.stop(t + 0.12);
+        }
+        tone(1800, 0.5, 'sine', 0.03, 0.6, 0.05);
+      },
+      // relámpago: chasquido y, a veces, trueno que retumba
+      thunder(big) {
+        if (!ok()) return;
+        noise(0.12, 0.25, 6000, 2500, 'highpass');
+        if (big) { noise(1.6, 0.55, 500, 60, 'lowpass', 0.12 + Math.random() * 0.25); tone(48, 1.4, 'sine', 0.35, 0.7, 0.15); }
+      },
+      setStyle(st) { if (st === musicStyle) return; musicStyle = st; if (musicOn) { stopMusic(); startMusic(); } },
       startMusic, stopMusic,
     };
     // música generativa suave (4 acordes en bucle)
     function startMusic() {
       if (!ac || musicOn) return;
       musicOn = true;
+      if (musicStyle === 'spooky') { spookyMusic(); return; }
       const chords = [[0, 4, 7], [-3, 0, 4], [-7, -3, 0], [-5, -1, 2]];
       const root = 261.63, beat = 60 / 96;
       let bar = 0;
@@ -131,6 +155,25 @@
       playBar();
     }
     function stopMusic() { musicOn = false; clearTimeout(musicTimer); }
+    // Halloween: la menor armónica, órgano grave, arpegio de clavecín y campanita (estilo «casa encantada» simpática)
+    function spookyMusic() {
+      const chords = [[0, 3, 7], [-4, 0, 3], [-7, -4, 0], [-1, 2, 5, 8]];     // Lam · Fa · Rem · Mi7 (con la sensible)
+      const root = 220, beat = 60 / 88;
+      const mel = [[12, 15, 19, 18, 19, 15, 12, 11], [8, 12, 15, 12, 8, 7, 8, 12], [5, 8, 12, 8, 5, 3, 5, 8], [11, 14, 17, 20, 23, 20, 17, 14]];
+      let bar = 0;
+      const playBar = () => {
+        if (!musicOn) return;
+        const ch = chords[bar % 4], fr = n => root * Math.pow(2, n / 12);
+        tone(fr(ch[0] - 24), beat * 4, 'triangle', 0.4, 1, 0, mus);
+        for (const n of ch.slice(0, 3)) tone(fr(n - 12), beat * 3.6, 'sine', 0.09, 1, 0.02, mus);
+        const m = mel[bar % 4];
+        for (let i = 0; i < 8; i++) tone(fr(m[i]), beat * 0.42, 'square', 0.035, 0.995, i * beat * 0.5, mus);
+        if (bar % 2 === 1) tone(fr(ch[0] + 24), beat * 2, 'sine', 0.06, 1, beat * 3, mus);
+        bar++;
+        musicTimer = setTimeout(playBar, beat * 4 * 1000);
+      };
+      playBar();
+    }
     return A;
   })();
   function vibe(ms) {
@@ -965,12 +1008,13 @@
     return { set, update };
   })();
   const BIOMES = { sea: { env: [sea, decor], platform: island } };
-  const biomeBuilders = { desert: buildDesert, snow: buildSnow, jungle: buildJungle, volcano: buildVolcano, space: buildSpace, candy: buildCandy, crystal: buildCrystal, temple: buildTemple, forest: buildForest, fair: buildFair, neon: buildNeon };
+  const biomeBuilders = { desert: buildDesert, snow: buildSnow, jungle: buildJungle, volcano: buildVolcano, space: buildSpace, candy: buildCandy, crystal: buildCrystal, temple: buildTemple, forest: buildForest, fair: buildFair, neon: buildNeon, halloween: () => window.Halloween ? window.Halloween.build() : null };
   let biome = 'sea';
   function setBiome(name) {
     if (!BIOMES[name] && biomeBuilders[name]) BIOMES[name] = biomeBuilders[name]();
     biome = BIOMES[name] ? name : 'sea';
     for (const k in BIOMES) { const on = k === biome; for (const o of BIOMES[k].env) o.visible = on; BIOMES[k].platform.visible = on; }
+    if (BIOMES[biome].water) sea.visible = true;            // paisajes con agua (Halloween: el galeón navega)
     sunDisc.visible = !BIOMES[biome].noSun;
   }
 
@@ -1272,10 +1316,11 @@
     temple: { top: 0x3f8fb8, mid: 0xa8d8c0, hor: 0xf0e2b0, fog: 0xc8d8b0, sea: 0x2f9a8a, sun: 0xfff0c8, hemi: [0xf0f0c8, 0x5a5a3a], biome: 'temple', fogNear: 40, fogFar: 140 },
     forest: { top: 0x2a5a6a, mid: 0x7ab8a8, hor: 0xd8f0d0, fog: 0x9ac8b0, sea: 0x2a7a6a, sun: 0xfff8e0, hemi: [0xd8ffe8, 0x2a4a2a], biome: 'forest', fogNear: 28, fogFar: 110 },
     fair: { top: 0x3a2a8f, mid: 0xb06ad6, hor: 0xffc08a, fog: 0xd8a0d0, sea: 0x4a3ab0, sun: 0xffe0b8, hemi: [0xf0d8ff, 0x6a4a6a], biome: 'fair', fogNear: 45, fogFar: 150 },
+    halloween: { top: 0x090316, mid: 0x2a0f4a, hor: 0x8a2a5a, fog: 0x2a1240, sea: 0x1c1036, sun: 0xc8b4ff, hemi: [0x9a7ae0, 0x1a0a24], biome: 'halloween', fogNear: 45, fogFar: 190, sunI: 1.6, hemiI: 0.8, stars: true },
     neon: { top: 0x070a24, mid: 0x1a1a52, hor: 0x7a2a9a, fog: 0x1a1240, sea: 0x101a50, sun: 0xb8c8ff, hemi: [0xa0b0ff, 0x2a1a4a], biome: 'neon', fogNear: 40, fogFar: 160, sunI: 1.5, hemiI: 0.9 } };
   const mixC = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
   function themeFor(world) {
-    const W = WORLDS[world - 1] || { biome: 'sea', variant: 'día' };
+    const W = G.hwWorld || (G.level && G.level.hw) ? { biome: 'halloween', variant: 'noche' } : (WORLDS[world - 1] || { biome: 'sea', variant: 'día' });
     const base = Object.assign({}, BIOME_THEME[W.biome] || THEMES[1], { variant: W.variant, weather: W.weather });
     if (W.biome === 'sea') { delete base.biome; if (world <= 3) Object.assign(base, THEMES[1]); }
     const v = W.variant;
@@ -1299,6 +1344,7 @@
   for (let i = 0; i < 3; i++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(180 - i * 15, 180 - i * 15, 40, 48, 1, true, Math.PI * (0.9 + i * 0.15), Math.PI * 0.7), new THREE.MeshBasicMaterial({ map: auroraTex, transparent: true, opacity: 0.55 - i * 0.12, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false, fog: false })); m.position.y = 70 + i * 18; aurora.add(m); }
   aurora.visible = false; scene.add(aurora);
   function setTheme(world) {
+    if (BIOMES[biome] && BIOMES[biome].leave) BIOMES[biome].leave();   // relámpago a medias: se apaga
     const th = themeFor(world);
     skyMat.uniforms.top.value.set(th.top); skyMat.uniforms.mid.value.set(th.mid); skyMat.uniforms.hor.value.set(th.hor);
     scene.fog = new THREE.Fog(th.fog, th.fogNear || 45, th.fogFar || 140);
@@ -1443,8 +1489,10 @@
   }
   function buildLevelView() {
     clearLevelView();
+    G.candies = []; G.candyHosts = 0;
     for (const b of G.sim.blocks) blockView(b.userData);
     syncView(0);
+    if (window.Halloween && hwActive() && G.level && !G.demo && !G.level.boss) window.Halloween.decorate(G, G.level.hw ? 4 : 2);
   }
   // la pieza que se ve de un bloque (también los que aparecen durante la partida)
   function blockView(d) {
@@ -1827,7 +1875,8 @@
         if (!g) { g = makeCarrier(m); scene.add(g); G.moverMeshes.set(m.id, g); }
         syncCarrier(m, g, sim); continue;
       }
-      if (!g) { g = m.kind === 'bird' ? (biome === 'space' ? makeSatellite() : makeBird()) : makeShip(m); g.rotation.y = m.dir > 0 ? 0 : Math.PI; scene.add(g); G.moverMeshes.set(m.id, g); }
+      const HW = biome === 'halloween' && window.Halloween;
+      if (!g) { g = m.kind === 'bird' ? (HW ? HW.makeWitch() : biome === 'space' ? makeSatellite() : makeBird()) : HW ? HW.makePirate(m) : makeShip(m); g.rotation.y = m.dir > 0 ? 0 : Math.PI; scene.add(g); G.moverMeshes.set(m.id, g); }
       g.position.set(m.x, m.y, m.z);
       if (m.kind === 'bird') {
         const f = m.active ? (biome === 'space' ? 0 : Math.sin(G.t * 16 + m.ph) * 0.9) : 0.2;
@@ -2052,7 +2101,7 @@
           G.shake = 0.7; vibe([40, 30, 80]); Audio.special(); Audio.explode();
           break;
         case 'moverSpawn':
-          if (e.kind === 'bird') Audio.chirp(); else Audio.horn();
+          if (e.kind === 'bird') { if (biome === 'halloween') Audio.cackle(); else Audio.chirp(); } else Audio.horn();
           save.seen = save.seen || {};
           if (e.carrier) {
             const key = 'c_' + e.carrier, nm = { r: 'roja', b: 'azul', g: 'verde', y: 'amarilla', p: 'morada', bomb: 'bomba', rainbow: 'arcoíris' };
@@ -2062,11 +2111,12 @@
           }
           if (!save.seen[e.kind]) {
             save.seen[e.kind] = true; persist();
-            showHint(e.kind === 'bird' ? '¡Un pájaro! Si le das, ganas 2 bolas. Apunta por delante de él' : '¡Un velero con 2 bolas! Si lo tumbas, son tuyas. Apunta muy por delante', 4500);
+            showHint(biome === 'halloween' ? (e.kind === 'bird' ? '¡Una bruja! Si le das, ganas 2 bolas. Apunta por delante de ella' : '¡Un galeón pirata con 2 bolas! Si lo tumbas, son tuyas. Apunta muy por delante')
+              : e.kind === 'bird' ? '¡Un pájaro! Si le das, ganas 2 bolas. Apunta por delante de él' : '¡Un velero con 2 bolas! Si lo tumbas, son tuyas. Apunta muy por delante', 4500);
           } else if (e.kind === 'ship' && e.balls) {
             // en cada pasada lleva otras: se dice cuáles para que se sepa qué hay en juego
             const nm = { r: 'roja', b: 'azul', g: 'verde', y: 'amarilla', p: 'morada', bomb: 'bomba', rainbow: 'arcoíris' };
-            showHint('Pasa un velero con bola ' + e.balls.map(k => nm[k] || k).join(' y bola '), 3000);
+            showHint((biome === 'halloween' ? 'Pasa un galeón con bola ' : 'Pasa un velero con bola ') + e.balls.map(k => nm[k] || k).join(' y bola '), 3000);
           }
           break;
         case 'moverHit': { stats().movers++; if (e.kind === 'bird') stats().birds = (stats().birds || 0) + 1; else stats().ships = (stats().ships || 0) + 1;
@@ -2083,7 +2133,7 @@
             else { for (let i = 0; i < 4; i++) spawnSprite(e.x + rnd(-1.5, 1.5), C.SEA_Y + 0.4, e.z, 0xffffff, 1.8, 1.4, 1.1, { vy: 1.6, alpha: 0.8 }); Audio.splash(2); Audio.explode(); }
           }
           spawnSprite(e.x, e.y + 0.5, e.z, 0xffe27a, e.kind === 'bird' ? 2.5 : 5, 1.2, 0.4, { add: true, alpha: 1 });
-          centerText((e.kind === 'bird' ? (biome === 'space' ? '¡SATÉLITE!' : '¡PÁJARO!') : mv && mv.carrier ? CARRIER_TITLES[mv.carrier] : '¡VELERO!') + ' +2 BOLAS', '#ffe27a', 28);
+          centerText((e.kind === 'bird' ? (biome === 'space' ? '¡SATÉLITE!' : biome === 'halloween' ? '¡BRUJA!' : '¡PÁJARO!') : mv && mv.carrier ? CARRIER_TITLES[mv.carrier] : biome === 'halloween' ? '¡GALEÓN!' : '¡VELERO!') + ' +2 BOLAS', '#ffe27a', 28);
           showHint('Has ganado: bola ' + e.balls.map(k => names[k] || k).join(' y bola '), 2800);
           Audio.special(); vibe([30, 30, 60]); lastTray = '';
           break;
@@ -2271,7 +2321,7 @@
   }
 
   // ---------------- pantallas ----------------
-  const screens = ['title', 'map', 'pass', 'missions', 'social', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard'];
+  const screens = ['title', 'map', 'hwmap', 'pass', 'missions', 'social', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard'];
   function show(id) { for (const s of screens) $(s).classList.toggle('on', s === id); }
   function hideAll() { for (const s of screens) $(s).classList.remove('on'); }
   // mensaje sobre la bandeja de bolas (no tapa el cielo ni la estructura)
@@ -2364,7 +2414,12 @@
   function goTitle() {
     if (window.Bosses) window.Bosses.stop();
     TD.phase = 'idle'; TD.t = 0;
+    G.inHw = false; G.hwWorld = hwActive() && !!window.Halloween;
     G.mode = 'title'; G.paused = false; loadDemo(Math.min(save.unlocked, LEVELS.length));   // de fondo, el paisaje del mundo en el que vas
+    // evento de Halloween: en la portada solo se ve el castillo (sin bloques), con murciélagos, la bruja y relámpagos
+    if (G.hwWorld) { for (const m of G.meshes) if (m) m.visible = false; }
+    Audio.setStyle(G.hwWorld ? 'spooky' : 'normal');
+    $('title').classList.toggle('hw', G.hwWorld); hwUi();
     $('hud').classList.remove('on'); show('title'); G.titleReady = true; updateTitle();
   }
   // pantalla inicial: nivel en curso, avisos y estela de la bola-cohete
@@ -2386,16 +2441,18 @@
   addEventListener('resize', layoutTrail);
   // en la portada la estructura baja un poco para que el cartel no la tape
   function titleView() {
-    if (G.mode === 'title') camera.setViewOffset(W, H, 0, -H * 0.16, W, H);
+    if (G.mode === 'title' && !G.hwWorld) camera.setViewOffset(W, H, 0, -H * 0.16, W, H);
     else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   }
   function goMap() {
+    if (G.inHw && hwActive()) { goHw(); return; }
+    G.hwWorld = false; Audio.setStyle('normal');
     if (window.Bosses) window.Bosses.stop();
     refundGolden();
     $('btnFinish').hidden = true;
     G.mode = 'map'; G.paused = false; $('hud').classList.remove('on');
     loadDemo(Math.min(save.unlocked, LEVELS.length));
-    renderMap(); setCoins(); show('map'); measureWorlds();
+    renderMap(); setCoins(); hwUi(); show('map'); measureWorlds();
     const cur = document.querySelector('.lv.cur'); if (cur) cur.scrollIntoView({ block: 'center' });
   }
   // nivel extra del mundo w: se abre con 3 estrellas en todos sus niveles
@@ -2473,7 +2530,7 @@
     const L = byId(id); if (!L) return;
     G.preId = id; preSel = {};
     if (G.mode !== 'play') loadDemo(id);
-    $('preTitle').textContent = L.bonus ? 'Nivel extra ' + L.world : L.boss ? 'Jefe · nivel ' + id : 'Nivel ' + id;
+    $('preTitle').textContent = L.hw ? (L.boss ? 'Jefe de Halloween' : 'Halloween · ' + L.pos) : L.bonus ? 'Nivel extra ' + L.world : L.boss ? 'Jefe · nivel ' + id : 'Nivel ' + id;
     $('preTitle').classList.toggle('gold', !!L.bonus);
     $('preReward').hidden = !L.bonus;
     const replay = L.bonus && save.bonusDone && save.bonusDone[L.id];
@@ -2573,7 +2630,9 @@
     G.casi = 0; G.firstShot = false; G.swapped = false; G.winShown = false; G.winAt = 0; G.extraUsed = false; shownScore = 0; lastTray = '';
     $('btnFinish').hidden = true; G.cannonKind = null;
     G.aimTarget.set(0, 1.5, 0);
-    $('hudLevel').textContent = L.bonus ? 'EXTRA ' + L.world : 'NIVEL ' + id;
+    $('hudLevel').textContent = L.hw ? 'HALLOWEEN ' + L.pos : L.bonus ? 'EXTRA ' + L.world : 'NIVEL ' + id;
+    Audio.setStyle(L.hw ? 'spooky' : 'normal'); G.hwWorld = false;
+    G.candyRun = 0; hwCandyChip();
     $('meterTarget').style.left = (L.target * 100) + '%';
     $('meterFill').style.transition = 'none'; $('meterFill').style.width = '0%'; void $('meterFill').offsetWidth; $('meterFill').style.transition = '';
     hideAll(); $('hud').classList.add('on');
@@ -2590,10 +2649,11 @@
     const stars = L.boss ? (G.bossStars || 1) : sim.stars();
     $('winRibbon').textContent = L.boss ? '¡JEFE DERROTADO!' : '¡DEMOLIDO!';
     const prevStars = save.stars[L.id] || 0;
-    G.mystery = !L.bonus && !L.boss && !prevStars && L.id % 5 === 0;
+    G.mystery = !L.bonus && !L.boss && !L.hw && !prevStars && L.id % 5 === 0;
     save.stars[L.id] = Math.max(prevStars, stars);
     save.best[L.id] = Math.max(save.best[L.id] || 0, sim.score);
-    if (!L.bonus && L.id >= save.unlocked) save.unlocked = Math.min(L.id + 1, LEVELS.length + 1);
+    if (!L.bonus && !L.hw && L.id >= save.unlocked) save.unlocked = Math.min(L.id + 1, LEVELS.length + 1);
+    if (L.hw) { const h = hwState(); h.unlocked = Math.max(h.unlocked, L.pos + 1); }
     let coins = (20 + stars * 10) * (L.hard ? 2 : L.boss ? 3 : 1), gifts = L.boss ? ' · cofre de oro' : '';
     save.bonusDone = save.bonusDone || {}; save.bonusSeen = save.bonusSeen || {};
     if (L.bonus) {
@@ -2607,6 +2667,8 @@
     if (sim.goldenLeft) save.boosters.golden = (save.boosters.golden || 0) + sim.goldenLeft;
     for (const k of sim.wLeft || []) save.boosters[k] = (save.boosters[k] || 0) + 1;
     coins += sim.coins || 0;
+    // caramelos por superar un nivel de Halloween (los del jefe, más)
+    if (L.hw && hwActive()) { const c = L.boss ? 25 : 3 + stars * 2; addCandy(c); gifts += ' · +' + c + ' caramelos'; }
     G.pendingCoins = coins; save.coins += coins;
     save.streak = Math.min(save.streak + 1, 9); save.played++;
     { const st = stats(); st.wins = (st.wins || 0) + 1; st.winRun = (st.winRun || 0) + 1; st.bestRun = Math.max(st.bestRun || 0, st.winRun); if (L.boss) st.bossWins = (st.bossWins || 0) + 1; }
@@ -2640,7 +2702,7 @@
     $('winDouble').hidden = can3;
     $('winBalls').hidden = !can3 || G.extraUsed;
     $('winRetry').hidden = stars >= 3;
-    $('winNext').textContent = G.newBonus ? '¡NIVEL EXTRA!' : (L.bonus || L.id < LEVELS.length) ? 'SIGUIENTE' : 'NIVELES';
+    $('winNext').textContent = L.hw ? (L.pos < 50 ? 'SIGUIENTE' : 'HALLOWEEN') : G.newBonus ? '¡NIVEL EXTRA!' : (L.bonus || L.id < LEVELS.length) ? 'SIGUIENTE' : 'NIVELES';
     if (G.newBonus) setTimeout(() => toast('¡Nivel extra desbloqueado! 3 estrellas en todo el mundo ' + L.world), 1300);
     if (L.bonus && stars >= 3) setTimeout(() => toast('¡Bola dorada! Úsala cuando quieras con el botón dorado durante una partida', 3200), 1300);
     const sw = $('winStars');
@@ -2758,9 +2820,11 @@
       <div class="fbuy"><button class="btn green" data-id="starter">${st.price}</button><small>solo una vez</small></div></div>` : '';
     const rowT = s => TAG[s.id] ? row(s).replace('<div class="shopitem">', `<div class="shopitem hot"><i class="rtag">${TAG[s.id]}</i>`) : row(s);
     const by = ids => items.filter(s => ids.includes(s.id)).map(rowT).join('');
-    $('shopTabs').innerHTML = [['sOff', 'ico ico-fire', 'Ofertas'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
+    const hw = hwActive();
+    $('shopTabs').innerHTML = (hw ? '<button data-to="sHw" class="hwtab" aria-label="Halloween">🎃</button>' : '') + [['sOff', 'ico ico-fire', 'Ofertas'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
       .map(([id, ic, t]) => `<button data-to="${id}"><i class="${ic}"></i>${t}</button>`).join('');
-    $('shopList').innerHTML = `<div class="sechead" id="sOff"><span>Ofertas</span></div>${feat}${by(['noads'])}` +
+    $('shopTabs').classList.toggle('withhw', hw);
+    $('shopList').innerHTML = (hw ? hwShopHtml() : '') + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${feat}${by(['noads'])}` +
       `<div class="sechead" id="sGem"><span>Gemas · para el Pase Pro</span></div>${by(['g1', 'g2', 'g3'])}` +
       `<div class="sechead" id="sBall"><span>Potenciadores</span></div>${by(['b1', 'b2', 'b3'])}` +
       `<div class="sechead"><span>Bolas de los mundos</span></div>${WB_KEYS.map(wrow).join('')}` +
@@ -2772,6 +2836,7 @@
     };
     $('shopTabs').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { Audio.click(); goTab(b.dataset.to); }));
     $('shopTabs').querySelector('button').classList.add('on');
+    $('shopList').querySelectorAll('button[data-hw]').forEach(b => b.addEventListener('click', () => { Audio.init(); hwBuy(b.dataset.hw); }));
     $('shopList').querySelectorAll('button[data-wb]').forEach(b => b.addEventListener('click', () => {
       const k = b.dataset.wb, cost = wbCoins(k);
       if (save.coins < cost) { toast('No tienes monedas suficientes'); return; }
@@ -2785,7 +2850,7 @@
       openShop();
     }));
     setCoins(); $('shop').classList.add('on');
-    if (focus) goTab({ gems: 'sGem', coins: 'sCoin', balls: 'sBall' }[focus] || 'sOff');
+    if (focus) goTab({ gems: 'sGem', coins: 'sCoin', balls: 'sBall', hw: 'sHw' }[focus] || 'sOff');
   }
 
   // ---------------- pase de temporada ----------------
@@ -2800,6 +2865,7 @@
     royal: { name: 'Cañón Real', css: '#ffc83d', color: 0xffc83d, metal: 0.9, rough: 0.2 },
     ice: { name: 'Cañón de Hielo', css: '#9fe6ff', color: 0x9fe6ff, metal: 0.1, rough: 0.05 },
     rainbow: { name: 'Cañón Arcoíris', css: 'conic-gradient(#ff4f6d,#ffd23f,#5fd45a,#3d9bff,#a66bff,#ff4f6d)', color: 0xffffff, metal: 0.2, rough: 0.25, map: true },
+    pumpkin: { name: 'Cañón Calabaza', css: 'linear-gradient(180deg,#ffb347,#ff7a12 55%,#a83a00)', color: 0xff7a1a, metal: 0.2, rough: 0.4, glow: 0x4a1400 },
     fire: { name: 'Cañón de Fuego', css: 'linear-gradient(180deg,#ffe066,#ff6a1a 50%,#8a1010)', color: 0xffffff, metal: 0.25, rough: 0.3, map: 'fire', glow: 0x7a1c00 },
   };
   const R = (o) => o;
@@ -2935,6 +3001,122 @@
     Audio.win(); vibe([30, 30, 60]);
     toast('¡Pase Pro activado! Ya puedes reclamar todo lo Pro que hayas alcanzado', 3200);
     openPass();
+  }
+
+  // ---------------- evento de Halloween ----------------
+  // Hasta el 1 de noviembre a las 23:59 (hora de España): mundo de 50 niveles, caramelos en las partidas,
+  // tienda de Halloween que se paga con caramelos, portada con el castillo encantado y música de miedo.
+  const HW_END = Date.UTC(2026, 10, 1, 22, 59, 59);
+  const HWL = Levels.HW || [];
+  function hwActive() { return HWL.length > 0 && (Date.now() < HW_END || (TEST_MODE && save.hwForce)); }
+  function hwState() { if (!save.hw) save.hw = { unlocked: 1 }; return save.hw; }
+  function addCandy(n) { save.candy = (save.candy || 0) + n; persist(); hwCandyChip(); document.querySelectorAll('.candyTxt').forEach(el => { el.textContent = save.candy; }); }
+  function hwLeft() {
+    const ms = Math.max(0, HW_END - Date.now()), d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
+    return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`;
+  }
+  let pumpN = 0;
+  function pumpSvg() {
+    const k = 'pk' + (++pumpN);
+    return `<svg viewBox="0 0 100 92" class="pk"><defs><radialGradient id="${k}a" cx=".42" cy=".38" r=".7"><stop offset="0" stop-color="#ffb347"/><stop offset=".6" stop-color="#ff7a12"/><stop offset="1" stop-color="#c84a00"/></radialGradient>
+      <radialGradient id="${k}b" cx=".5" cy=".5" r=".6"><stop offset="0" stop-color="#fff6a0"/><stop offset="1" stop-color="#ffb000"/></radialGradient></defs>
+      <path d="M50 10 C52 2 60 0 64 3 C58 5 55 9 55 15Z" fill="#3f8a2a" stroke="#1f4a12" stroke-width="2.5"/>
+      <ellipse cx="30" cy="54" rx="24" ry="32" fill="url(#${k}a)" stroke="#5a2400" stroke-width="3"/><ellipse cx="70" cy="54" rx="24" ry="32" fill="url(#${k}a)" stroke="#5a2400" stroke-width="3"/>
+      <ellipse cx="50" cy="54" rx="22" ry="34" fill="url(#${k}a)" stroke="#5a2400" stroke-width="3"/>
+      <path d="M32 44 L42 44 L37 34Z M58 44 L68 44 L63 34Z" fill="url(#${k}b)" stroke="#5a2400" stroke-width="2"/>
+      <path d="M28 60 Q50 80 72 60 L66 63 L61 59 L55 65 L50 60 L45 65 L39 59 L34 63Z" fill="url(#${k}b)" stroke="#5a2400" stroke-width="2"/>
+      <ellipse cx="40" cy="30" rx="7" ry="4" fill="#fff" opacity=".35" transform="rotate(-25 40 30)"/></svg>`;
+  }
+  // botones del evento: calabaza de la portada y fila «Mundos · Club · Halloween» del mapa
+  function hwUi() {
+    const on = hwActive();
+    const tp = $('hwPump'); if (tp) { tp.hidden = !on; if (on && !tp.__svg) { tp.__svg = 1; tp.querySelector('.pkw').innerHTML = pumpSvg(); } }
+    const nb = $('navHw'); if (nb) { nb.hidden = !on; if (on && !nb.__svg) { nb.__svg = 1; nb.querySelector('.pkw').innerHTML = pumpSvg(); } }
+    document.querySelectorAll('.hwcdTxt').forEach(el => { el.textContent = hwLeft(); });
+    document.querySelectorAll('.candyTxt').forEach(el => { el.textContent = save.candy || 0; });
+  }
+  setInterval(() => { if (document.hidden) return; const was = $('hwPump') && !$('hwPump').hidden; hwUi(); if (was && !hwActive() && G.mode === 'title') goTitle(); }, 30000);
+  function hwCandyChip() {
+    const el = $('candyChip'); if (!el) return;
+    const show = G.mode === 'play' && hwActive() && G.level && (G.level.hw || (G.candyHosts || 0) > 0 || G.candyRun > 0);
+    el.hidden = !show; if (show) el.querySelector('b').textContent = save.candy || 0;
+  }
+  // caramelo recogido en la partida (lo avisa halloween.js cuando cae o revienta el bloque que lo lleva)
+  function hwCollect(n, x, y, z) {
+    addCandy(n); G.candyRun = (G.candyRun || 0) + n;
+    floatText(x, y + 0.6, z, '+' + n + ' 🍬', '#ffd27a', 24, true);
+    spawnSprite(x, y, z, 0xffb347, 1.6, 1.2, 0.35, { add: true, alpha: 1 });
+    Audio.coin(); vibe(15);
+  }
+  // mapa del mundo de Halloween
+  function goHw() {
+    if (!hwActive()) { toast('El evento de Halloween ha terminado'); G.inHw = false; goMap(); return; }
+    if (window.Bosses) window.Bosses.stop();
+    refundGolden(); $('btnFinish').hidden = true;
+    G.inHw = true; G.hwWorld = false; G.mode = 'map'; G.paused = false; $('hud').classList.remove('on');
+    const h = hwState();
+    loadDemo(HWL[Math.min(h.unlocked, HWL.length) - 1].id);
+    Audio.setStyle('spooky');
+    renderHw(); setCoins(); hwUi(); show('hwmap');
+    const cur = document.querySelector('#hwList .hwlv.cur'); if (cur) cur.scrollIntoView({ block: 'center' });
+  }
+  function hwBack() { if (G.hwFrom === 'title') goTitle(); else { G.inHw = false; goMap(); } }
+  const HW_BOSS_ICO = ['🏴‍☠️', '🧟', '🧌', '👻', '🧛'];
+  function renderHw() {
+    const hp = document.querySelector('#hwmap .hwhead .pkw'); if (hp && !hp.__svg) { hp.__svg = 1; hp.innerHTML = pumpSvg(); }
+    const h = hwState(), all = TEST_MODE && save.testAll, got = HWL.filter(l => (save.stars[l.id] || 0) > 0).length;
+    $('hwProg').textContent = got; $('hwBar').style.width = (100 * got / HWL.length) + '%';
+    let html = '';
+    for (let z = 0; z < 5; z++) {
+      const zl = HWL.filter(l => l.zone === z), open = all || zl[0].pos <= h.unlocked;
+      html += `<div class="hwsec ${open ? '' : 'lk'}"><h3>${open ? '' : '🔒 '}${zl[0].zoneName}<small>niveles ${z * 10 + 1}-${z * 10 + 10}</small></h3><div class="hwgrid">`;
+      for (const l of zl) {
+        const st = save.stars[l.id] || 0, un = all || l.pos <= h.unlocked, cur = l.pos === h.unlocked && !st;
+        const stars = st ? '<span class="s">' + '★'.repeat(st) + '☆'.repeat(3 - st) + '</span>' : '';
+        if (l.boss) html += `<button class="hwlv boss ${un ? '' : 'lk'} ${cur ? 'cur' : ''}" data-id="${l.id}"><span>${un ? HW_BOSS_ICO[z] : '🔒'}</span>JEFE${stars}</button>`;
+        else html += `<button class="hwlv ${un ? '' : 'lk'} ${cur ? 'cur' : ''} ${l.hard ? 'hard' : ''}" data-id="${l.id}">${un ? l.pos : '🔒'}${stars}</button>`;
+      }
+      html += '</div></div>';
+    }
+    $('hwList').innerHTML = html;
+    $('hwList').querySelectorAll('.hwlv').forEach(b => b.addEventListener('click', () => {
+      Audio.click();
+      const L = byId(+b.dataset.id);
+      if (b.classList.contains('lk')) { toast(L.boss ? 'Supera los niveles de la zona para llegar al jefe' : 'Supera el nivel anterior para abrir este'); return; }
+      openPre(L.id);
+    }));
+  }
+  // tienda de Halloween: se paga con caramelos
+  const HW_SHOP = [
+    { id: 'hskin', ic: '🎃', name: 'Cañón Calabaza', desc: 'Cañón exclusivo de Halloween', price: 400, tag: 'EXCLUSIVO', owned: () => save.skins.owned.includes('pumpkin'), grant: () => grant({ skin: 'pumpkin' }) },
+    { id: 'hchest', ic: '🧰', name: 'Cofre embrujado', desc: 'Monedas, bolas y gemas al azar', price: 250, chest: true },
+    { id: 'hav', ic: '🧛', name: 'Avatares de Halloween', desc: 'Vampiro, bruja, fantasma, calabaza, calavera y araña para tu perfil', price: 80, owned: () => !!save.hwAvatars, grant: () => { save.hwAvatars = true; return ['avatares de Halloween']; } },
+    { id: 'hgold', ic: '✨', name: 'Bola dorada', desc: 'Atraviesa la estructura de lado a lado', price: 220, grant: () => grant({ golden: 1 }) },
+    { id: 'hbomb', ic: '💣', name: 'Pack de 3 bombas', desc: 'Para cualquier nivel', price: 120, grant: () => grant({ bomb: 3 }) },
+    { id: 'hrain', ic: '🌈', name: '2 bolas arcoíris', desc: 'Toman el color del primer bloque que tocan', price: 140, grant: () => grant({ rainbow: 2 }) },
+    { id: 'hgems', ic: '💎', name: '10 gemas', desc: 'Para el Pase Pro', price: 300, grant: () => grant({ gems: 10 }) },
+    { id: 'hcoins', ic: '🪙', name: '500 monedas', desc: '', price: 90, grant: () => grant({ coins: 500 }) },
+  ];
+  function hwShopHtml() {
+    const row = it => { const own = it.owned && it.owned();
+      return `<div class="hwitem"><span class="ic">${it.ic}</span><div><b>${it.name}${it.tag ? `<span class="tag2">${it.tag}</span>` : ''}</b>${it.desc ? `<small>${it.desc}</small>` : ''}</div>` +
+        (own ? '<span class="hwown">✔</span>' : `<button class="hwbuy" data-hw="${it.id}">🍬 ${it.price}</button>`) + '</div>'; };
+    return `<div class="hwshoptop" id="sHw"><div><b>🎃 Tienda de Halloween</b><small><span>Hasta el 1 de noviembre</span> · <span class="hwcdTxt">${hwLeft()}</span> · <span>se paga con caramelos</span></small></div><span class="hwcandy">🍬 <span class="candyTxt">${save.candy || 0}</span></span></div>` + HW_SHOP.map(row).join('');
+  }
+  function hwBuy(id) {
+    const it = HW_SHOP.find(x => x.id === id); if (!it) return;
+    if ((save.candy || 0) < it.price) { toast(`Te faltan ${it.price - (save.candy || 0)} caramelos. Los consigues en las partidas`); return; }
+    save.candy -= it.price;
+    if (it.chest) {
+      const r = { coins: 250 + Math.floor(Math.random() * 6) * 100, bomb: 1 + (Math.random() < 0.5 ? 1 : 0), gems: 3 + Math.floor(Math.random() * 6) };
+      if (Math.random() < 0.5) r.rainbow = 1; if (Math.random() < 0.25) r.golden = 1;
+      grant(r); persist(); setCoins(); $('shop').classList.remove('on');
+      openChestFX('epic', r, () => openShop('hw'));
+      return;
+    }
+    const got = it.grant(); persist(); setCoins(); Audio.coin(); vibe(20);
+    toast('¡Conseguido!' + (got && got.length ? ' ' + got.join(', ') : ''));
+    const sc = $('shopList').scrollTop; openShop(); $('shopList').scrollTop = sc;
   }
 
   // ---------------- nivel de jugador, misiones y amigos ----------------
@@ -3441,7 +3623,13 @@
 
   // ---------------- botones ----------------
   const on = (id, fn) => $(id).addEventListener('click', () => { Audio.init(); Audio.click(); fn(); });
-  on('btnPlay', () => { goMap(); if (save.unlocked === 1 && !save.stars[1]) openPre(1); else maybeAutoDaily(); });
+  on('hwPump', () => { G.hwFrom = 'title'; goHw(); });
+  on('navHw', () => { G.hwFrom = 'map'; goHw(); });
+  on('navWorlds', () => { G.inHw = false; if (!$('map').classList.contains('on')) goMap(); const cur = document.querySelector('#mapList .lv.cur'); if (cur) cur.scrollIntoView({ block: 'center', behavior: 'smooth' }); });
+  on('navClub', () => toast('Los clubes llegan muy pronto: expedición semanal, jefe colosal y liga del fin de semana', 3200));
+  on('hwBack', hwBack);
+  on('hwShop', () => openShop('hw'));
+  on('btnPlay', () => { G.inHw = false; goMap(); if (save.unlocked === 1 && !save.stars[1]) openPre(1); else maybeAutoDaily(); });
   on('btnDaily', () => openDaily(null));
   on('dX', () => { if (!$('dX').hidden) closeDaily(G.mode === 'title'); });   // la X cierra y te deja donde estabas
   on('btnDailyT', () => openDaily(() => { if (G.mode === 'title') goMap(); }));
@@ -3516,6 +3704,7 @@
     const L = G.level;
     goMap();
     maybeAutoDaily(() => {
+      if (L.hw) { if (L.pos < 50 && hwActive()) openPre(L.id + 1); return; }
       if (G.newBonus) { openPre(G.newBonus); return; }
       const n = L.bonus ? Math.min(save.unlocked, LEVELS.length) : L.id + 1;
       if (n <= LEVELS.length) openPre(n);
@@ -3590,6 +3779,7 @@
     if (open('settings')) { $('settings').classList.remove('on'); return true; }
     if (open('missions')) { G.mode === 'title' ? goTitle() : goMap(); return true; }
     if (open('social')) { goTitle(); return true; }
+    if (open('hwmap')) { hwBack(); return true; }
     if (open('pre')) { $('pre').classList.remove('on'); if (G.mode !== 'map') goMap(); return true; }
     if (G.mode === 'play') {
       if (open('pause')) { G.paused = false; hideAll(); return true; }
@@ -3617,8 +3807,8 @@
   // para que el desplazamiento vaya fluido en móviles modestos
   let scrollBusy = 0, liteN = 0;
   const busy = () => { scrollBusy = performance.now() + 350; };
-  for (const id of ['mapList', 'passList', 'misList']) for (const ev of ['scroll', 'touchstart', 'touchmove', 'wheel']) $(id).addEventListener(ev, busy, { passive: true });
-  const liteMenu = () => $('map').classList.contains('on') || $('pass').classList.contains('on') || $('missions').classList.contains('on');
+  for (const id of ['mapList', 'hwList', 'passList', 'misList']) for (const ev of ['scroll', 'touchstart', 'touchmove', 'wheel']) $(id).addEventListener(ev, busy, { passive: true });
+  const liteMenu = () => $('map').classList.contains('on') || $('hwmap').classList.contains('on') || $('pass').classList.contains('on') || $('missions').classList.contains('on');
   function frame(now) {
     if (manual) { last = now; requestAnimationFrame(frame); return; }
     const lite = liteMenu();
@@ -3659,6 +3849,7 @@
     for (const b of balloons) b.position.y = b.userData.y0 + Math.sin(G.t * 0.6 + b.userData.ph) * 0.6;
     seaNormal.offset.set(G.t * 0.004, G.t * 0.006);
     if (BIOMES[biome].update) BIOMES[biome].update(dt);
+    if (window.Halloween) window.Halloween.tick(G, dt);
     Weather.update(dt);
     // cámara: en menús gira despacio alrededor; jugando, fija tras el cañón con temblor
     if (G.mode === 'play') {
@@ -3669,6 +3860,9 @@
       camera.lookAt(G.camLook);
       cannonG.visible = true;
       updateCannon(dt);
+    } else if (G.mode === 'title' && G.hwWorld && window.Halloween) {
+      window.Halloween.titleCam(camera, G.t);
+      cannonG.visible = false;
     } else if (G.mode === 'title') {
       // portada: la cámara se balancea un poco delante de la estructura (la bola llega desde delante)
       titleDemo(dt);
@@ -3690,7 +3884,7 @@
   }
 
   // los jefes (bosses.js) usan estas piezas del juego
-  window.RRGame = { G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
+  window.RRGame = { hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, hwState, addCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
     stats, plState, starsTotal, countLv, LEVELS, myCode, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast,

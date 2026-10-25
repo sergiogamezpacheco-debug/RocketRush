@@ -530,9 +530,9 @@
     volcano: ['El magma funde su columna cuando revienta algo a su lado.', 'Revienta un bloque junto al magma y mira cómo sube la lava.', 'El magma no se rompe con las bolas.'],
     space: ['Los bloques flotantes no caen aunque les quites el apoyo.', 'Si cae algo encima de un flotante, baja.', 'Aquí también hay bolas congeladas y camaleones.'],
   };
-  function genLevel(n, biomeIn, extras) {
+  function genLevel(n, biomeIn, extras, salt) {
     const w = Math.floor((n - 1) / 10) + 1, pos = (n - 1) % 10 + 1, k = w - 11;
-    const look = biomeIn || GEN_BIOMES[k % 6], biome = BIOME_LIKE[look] || look, r = seeded(n * 7919 + 17), pick = a => a[Math.floor(r() * a.length)];
+    const look = biomeIn || GEN_BIOMES[k % 6], biome = BIOME_LIKE[look] || look, r = seeded(n * 7919 + 17 + (salt || 0)), pick = a => a[Math.floor(r() * a.length)];
     const hardPos = 4 + seeded(w * 31)() * 6 | 0;
     const medPos = [2, 3, 4, 5, 6, 7, 8, 9, 10].filter(p => p !== hardPos).sort((a, b) => seeded(w * 97 + a)() - seeded(w * 97 + b)()).slice(0, 4);
     const tier = pos === hardPos ? 'hard' : medPos.includes(pos) ? 'medium' : 'easy';
@@ -953,13 +953,48 @@
     l.replayCost = Math.ceil((l.maxReplay + 50) / 50) * 50;
   });
   const ALL = LEVELS.concat(BONUS);
+
+  // ---- evento de Halloween: 50 niveles en 5 zonas; el 10.º de cada zona es un jefe ----
+  // Dificultad de fácil a media-difícil (la forma sale de genLevel con otra semilla: no repite niveles del juego).
+  const HW = [];
+  const HW_ZONES = ['Calle de las calabazas', 'Cementerio maldito', 'Mansión encantada', 'Bosque de las brujas', 'Castillo del vampiro'];
+  const HW_BOSS = [['ship', 'Capitán Calavera'], ['golem', 'Gólem del cementerio'], ['pyramid', 'Faraón maldito'], ['ship', 'Galeón fantasma'], ['golem', 'Rey Vampiro']];
+  const HW_NAMES = ['Calabazar', 'Tumba vieja', 'Cripta', 'Torre hueca', 'Telaraña', 'Caldero', 'Escoba rota', 'Linterna', 'Ataúd', 'Murciélago', 'Luna llena', 'Niebla', 'Campanario', 'Verja oxidada', 'Mausoleo'];
+  const hwExtras = extrasFor('sea');
+  const HW_FIX = { 19: 1, 41: 1, 18: 2, 38: 2, 47: 2 };
+  // dificultad por zona: de fácil a media-difícil
+  const HW_TIERS = ['eeemeemee', 'emememeem', 'emmehmemm', 'memhmmehm', 'mhmmhmhmh'];                       // formas que no se quedaban quietas: otra semilla
+  for (let i = 1; i <= 50; i++) {
+    const z = Math.ceil(i / 10) - 1;
+    let l;
+    if (i % 10 === 0) {
+      const [k, nm] = HW_BOSS[z];
+      l = bossLevel(k, 'sea', 3 + z * 6);
+      Object.assign(l, { name: nm, bossName: nm, bossD: Math.min(1, z * 0.22), goal: 'Jefe de Halloween: derríbalo para abrir la siguiente zona.' });
+      l._colored = true; l.balls0 = l.balls;
+    } else {
+      for (let salt = (HW_FIX[i] || 0) * 31; ; salt += 97) {   // la primera zona, sin niveles difíciles
+        l = genLevel(111 + Math.round((i - z - 1) * 13.5), 'sea', hwExtras, 4242 + i + salt);
+        if (z > 0 || l.tier !== 'hard' || salt > 2000) break;
+      }
+      l.gid = 'hw' + i; l.name = HW_NAMES[(i * 7) % HW_NAMES.length] + ' ' + (i - z * 10);
+      l.tier = { e: 'easy', m: 'medium', h: 'hard' }[HW_TIERS[z][i - z * 10 - 1]];
+      l.goal = 'Rompe los bloques con caramelo encima para llevártelo.';
+    }
+    Object.assign(l, { id: 20000 + i, hw: true, world: 0, pos: i, zone: z, zoneName: HW_ZONES[z], biome: 'halloween', variant: 'noche', weather: null });
+    l.hard = l.tier === 'hard';
+    finalize(l);
+    if (l.boss) { l.target = 1.5; if (l.boss === 'golem') l.cannon.z = Math.min(14.5, l.cannon.z + 0.8); }
+    HW.push(l);
+  }
+  ALL.push(...HW);
   const byId = id => ALL.find(l => l.id === id);
 
   // para el afinador: cambia bolas y objetivo de un nivel
   function retune(l, nb, target) {
     if (l.bonus) { l.target = target; l.balls = balancedBalls(l, nb); l.nb = l.balls.length; return; } l.nb = nb; l.target = target; l.balls = l.balls0 && l.balls0.length >= nb ? l.balls0.slice(0, nb) : (l.balls0 || '') + autoBalls(l, nb - (l.balls0 || '').length); }
 
-  const Levels = { HARD, MEDIUM, GEN_BIOMES, VARIANTS, LEVELS, BONUS, WORLDS, ALL, byId, grid, box3, plank, pillar, retune, worldInfo, CLASSIC, FRESH, DEBUT };
+  const Levels = { HARD, MEDIUM, GEN_BIOMES, VARIANTS, LEVELS, BONUS, WORLDS, ALL, HW, HW_ZONES, byId, grid, box3, plank, pillar, retune, worldInfo, CLASSIC, FRESH, DEBUT };
   if (typeof module !== 'undefined' && module.exports) module.exports = Levels;
   else root.Levels = Levels;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
