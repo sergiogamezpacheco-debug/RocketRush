@@ -360,7 +360,7 @@ Todo el evento se apaga solo al acabar el plazo: `HW_END` en `src/game3d.js`. Pa
   - Relámpagos cada 5 s, con destello y trueno.
   - El pájaro es una **bruja en escoba** que se ríe y el velero es un **galeón pirata de velas negras**. Al darles se ganan 2 bolas, igual que siempre.
 - **Bloques de caramelo 🍬** (`save.candy`):
-  - Durante el evento, algunos bloques que dan la cara al cañón (4 en los niveles de Halloween y 2 en los normales) son de caramelo. Llevan rayas blancas en espiral sobre su color, así que no pierden su color, y un brillo.
+  - Solo en los niveles del mundo de Halloween (no en los mundos normales): 4 bloques que dan la cara al cañón son de caramelo. Llevan rayas blancas en espiral sobre su color, así que no pierden su color, y un brillo.
   - **Caramelo envuelto:** lazos a los lados, da 1 caramelo.
   - **Bastón:** un bastón de caramelo colgado del borde, da 2.
   - Si el bloque revienta o cae, el caramelo vuela al contador de arriba.

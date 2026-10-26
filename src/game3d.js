@@ -1492,7 +1492,8 @@
     G.candies = []; G.candyHosts = 0;
     for (const b of G.sim.blocks) blockView(b.userData);
     syncView(0);
-    if (window.Halloween && hwActive() && G.level && !G.demo && !G.level.boss) window.Halloween.decorate(G, G.level.hw ? 4 : 2);
+    // bloques de caramelo: solo en los niveles del mundo de Halloween (no en los mundos normales)
+    if (window.Halloween && hwActive() && G.level && G.level.hw && !G.demo && !G.level.boss) window.Halloween.decorate(G, 4);
   }
   // la pieza que se ve de un bloque (también los que aparecen durante la partida)
   function blockView(d) {
