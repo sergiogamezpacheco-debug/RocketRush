@@ -359,14 +359,19 @@ Todo el evento se apaga solo al acabar el plazo: `HW_END` en `src/game3d.js`. Pa
   - Castillo, islotes con tumbas, árboles muertos, calabazas iluminadas, niebla morada y plataforma con farolillos de calabaza.
   - Relámpagos cada 5 s, con destello y trueno.
   - El pájaro es una **bruja en escoba** que se ríe y el velero es un **galeón pirata de velas negras**. Al darles se ganan 2 bolas, igual que siempre.
-- **Caramelos 🍬** (`save.candy`):
-  - Durante el evento hay bastones de caramelo y caramelos encima de algunos bloques: 4 en los niveles de Halloween y 2 en los normales. Si el bloque revienta o cae, el caramelo es tuyo.
+- **Bloques de caramelo 🍬** (`save.candy`):
+  - Durante el evento, algunos bloques que dan la cara al cañón (4 en los niveles de Halloween y 2 en los normales) son de caramelo. Llevan rayas blancas en espiral sobre su color, así que no pierden su color, y un brillo.
+  - **Caramelo envuelto:** lazos a los lados, da 1 caramelo.
+  - **Bastón:** un bastón de caramelo colgado del borde, da 2.
+  - Si el bloque revienta o cae, el caramelo vuela al contador de arriba.
+  - La primera vez que aparecen, Cubi los señala y los explica.
   - Superar un nivel de Halloween da 3 caramelos más 2 por estrella; un jefe da 25.
 - **Tienda de Halloween** (pestaña 🎃): se paga con caramelos.
   - Cañón Calabaza, cofre embrujado y avatares de Halloween para el perfil (vampiro, bruja, fantasma, calabaza, calavera y araña).
   - Bola dorada, 3 bombas, 2 arcoíris, 10 gemas y 500 monedas.
 - **Pruebas:**
   - `python3 tools/hwflow.py`: portada, mapa, partida con caramelos, victoria y tienda.
+  - `python3 tools/candyflow.py`: el consejo de los bloques de caramelo y el caramelo que vuela al contador.
   - `node tools/hwcheck.js`: comprueba que los 50 niveles se quedan quietos sin disparar.
 
 ## Tutorial con Cubi
@@ -385,6 +390,6 @@ Todo el evento se apaga solo al acabar el plazo: `HW_END` en `src/game3d.js`. Pa
   10. Tu camino.
 - **Qué obliga a tocar:** solo lo que lleva a jugar. Lo demás se pasa tocando en cualquier sitio, y siempre se puede «Saltar tutorial».
 - **Racha diaria:** no se abre sola mientras dura la primera parte.
-- **Consejos de primera vez:** la primera vez que abres la tienda, el pase, las misiones, los amigos, la racha diaria, el evento de Halloween o un jefe, Cubi da un consejo corto. Los bloques nuevos tienen su propia tarjeta y no salen aquí.
+- **Consejos de primera vez:** los bloques de caramelo (en la primera partida que los tenga), y la primera vez que abres la tienda, el pase, las misiones, los amigos, la racha diaria, el evento de Halloween o un jefe, Cubi da un consejo corto. Los bloques nuevos tienen su propia tarjeta y no salen aquí.
 - **Jugadores de antes:** quien ya había jugado no lo ve. En Ajustes está **«Ver el tutorial otra vez»**.
 - **Pruebas:** las pruebas automáticas no lo ven (navegador automatizado). `python3 tools/tutflow.py` lo recorre entero, también en inglés.

@@ -13,7 +13,7 @@
   const dimOpen = () => !!document.querySelector('.screen.dim.on') || on('chestOpen') || on('ad') || ($('langPick') && !$('langPick').hidden);
 
   // ---------- estado guardado ----------
-  const TIP_KEYS = ['shop', 'pass', 'missions', 'social', 'daily', 'hw', 'boss'];
+  const TIP_KEYS = ['candy', 'shop', 'pass', 'missions', 'social', 'daily', 'hw', 'boss'];
   function st() {
     const s = X.save;
     if (!s.tut) {
@@ -46,7 +46,22 @@
     { when: mapReady, target: () => ['#mapList .lv.cur'], scroll: '#mapList .lv.cur', point: true, last: true, title: 'Tu camino', text: 'Cada mundo tiene sus niveles y un jefe al final. Toca el siguiente nivel cuando quieras seguir.' },
   ];
   const PLAY0 = 5, MAP0 = 7;
+  // rectángulo en pantalla de un bloque de caramelo (para señalarlo)
+  function candyRect() {
+    const G = X.G, c = G.candies && G.candies[0]; if (!c || !window.THREE) return null;
+    const host = G.meshes[c.id]; if (!host) return null;
+    const b = G.sim && G.sim.blocks[c.id], d = b && b.userData; if (!d) return null;
+    const box = new THREE.Box3(new THREE.Vector3(-d.w / 2, -d.h / 2, -d.d / 2).add(b.position), new THREE.Vector3(d.w / 2, d.h / 2, d.d / 2).add(b.position)), p = new THREE.Vector3();
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (let i = 0; i < 8; i++) {
+      p.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(X.camera);
+      const sx = (p.x * 0.5 + 0.5) * innerWidth, sy = (-p.y * 0.5 + 0.5) * innerHeight;
+      x0 = Math.min(x0, sx); y0 = Math.min(y0, sy); x1 = Math.max(x1, sx); y1 = Math.max(y1, sy);
+    }
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
   const TIPS = {
+    candy: { when: () => playReady() && X.G.sim && X.G.sim.state === 'play' && X.G.candies && X.G.candies.length > 0 && X.hw && X.hw.active(), rect: candyRect, point: true, title: 'Bloques de caramelo', text: 'Durante Halloween, los bloques con rayas llevan caramelos: el del bastón da 2 y el del envoltorio, 1. Si revientan o se caen, son tuyos. Gástalos en la tienda de Halloween.' },
     shop: { when: () => on('shop'), target: () => ['#shopTabs'], title: 'La tienda', text: 'Compra gemas, monedas y potenciadores. Durante los eventos aparece un apartado especial con sus propios premios.' },
     pass: { when: () => on('pass') && !dimOpen(), target: () => ['#pass .passhead'], title: 'Pase de temporada', text: 'Cada estrella que ganas suma al pase y desbloquea premios. Con el Pase Pro te llevas también los de la columna dorada.' },
     missions: { when: () => on('missions') && !dimOpen(), target: () => ['#misList .mcard'], title: 'Misiones', text: 'Cumple misiones para ganar experiencia, monedas y gemas. Cuando una esté lista, toca COBRAR.' },
@@ -95,6 +110,7 @@
   function hide() { cur = null; root.hidden = true; }
   // dónde está lo que se señala (unión de varios elementos)
   function targetRect(step) {
+    if (step.rect) return step.rect();
     if (!step.target) return null;
     const list = step.target();
     let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, ok = false;
@@ -188,7 +204,10 @@
       // paso obligatorio cumplido, paso fuera de su sitio o consejo de tiempo
       if ((step.must || step.aim) && step.must()) { next(); return; }
       if (step.auto && now - cur.t0 > step.auto * 1000) { next(); return; }
-      if (!step.when() && !(step.must && step.must())) { root.hidden = true; return; }
+      if (!step.when() && !(step.must && step.must())) {
+        if (cur.kind === 'tip') { hide(); return; }       // el consejo ya no pinta nada aquí: saldrá la próxima vez
+        root.hidden = true; return;
+      }
       root.hidden = false;
       if (now > blinkAt) { img.src = cubiImg('blink'); setTimeout(() => { if (cur) img.src = cubiImg('normal'); }, 140); blinkAt = now + 2200 + Math.random() * 2500; }
       layout();
@@ -206,7 +225,7 @@
     for (const k of TIP_KEYS) {
       if (s.tips[k]) continue;
       const tp = TIPS[k];
-      if (tp.when() && (!tp.target || targetRect(tp))) { show(tp, 'tip', k); return; }
+      if (tp.when() && (!(tp.target || tp.rect) || targetRect(tp))) { show(tp, 'tip', k); return; }
     }
   }
   requestAnimationFrame(tick);

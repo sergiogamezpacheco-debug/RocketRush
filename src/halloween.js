@@ -361,18 +361,49 @@
     for (const s of [-1, 1]) { const e = mesh(new T.ConeGeometry(0.16, 0.22, 8), m, s * 0.33, 0, 0); e.rotation.z = s * Math.PI / 2; g.add(e); }
     return g;
   }
-  // pone caramelos encima de algunos bloques: cuando el bloque revienta o cae, el caramelo es tuyo
+  // Bloques de caramelo: durante el evento, algunos bloques que dan la cara al cañón se vuelven caramelos
+  // (rayas blancas en espiral sobre su color, con brillo). Dos tipos: «caramelo» (lazos de envoltorio a los lados, 1 🍬)
+  // y «bastón» (un bastón de caramelo colgado del borde de delante, 2 🍬). Si el bloque revienta o cae, son tuyos.
+  const stripeTex = {};
+  function candyStripes(c) {
+    if (stripeTex[c]) return stripeTex[c];
+    const base = '#' + (H.COL[c] || 0xffffff).toString(16).padStart(6, '0');
+    return (stripeTex[c] = H.canvasTex(256, 256, (g) => {
+      g.fillStyle = base; g.fillRect(0, 0, 256, 256); g.fillStyle = '#ffffff';
+      for (let k = -4; k < 8; k++) { g.beginPath(); g.moveTo(k * 64, 0); g.lineTo(k * 64 + 26, 0); g.lineTo(k * 64 + 26 - 256, 256); g.lineTo(k * 64 - 256, 256); g.fill(); }
+      const gr = g.createLinearGradient(0, 0, 256, 256); gr.addColorStop(0, 'rgba(255,255,255,.35)'); gr.addColorStop(0.5, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+    }, true));
+  }
+  const sparkMat = new T.SpriteMaterial({ map: H.TEX.soft, color: 0xffffff, transparent: true, depthWrite: false, blending: T.AdditiveBlending });
+  function hangingCane(w, h, d) {
+    const s = Math.min(w, h), x = w * 0.3, zf = d / 2 + 0.07 * s;
+    const p = new T.CurvePath();
+    p.add(new T.LineCurve3(new T.Vector3(x, -h * 0.18, zf), new T.Vector3(x, h * 0.48, zf)));
+    p.add(new T.QuadraticBezierCurve3(new T.Vector3(x, h * 0.48, zf), new T.Vector3(x, h * 0.5 + 0.22 * s, zf - 0.05 * s), new T.Vector3(x, h * 0.5 + 0.08 * s, zf - 0.26 * s)));
+    p.add(new T.LineCurve3(new T.Vector3(x, h * 0.5 + 0.08 * s, zf - 0.26 * s), new T.Vector3(x, h * 0.5 - 0.02 * s, zf - 0.3 * s)));
+    return new T.Mesh(new T.TubeGeometry(p, 40, 0.075 * s, 10, false), MAT.cane);
+  }
   function decorate(G, n) {
     const sim = G.sim; G.candies = []; G.candyHosts = 0; if (!sim) return;
-    const cand = sim.blocks.filter(b => b.userData.c && !b.userData.float).sort((a, b) => b.position.y - a.position.y);
-    if (!cand.length) return;
-    const pick = [];
-    for (let i = 0; i < n && cand.length; i++) { const k = Math.min(cand.length - 1, Math.floor(i * cand.length / n + Math.random() * cand.length / (n * 2))); pick.push(cand.splice(k, 1)[0]); }
-    pick.forEach((b, i) => {
-      const host = G.meshes[b.userData.id]; if (!host) return;
-      const cane = i % 2 === 0, c = cane ? candyCane() : wrapped([0xff7a1a, 0xa66bff, 0x5fd45a][i % 3]);
-      c.position.set(0, 0.85, 0.2); c.userData.candy = true; c.userData.ph = i; host.add(c);
-      G.candies.push({ id: b.userData.id, mesh: c, n: cane ? 2 : 1 });
+    const ok = b => { const d = b.userData; return d.c && d.kind === 'block' && !d.stripe && !d.bomb && !d.cham && !d.float && !d.ice && G.meshes[d.id]; };
+    const blocks = sim.blocks.filter(ok);
+    // solo los que dan la cara al cañón (no hay nada delante), repartidos por toda la estructura
+    const all = sim.blocks.filter(b => b.userData.alive !== false);
+    let front = blocks.filter(b => !all.some(o => o !== b && o.position.z > b.position.z + 0.3 && Math.abs(o.position.x - b.position.x) < 0.5 && Math.abs(o.position.y - b.position.y) < 0.5));
+    if (!front.length) front = blocks;
+    front.sort((a, b) => (a.position.y - b.position.y) || (a.position.x - b.position.x));
+    const idx = [...new Set(Array.from({ length: Math.min(n, front.length) }, (_, i) => Math.round((i + 0.5) / n * (front.length - 1) + (Math.random() - 0.5) * front.length / (n * 2))))];
+    idx.forEach((k, i) => {
+      const b = front[Math.max(0, Math.min(front.length - 1, k))], d = b.userData, host = G.meshes[d.id];
+      if (!host || G.candies.some(c => c.id === d.id)) return;
+      let body = null; host.traverse(o => { if (!body && o.isMesh && o.material && !o.material.transparent) body = o; });
+      if (body) { body.material = body.material.clone(); body.material.map = candyStripes(d.c); body.material.color.set(0xffffff); body.material.needsUpdate = true; }
+      const deco = new T.Group(), cane = i % 2 === 0, sz = Math.min(d.w, d.h);
+      if (cane) deco.add(hangingCane(d.w, d.h, d.d));
+      else for (const s of [-1, 1]) { const tw = mesh(new T.ConeGeometry(0.2 * sz, 0.32 * sz, 10), std(H.COL[d.c], { roughness: 0.25, emissive: H.COL[d.c], emissiveIntensity: 0.15 }), s * (d.w / 2 + 0.1 * sz), 0, 0); tw.rotation.z = s * Math.PI / 2; tw.scale.z = 0.55; deco.add(tw); }
+      const sp = new T.Sprite(sparkMat.clone()); sp.scale.set(0.5 * sz, 0.5 * sz, 1); sp.position.set(-d.w * 0.3, d.h * 0.3, d.d / 2 + 0.05); deco.add(sp); deco.userData.spark = sp;
+      deco.userData.ph = i * 1.7; host.add(deco);
+      G.candies.push({ id: d.id, mesh: deco, n: cane ? 2 : 1 });
     });
     G.candyHosts = G.candies.length;
     if (H.chip) H.chip();
@@ -408,7 +439,7 @@
     const sim = G.sim;
     for (let i = G.candies.length - 1; i >= 0; i--) {
       const c = G.candies[i];
-      c.mesh.rotation.y = G.t * 1.6 + c.mesh.userData.ph; c.mesh.position.y = 0.85 + Math.sin(G.t * 3 + c.mesh.userData.ph) * 0.08;
+      const sp = c.mesh.userData.spark; if (sp) { const k = Math.max(0, Math.sin(G.t * 2.4 + c.mesh.userData.ph)); sp.material.opacity = k * k; sp.material.rotation = G.t; }
       if (G.mode !== 'play' || !sim || G.demo) continue;
       const b = sim.blocks[c.id], d = b && b.userData;
       const gone = !d || d.alive === false || d.destroyed || (d.hy != null && b.position.y < d.hy - 0.45);

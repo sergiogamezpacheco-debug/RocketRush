@@ -3068,6 +3068,17 @@
   function hwCollect(n, x, y, z) {
     addCandy(n); G.candyRun = (G.candyRun || 0) + n;
     floatText(x, y + 0.6, z, '+' + n + ' 🍬', '#ffd27a', 24, true);
+    // el caramelo vuela hasta el contador de arriba
+    try {
+      const v = new THREE.Vector3(x, y, z).project(camera), chip = $('candyChip');
+      if (chip && !chip.hidden) {
+        const cr = chip.getBoundingClientRect(), sx = (v.x * 0.5 + 0.5) * innerWidth, sy = (-v.y * 0.5 + 0.5) * innerHeight;
+        const el = document.createElement('span'); el.className = 'candyfly'; el.textContent = '🍬'; el.style.left = (sx - 14) + 'px'; el.style.top = (sy - 14) + 'px';
+        document.body.appendChild(el); void el.offsetWidth;
+        el.style.transform = `translate(${cr.left + 10 - sx}px,${cr.top + 4 - sy}px) scale(.7)`;
+        setTimeout(() => { el.remove(); chip.classList.remove('bump'); void chip.offsetWidth; chip.classList.add('bump'); }, 650);
+      }
+    } catch (e) { /* sin animación */ }
     spawnSprite(x, y, z, 0xffb347, 1.6, 1.2, 0.35, { add: true, alpha: 1 });
     Audio.coin(); vibe(15);
   }

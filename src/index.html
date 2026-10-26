@@ -908,6 +908,8 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
 @keyframes tuRing{50%{box-shadow:0 0 26px 8px rgba(255,230,128,.95),inset 0 0 12px rgba(255,230,128,.6)}}
 @keyframes tuTalk{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-14px) scale(1.06,.94)}60%{transform:translateY(0) scale(.96,1.05)}100%{transform:none}}
 @keyframes tuIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+.candyfly{position:fixed;z-index:6;font-size:28px;pointer-events:none;transition:transform .65s cubic-bezier(.5,-.4,.7,1);filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
+.candychip.bump{animation:cbump .35s ease-out}@keyframes cbump{40%{transform:scale(1.25)}}
 </style>
 </head>
 <body>
