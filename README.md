@@ -368,3 +368,23 @@ Todo el evento se apaga solo al acabar el plazo: `HW_END` en `src/game3d.js`. Pa
 - **Pruebas:**
   - `python3 tools/hwflow.py`: portada, mapa, partida con caramelos, victoria y tienda.
   - `node tools/hwcheck.js`: comprueba que los 50 niveles se quedan quietos sin disparar.
+
+## Tutorial con Cubi
+**Cubi** es un bloque amarillo del juego de verdad: se dibuja una vez con el mismo 3D (forma, brillo y cara) mediante `RRGame.cubiFrames()`. Explica cada cosa con un bocadillo, da un botecito al hablar y parpadea. Lo que señala queda iluminado y lo demás oscurecido; una mano blanca indica dónde tocar (`src/tutorial.js`).
+
+- **Primera vez** (10 pasos):
+  1. Bienvenida.
+  2. Recompensas: racha, pase y misiones.
+  3. Amigos, tienda y ajustes.
+  4. **¡A DEMOLER!** (hay que tocarlo).
+  5. Ficha del nivel 1: **¡A DEMOLER!** (hay que tocarlo).
+  6. **Apunta y dispara**: la mano dibuja el gesto y espera al primer disparo.
+  7. El porcentaje de la barra.
+  8. Al volver al mapa: nivel de jugador y misiones.
+  9. Modos de juego (Mundos, Club y eventos).
+  10. Tu camino.
+- **Qué obliga a tocar:** solo lo que lleva a jugar. Lo demás se pasa tocando en cualquier sitio, y siempre se puede «Saltar tutorial».
+- **Racha diaria:** no se abre sola mientras dura la primera parte.
+- **Consejos de primera vez:** la primera vez que abres la tienda, el pase, las misiones, los amigos, la racha diaria, el evento de Halloween o un jefe, Cubi da un consejo corto. Los bloques nuevos tienen su propia tarjeta y no salen aquí.
+- **Jugadores de antes:** quien ya había jugado no lo ve. En Ajustes está **«Ver el tutorial otra vez»**.
+- **Pruebas:** las pruebas automáticas no lo ven (navegador automatizado). `python3 tools/tutflow.py` lo recorre entero, también en inglés.

@@ -3003,6 +3003,29 @@
     openPass();
   }
 
+  // ---------------- Cubi, la mascota del tutorial ----------------
+  // Es un bloque amarillo del juego de verdad: se dibuja una vez con el mismo 3D (forma, brillo y cara) y se guarda como imagen.
+  let cubiCache = null;
+  function cubiFrames() {
+    if (cubiCache) return cubiCache;
+    const out = {};
+    try {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+      const r = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true, preserveDrawingBuffer: true });
+      r.setClearColor(0x000000, 0); r.outputColorSpace = renderer.outputColorSpace; r.toneMapping = renderer.toneMapping; r.toneMappingExposure = renderer.toneMappingExposure;
+      const sc = new THREE.Scene(); sc.environment = scene.environment;
+      sc.add(new THREE.HemisphereLight(0xffffff, 0xb08a5a, 2.1)); const dl = new THREE.DirectionalLight(0xfff4e0, 3.2); dl.position.set(3, 5, 6); sc.add(dl);
+      const g = new THREE.Group(); g.add(new THREE.Mesh(roundedGeo(1, 1, 1), jelly.y));
+      const fm = new THREE.MeshBasicMaterial({ map: FACES.y.normal, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+      const face = new THREE.Mesh(faceGeo, fm); face.scale.set(0.92, 0.92, 1); face.position.z = 0.506; g.add(face);
+      g.rotation.set(0.14, -0.32, 0); sc.add(g);
+      const cam = new THREE.PerspectiveCamera(30, 1, 0.1, 50); cam.position.set(0, 0.12, 3.1); cam.lookAt(0, 0, 0);
+      for (const mood of ['normal', 'blink', 'scared']) { fm.map = FACES.y[mood]; fm.needsUpdate = true; r.render(sc, cam); out[mood] = cv.toDataURL('image/png'); }
+      r.dispose(); if (r.forceContextLoss) r.forceContextLoss();
+    } catch (e) { /* sin WebGL: el tutorial usa un cubo dibujado */ }
+    return (cubiCache = out);
+  }
+
   // ---------------- evento de Halloween ----------------
   // Hasta el 1 de noviembre a las 23:59 (hora de España): mundo de 50 niveles, caramelos en las partidas,
   // tienda de Halloween que se paga con caramelos, portada con el castillo encantado y música de miedo.
@@ -3595,6 +3618,7 @@
   // se abre sola una vez al día: al entrar al juego (portada, a los 1,5 s), o si no, al llegar al mapa. Nunca a mitad de partida.
   function dailyAutoDue() { return dailyEligible() && dailyStatus().st !== 'done' && dailySave().auto !== dayKey(); }
   function maybeAutoDaily(then) {
+    if (window.Tutorial && window.Tutorial.busy()) { if (then) then(); return false; }
     if (dailyAutoDue()) { dailySave().auto = dayKey(); persist(); openDaily(then || null); return true; }
     if (then) then();
     return false;
@@ -3604,7 +3628,7 @@
   function autoDailySoon() {
     clearTimeout(dailyTimer);
     dailyTimer = setTimeout(() => {
-      const busy = document.querySelector('.screen.dim.on') || $('pass').classList.contains('on') || $('ad').classList.contains('on');
+      const busy = document.querySelector('.screen.dim.on') || $('pass').classList.contains('on') || $('ad').classList.contains('on') || (window.Tutorial && window.Tutorial.busy());
       if ((G.mode === 'title' || G.mode === 'map') && !busy && dailyAutoDue()) {
         dailySave().auto = dayKey(); persist();
         Audio.special();
@@ -3884,7 +3908,7 @@
   }
 
   // los jefes (bosses.js) usan estas piezas del juego
-  window.RRGame = { hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, hwState, addCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
+  window.RRGame = { cubiFrames, openShop, goMap, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, hwState, addCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
     stats, plState, starsTotal, countLv, LEVELS, myCode, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast,

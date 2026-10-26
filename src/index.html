@@ -881,6 +881,33 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
 #title.hw .tmascot::after{content:'';position:absolute;left:50%;top:-30px;width:56px;height:45px;transform:translateX(-50%) rotate(-12deg);pointer-events:none;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 48'%3E%3Cpath d='M4 40 Q30 30 56 40 Q30 48 4 40Z' fill='%231c1028' stroke='%231a0a2e' stroke-width='3'/%3E%3Cpath d='M18 38 L28 6 L36 0 L34 10 L42 38Z' fill='%232a1840' stroke='%231a0a2e' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M20 31 L41 31' stroke='%23ff7a1a' stroke-width='5'/%3E%3C/svg%3E") center/contain no-repeat}
 #ltFlash{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(circle at 50% 18%,rgba(240,232,255,.9),rgba(190,170,255,.35) 60%,rgba(150,120,255,0));opacity:0}
+
+/* ---- tutorial con Cubi ---- */
+#tut{position:fixed;inset:0;z-index:60;pointer-events:none;font-family:inherit}
+#tut[hidden],#tut [hidden]{display:none!important}
+#tut .tu-hole{position:absolute;border-radius:20px;box-shadow:0 0 0 9999px rgba(12,6,34,.72)}
+#tut.aim .tu-hole{display:none}
+#tut.full .tu-blk{background:rgba(12,6,34,.72)}
+#tut.aim .tu-blk{display:none}
+#tut .tu-ring{position:absolute;border-radius:22px;border:4px solid #ffe680;box-shadow:0 0 18px 4px rgba(255,230,128,.85),inset 0 0 12px rgba(255,230,128,.6);animation:tuRing 1.2s ease-in-out infinite}
+#tut .tu-blk{position:absolute;pointer-events:auto}
+#tut .tu-hand{position:absolute;width:62px;height:72px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.45));transform:rotate(-18deg);transform-origin:20% 10%}
+#tut .tu-hand.tap{animation:tuTap 1s ease-in-out infinite}
+#tut .tu-path{position:absolute;height:0;border-top:4px dashed rgba(255,255,255,.8);transform-origin:0 0}
+#tut .tu-cubi{position:absolute;width:104px;height:104px;filter:drop-shadow(0 8px 6px rgba(0,0,0,.45))}
+#tut .tu-cubi img{width:100%;height:100%;display:block}
+#tut .tu-cubi.talk{animation:tuTalk .7s ease-out}
+#tut .tu-bub{position:absolute;pointer-events:auto;background:#fff;color:#2a1a40;border:4px solid #1a0a2e;border-radius:22px;padding:11px 14px 10px;font-weight:800;font-size:15px;line-height:1.3;box-shadow:0 6px 0 rgba(0,0,0,.35);text-align:left;animation:tuIn .25s ease-out}
+#tut .tu-bub::before{content:'';position:absolute;left:-14px;top:calc(50% - 11px);width:20px;height:20px;background:#fff;border-left:4px solid #1a0a2e;border-bottom:4px solid #1a0a2e;transform:rotate(45deg)}
+#tut .tu-tt{display:block;color:#7a3ad8;font-size:16px;font-weight:900;margin-bottom:2px}
+#tut .tu-ft{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:#8a7aa8}
+#tut .tu-skip{pointer-events:auto;cursor:pointer;padding:4px 2px;white-space:nowrap}
+#tut .tu-go{font-style:normal;white-space:nowrap;font-size:11.5px;background:#ffd23f;color:#5a3a00;border:2px solid #1a0a2e;border-radius:10px;padding:2px 10px;font-weight:900;margin-left:auto}
+#tut .tu-go.must{background:#ff4f6d;color:#fff}
+@keyframes tuTap{0%,100%{transform:rotate(-18deg) translate(0,0) scale(1)}50%{transform:rotate(-18deg) translate(-4px,-10px) scale(.92)}}
+@keyframes tuRing{50%{box-shadow:0 0 26px 8px rgba(255,230,128,.95),inset 0 0 12px rgba(255,230,128,.6)}}
+@keyframes tuTalk{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-14px) scale(1.06,.94)}60%{transform:translateY(0) scale(.96,1.05)}100%{transform:none}}
+@keyframes tuIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
@@ -1095,6 +1122,7 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
     <button class="btn gray small" id="sNotif">Aviso de racha: sí</button>
     <button class="btn gold small" id="sTest" hidden>Modo prueba: desbloquear todo</button>
     <div class="note" id="sTestNote" hidden>Solo para probar. Se quita al publicar el juego.</div>
+    <button class="btn gray small" id="sTut">Ver el tutorial otra vez</button>
     <button class="btn gray small" id="sReset">Borrar progreso</button>
     <button class="btn green" id="sClose">LISTO</button>
     <div class="note">Rocket Rush · versión <!--VERSION--></div>
