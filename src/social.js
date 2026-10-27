@@ -397,6 +397,7 @@
     render();
     if (tab === 'me') return;
     if (!navigator.onLine) { setNet('offline'); return; }
+    if (maint()) { loadErr = T('En mantenimiento: vuelve en un rato'); setNet('error', loadErr); render(); return; }
     busy = true; loadErr = ''; if (net !== 'online') setNet('connecting'); render();
     try {
       if (tab === 'friends') await loadFriends();
@@ -420,8 +421,11 @@
     dt = setTimeout(() => { dt = 0; sync(); }, ms || 20000);
   }
   let syncing = false;
+  // mantenimiento activado desde el panel: no se sube ni se descarga nada
+  const maint = () => !!(window.Live && window.Live.cfg.maint && window.Live.cfg.maint.on);
   async function sync() {
     if (syncing || !navigator.onLine) { if (!navigator.onLine) setNet('offline'); return; }
+    if (maint()) return;
     syncing = true;
     try {
       if (net !== 'online') setNet('connecting');
@@ -443,5 +447,32 @@
   addEventListener('offline', () => setNet('offline'));
   setTimeout(() => sync(), 2500);
 
-  window.Social = { open, dirty, sync, addByCode, render, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
+  // ---------------- códigos regalo (giftcodes/{CÓDIGO}, creados en el panel) ----------------
+  // Se lee el código y se suma 1 a «used» con la condición de que nadie lo haya cambiado entretanto (si no, se reintenta).
+  // Las reglas no dejan pasar de «max» ni canjear fuera de fecha.
+  class CodeErr extends Error { constructor(c) { super(c); this.code = c; } }
+  async function redeem(code) {
+    code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!code) throw new CodeErr('NOT_FOUND');
+    for (let i = 0; i < 4; i++) {
+      let raw;
+      try { raw = await call(`${FS}/giftcodes/${code}`); } catch (e) { if (e.status === 404 || e.status === 403) throw new CodeErr('NOT_FOUND'); throw e; }
+      const d = docOf(raw), t = Date.now();
+      if (d.start && t < d.start) throw new CodeErr('NOT_YET');
+      if (d.end && t >= d.end) throw new CodeErr('EXPIRED');
+      if (d.max && (d.used || 0) >= d.max) throw new CodeErr('USED_UP');
+      try {
+        await call(`${FS}/giftcodes/${code}?updateMask.fieldPaths=used&currentDocument.updateTime=${encodeURIComponent(raw.updateTime)}`,
+          { method: 'PATCH', body: JSON.stringify({ fields: { used: enc((d.used || 0) + 1) } }) });
+        return d;
+      } catch (e) {
+        if (e.status === 400 || e.status === 409 || /PRECONDITION|ABORTED/.test(e.code)) continue;   // otro lo canjeó a la vez: se vuelve a leer
+        if (e.status === 403) throw new CodeErr('USED_UP');
+        throw e;
+      }
+    }
+    throw new CodeErr('USED_UP');
+  }
+
+  window.Social = { open, dirty, sync, addByCode, render, redeem, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
 })();

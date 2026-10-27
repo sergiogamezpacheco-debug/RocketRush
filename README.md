@@ -393,3 +393,31 @@ Todo el evento se apaga solo al acabar el plazo: `HW_END` en `src/game3d.js`. Pa
 - **Consejos de primera vez:** los bloques de caramelo (en la primera partida que los tenga), y la primera vez que abres la tienda, el pase, las misiones, los amigos, la racha diaria, el evento de Halloween o un jefe, Cubi da un consejo corto. Los bloques nuevos tienen su propia tarjeta y no salen aquí.
 - **Jugadores de antes:** quien ya había jugado no lo ve. En Ajustes está **«Ver el tutorial otra vez»**.
 - **Pruebas:** las pruebas automáticas no lo ven (navegador automatizado). `python3 tools/tutflow.py` lo recorre entero, también en inglés.
+
+## Panel de administración y configuración en directo
+
+Web del juego y panel en **https://rocket-rush-7297c.web.app** (Firebase Hosting; carpeta `site/`, se publica sola con
+`.github/workflows/web.yml`). El panel está en **/admin** y se puede instalar en el móvil como app (menú del navegador ›
+*Añadir a pantalla de inicio*).
+
+Qué se cambia desde el panel sin publicar versión (todo va en el documento `config/live` de Firestore, que el juego lee
+al arrancar con `src/live.js` y guarda en el móvil por si no hay conexión):
+
+- **Eventos:** fechas de Halloween (encender, apagar, alargar) y bonificaciones temporales x2/x3 de monedas, experiencia
+  o caramelos, con cartel y cuenta atrás en la portada.
+- **Avisos:** regalos para todos (ventana con «Recoger», una vez por jugador) y noticias (una vez), con traducciones opcionales.
+- **Códigos regalo** (`giftcodes/{CÓDIGO}`): se canjean en Ajustes › Canjear código; con usos máximos y fechas.
+- **Jugadores:** buscar por código de amigo o nombre, cambiar nombre, poner a cero, bloquear (sale de las clasificaciones
+  y ya no puede subir su perfil) y borrar.
+- **Ajustes:** frecuencia de los anuncios entre niveles, mantenimiento (pausa amigos y clasificaciones) y versión mínima
+  (aviso «Hay una versión nueva», opcionalmente obligatorio). Cada guardado deja copia en `config/prev` (Deshacer).
+
+Puesta en marcha (una vez):
+1. Google Cloud › IAM: añadir a la cuenta de servicio el rol **Administrador de Firebase Hosting**.
+2. Firebase › Authentication › Método de acceso: activar **Correo electrónico/contraseña**; en *Usuarios* › *Agregar usuario*,
+   crear tu cuenta del panel (la contraseña solo la sabes tú).
+3. GitHub › Actions › **Administradores del panel** › *Run workflow* con ese correo.
+4. Entrar en https://rocket-rush-7297c.web.app/admin.
+
+Pruebas: `tools/liveflow.py` (el juego con la configuración en directo), `tools/adminflow.py` (el panel contra un
+Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del panel con un administrador de prueba.

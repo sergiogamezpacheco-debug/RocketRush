@@ -4,10 +4,14 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+    // administradores del panel: un documento admins/{uid} por cada uno (lo crea tools/add_admin.py desde GitHub)
+    function isAdmin() { return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
 
-    // Perfil público de cada jugador: lo lee cualquiera con sesión (amigos y clasificaciones); solo lo escribe su dueño
+    // Perfil público de cada jugador: lo lee cualquiera con sesión (amigos y clasificaciones); solo lo escribe su dueño.
+    // El panel puede corregirlo o bloquearlo: con el campo «banned» el dueño ya no puede escribir (no está en la lista).
     match /users/{uid} {
       allow read: if signedIn();
+      allow update, delete: if isAdmin();
       allow create, update: if isMe(uid)
         && request.resource.data.keys().hasOnly(['name', 'avatar', 'code', 'lang', 'country', 'stats', 'club', 'createdAt', 'updatedAt'])
         && request.resource.data.name is string && request.resource.data.name.size() <= 20
@@ -22,6 +26,7 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create: if signedIn() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid;
       allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow delete: if isAdmin();
     }
 
     // Amistades: un documento por pareja (uidA_uidB, en orden). Uno pide, el otro acepta; cualquiera de los dos la borra
@@ -43,6 +48,29 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'since'])
         && request.resource.data.status == 'accepted';
       allow delete: if signedIn() && mine();
+      allow list, delete: if isAdmin();
+    }
+
+    // Configuración en directo (eventos, regalos, avisos…): la lee el juego sin cuenta; solo la cambia el panel
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /admins/{uid} {
+      allow get: if isMe(uid);
+      allow write: if false;
+    }
+
+    // Códigos regalo: el jugador lee el suyo (sabiendo el código) y suma 1 a «used» si quedan usos y está en fecha
+    match /giftcodes/{code} {
+      allow get: if signedIn();
+      allow list, create, delete: if isAdmin();
+      allow update: if isAdmin() || (signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used'])
+        && request.resource.data.used == resource.data.get('used', 0) + 1
+        && (resource.data.get('max', 0) == 0 || resource.data.get('used', 0) < resource.data.max)
+        && (resource.data.get('start', 0) == 0 || request.time.toMillis() >= resource.data.start)
+        && (resource.data.get('end', 0) == 0 || request.time.toMillis() < resource.data.end));
     }
 
     // Todo lo demás (clubes, mundo semanal, liga): solo desde las funciones del servidor, por ahora cerrado

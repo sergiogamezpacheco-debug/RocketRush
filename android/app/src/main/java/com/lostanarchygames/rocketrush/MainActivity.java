@@ -97,6 +97,19 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** Abre un enlace fuera del juego (ficha de Play para actualizar, privacidad…). Solo https y market. */
+        @JavascriptInterface
+        public void openUrl(String url) {
+            if (url == null || !(url.startsWith("https://") || url.startsWith("market://"))) return;
+            runOnUiThread(() -> {
+                try {
+                    Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(i);
+                } catch (Exception e) { /* sin navegador ni Play */ }
+            });
+        }
+
         /** Android 13+ pide permiso para notificar. Se pregunta solo cuando el jugador toca "Avisarme". */
         @JavascriptInterface
         public void askNotifications() {

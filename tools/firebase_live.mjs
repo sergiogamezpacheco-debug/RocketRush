@@ -86,12 +86,51 @@ for (const m of ['level', 'stars', 'daily', 'wins', 'bestRun', 'bestShot', 'boss
   ok(r.s === 200, `puesto por país · ${m}` + (r.s !== 200 ? ' → ' + (/index/i.test(errOf(r)) ? 'falta el índice (o aún se está creando)' : errOf(r)) : ''), true);
 }
 
+// panel de administración: configuración en directo, códigos regalo y bloqueo de jugadores
+r = await get('config/live'); ok(r.s === 200 || r.s === 404, 'el juego lee la configuración en directo sin cuenta' + (r.s !== 200 && r.s !== 404 ? ' → ' + r.s + ' ' + errOf(r) : ''));
+r = await patch('config/zz_test', { data: '{}' }, A.tok); ok(r.s === 403, 'un jugador no puede cambiar la configuración');
+r = await patch(`admins/${A.uid}`, { on: true }, A.tok); ok(r.s === 403, 'nadie puede hacerse administrador a sí mismo');
+const SA = process.env.SA_TOKEN;
+let C = null;
+const gcode = 'ZZT' + A.uid.slice(0, 6).toUpperCase().replace(/[^A-Z0-9]/g, 'X'), gold = gcode + 'OLD';
+if (!SA) console.log('AVISO sin la cuenta de servicio no se prueba el panel de administración'), warns++;
+else {
+  C = await signUp();
+  r = await patch(`admins/${C.uid}`, { email: 'prueba', at: new Date() }, SA); ok(r.s === 200, 'dar de alta un administrador de prueba (cuenta de servicio)' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+  r = await get(`admins/${C.uid}`, C.tok); ok(r.s === 200, 'el administrador ve que lo es');
+  r = await patch('config/zz_test', { data: '{"boosts":[]}', updatedAt: new Date() }, C.tok); ok(r.s === 200, 'el administrador cambia la configuración' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+  r = await del('config/zz_test', C.tok); ok(r.s === 200, 'el administrador borra una configuración');
+  r = await patch(`giftcodes/${gcode}`, { coins: 1, max: 1, used: 0 }, A.tok); ok(r.s === 403, 'un jugador no puede crear códigos regalo');
+  r = await patch(`giftcodes/${gcode}`, { coins: 1, gems: 0, max: 1, used: 0, start: 0, end: 0, note: 'prueba' }, C.tok); ok(r.s === 200, 'el administrador crea un código regalo' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+  r = await patch(`giftcodes/${gold}`, { coins: 1, max: 0, used: 0, start: 0, end: Date.now() - 60000 }, C.tok); ok(r.s === 200, 'el administrador crea un código caducado');
+  r = await query({ from: [{ collectionId: 'giftcodes' }], limit: 5 }, A.tok); ok(r.s === 403, 'un jugador no puede ver la lista de códigos');
+  r = await get(`giftcodes/${gcode}`, B.tok); ok(r.s === 200, 'un jugador lee un código que conoce');
+  r = await patch(`giftcodes/${gcode}`, { used: 2 }, B.tok); ok(r.s === 403, 'no se pueden sumar dos usos de golpe');
+  r = await patch(`giftcodes/${gcode}`, { coins: 9999 }, B.tok); ok(r.s === 403, 'un jugador no puede cambiar el premio');
+  r = await patch(`giftcodes/${gcode}`, { used: 1 }, B.tok); ok(r.s === 200, 'canjear un código regalo' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+  r = await patch(`giftcodes/${gcode}`, { used: 2 }, A.tok); ok(r.s === 403, 'un código agotado ya no se canjea');
+  r = await patch(`giftcodes/${gold}`, { used: 1 }, A.tok); ok(r.s === 403, 'un código caducado no se canjea');
+  r = await patch(`users/${B.uid}`, { banned: true, name: 'Jugador bloqueado' }, C.tok); ok(r.s === 200, 'el administrador bloquea a un jugador' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+  r = await patch(`users/${B.uid}`, { name: 'Vuelvo' }, B.tok); ok(r.s === 403, 'un jugador bloqueado ya no puede subir su perfil');
+  r = await patch(`users/${B.uid}`, { banned: null }, C.tok); ok(r.s === 200, 'el administrador lo desbloquea');
+  r = await req(`${FS}/users/${B.uid}?updateMask.fieldPaths=banned`, { method: 'PATCH', body: JSON.stringify({ fields: {} }) }, C.tok); ok(r.s === 200, 'quitar el campo de bloqueo');
+  r = await patch(`users/${B.uid}`, { name: 'Prueba B' }, B.tok); ok(r.s === 200, 'desbloqueado, vuelve a subir su perfil' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+  r = await req(`${FS}:runAggregationQuery`, { method: 'POST', body: JSON.stringify({ structuredAggregationQuery: { structuredQuery: { from: [{ collectionId: 'users' }] }, aggregations: [{ alias: 'n', count: {} }] } }) }, C.tok);
+  ok(r.s === 200, 'el panel cuenta los jugadores' + (r.s === 200 ? ` (${r.j[0].result.aggregateFields.n.integerValue})` : ' → ' + errOf(r)));
+  for (const g of [gcode, gold]) { r = await del(`giftcodes/${g}`, C.tok); ok(r.s === 200, 'el administrador borra un código'); }
+}
+
 // limpieza: no queda nada de la prueba
 r = await del(`friendships/${pair}`, B.tok); ok(r.s === 200, 'quitar amigo');
 for (const [u, c] of [[A, codeA], [B, codeB]]) {
   await del(`codes/${c}`, u.tok); await del(`users/${u.uid}`, u.tok);
   const d = await req(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${KEY}`, { method: 'POST', body: JSON.stringify({ idToken: u.tok }) });
   ok(d.s === 200, 'borrar el jugador de prueba');
+}
+if (C) {
+  await del(`admins/${C.uid}`, SA);
+  const d = await req(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${KEY}`, { method: 'POST', body: JSON.stringify({ idToken: C.tok }) });
+  ok(d.s === 200, 'borrar el administrador de prueba');
 }
 console.log(`\n${fails ? fails + ' fallos' : 'Todo bien'}${warns ? ' · ' + warns + ' avisos' : ''}`);
 process.exit(fails ? 1 : 0);

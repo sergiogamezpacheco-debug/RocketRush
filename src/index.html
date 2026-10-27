@@ -910,6 +910,24 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
 @keyframes tuIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
 .candyfly{position:fixed;z-index:6;font-size:28px;pointer-events:none;transition:transform .65s cubic-bezier(.5,-.4,.7,1);filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
 .candychip.bump{animation:cbump .35s ease-out}@keyframes cbump{40%{transform:scale(1.25)}}
+
+/* configuración en directo: cartel de bonificaciones y ventana de avisos */
+.liveboost{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:0 auto 8px;max-width:340px}
+.liveboost[hidden]{display:none}
+.liveboost span{background:linear-gradient(170deg,#ffe27a,#ffb020);color:#4a2a00;font-weight:900;font-size:13px;border-radius:999px;padding:5px 12px;box-shadow:0 3px 0 rgba(0,0,0,.25),0 0 18px rgba(255,200,60,.6);animation:lbpulse 1.6s ease-in-out infinite}
+@keyframes lbpulse{50%{transform:scale(1.05)}}
+#liveBox{z-index:30}
+#liveBox .panel{position:relative;width:min(88vw,360px);text-align:center}
+#liveBox .xbtn[hidden]{display:none}
+.lbico{font-size:54px;line-height:1;margin:4px 0 6px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.2))}
+.lbico:empty{display:none}
+#lbTitle{margin:4px 0 0;font-size:21px;line-height:1.2}
+#lbTitle[hidden],#lbBody[hidden]{display:none}
+#lbBody{white-space:pre-line}
+.lbgift{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px}
+.lbgift span{background:rgba(255,255,255,.18);border-radius:14px;padding:8px 12px;font-weight:900;font-size:18px}
+.lbinput{width:100%;box-sizing:border-box;margin-top:12px;border:0;border-radius:16px;padding:12px;font-weight:900;font-size:22px;line-height:1;font-family:inherit;text-align:center;letter-spacing:2px;text-transform:uppercase;background:#fff;color:#2a1a55}
+.lbmsg{min-height:20px}
 </style>
 </head>
 <body>
@@ -973,6 +991,7 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
   </div>
   <button class="hwpump" id="hwPump" hidden aria-label="Halloween"><div class="pkw"></div><span class="hwcd">⏳ <span class="hwcdTxt"></span></span><b>HALLOWEEN</b></button>
   <div class="tbottom">
+    <div class="liveboost" id="liveBoost" hidden></div>
     <div class="lvbub" id="titleLv">Nivel 1</div>
     <button class="btn green tplay" id="btnPlay">¡A DEMOLER!<span class="sflame" id="streakFlame" hidden><i class="ico ico-fire"></i><b>1</b></span></button>
   </div>
@@ -1124,6 +1143,7 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
     <button class="btn gray small" id="sNotif">Aviso de racha: sí</button>
     <button class="btn gold small" id="sTest" hidden>Modo prueba: desbloquear todo</button>
     <div class="note" id="sTestNote" hidden>Solo para probar. Se quita al publicar el juego.</div>
+    <button class="btn blue small" id="sCode">&#127915; Canjear código</button>
     <button class="btn gray small" id="sTut">Ver el tutorial otra vez</button>
     <button class="btn gray small" id="sReset">Borrar progreso</button>
     <button class="btn green" id="sClose">LISTO</button>
@@ -1155,6 +1175,7 @@ body.bossmode .wxchip{top:calc(max(10px,env(safe-area-inset-top)) + 150px)}
   <div class="adbox"><div class="big">ANUNCIO</div><div>Aquí irá un vídeo de AdMob.<br>En el prototipo se simula.</div></div>
 </div>
 
+<div class="screen dim" id="liveBox"><div class="panel lb"><div class="ribbon" id="lbRib">AVISO</div><button class="xbtn" id="lbX" aria-label="Cerrar">&#10005;</button><div class="lbico" id="lbIco"></div><h2 id="lbTitle" translate="no"></h2><p class="sub" id="lbBody" translate="no"></p><div id="lbExtra"></div><div id="lbBtns"></div></div></div>
 <div id="toast"></div>
 
 <!--SCRIPTS-->

@@ -1,0 +1,23 @@
+name: Publicar la web y el panel
+
+# Sube la carpeta site/ (web del juego y panel de administración) a Firebase Hosting: https://rocket-rush-7297c.web.app
+# Necesita el secreto FIREBASE_SERVICE_ACCOUNT con el rol «Administrador de Firebase Hosting».
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', 'tools/deploy_hosting.py', '.github/workflows/web.yml']
+  workflow_dispatch: {}
+
+jobs:
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Publicar en Firebase Hosting
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then echo "Falta el secreto FIREBASE_SERVICE_ACCOUNT: no se publica nada"; exit 0; fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" -q > /dev/null 2>&1
+          python3 tools/deploy_hosting.py "$(gcloud auth print-access-token)" || { echo "::error::No se pudo publicar: ¿tiene la cuenta de servicio el rol «Administrador de Firebase Hosting»?"; exit 1; }

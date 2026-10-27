@@ -2429,6 +2429,7 @@
     const L = byId(Math.min(save.unlocked, LEVELS.length)), W = WORLDS[L.world - 1];
     $('titleLv').textContent = (L.boss ? 'Jefe ' : 'Nivel ') + L.id + (W ? ' · ' + W.name : '');
     const fl = $('streakFlame'); if (fl) { fl.hidden = !(save.streak >= 1); fl.querySelector('b').textContent = save.streak; }
+    liveUi();
     $('passDotT').hidden = !passClaimable();
     const n = misClaimable(); $('misDotT').hidden = !n; $('misDotT').textContent = n;
     layoutTrail();
@@ -2669,7 +2670,9 @@
     for (const k of sim.wLeft || []) save.boosters[k] = (save.boosters[k] || 0) + 1;
     coins += sim.coins || 0;
     // caramelos por superar un nivel de Halloween (los del jefe, más)
-    if (L.hw && hwActive()) { const c = L.boss ? 25 : 3 + stars * 2; addCandy(c); gifts += ' · +' + c + ' caramelos'; }
+    if (L.hw && hwActive()) { const c = Math.round((L.boss ? 25 : 3 + stars * 2) * liveMult('candy')); addCandy(c); gifts += ' · +' + c + ' caramelos'; }
+    // bonificación temporal del panel (x2 monedas…)
+    const cm = liveMult('coins'); if (cm > 1) { coins = Math.round(coins * cm); gifts += ` · x${cm} evento`; }
     G.pendingCoins = coins; save.coins += coins;
     save.streak = Math.min(save.streak + 1, 9); save.played++;
     { const st = stats(); st.wins = (st.wins || 0) + 1; st.winRun = (st.winRun || 0) + 1; st.bestRun = Math.max(st.bestRun || 0, st.winRun); if (L.boss) st.bossWins = (st.bossWins || 0) + 1; }
@@ -2685,7 +2688,7 @@
     // pase: suma las estrellas ganadas (1 si el nivel ya tenía 3 estrellas)
     ensureSeason();
     // experiencia: más la primera vez, en los difíciles y en los extra
-    const xpWin = (prevStars ? 5 : 10) + stars * (prevStars ? 2 : 5) + (L.hard && !prevStars ? 15 : 0) + (L.bonus && !prevStars ? 20 : 0);
+    const xpWin = Math.round(((prevStars ? 5 : 10) + stars * (prevStars ? 2 : 5) + (L.hard && !prevStars ? 15 : 0) + (L.bonus && !prevStars ? 20 : 0)) * liveMult('xp'));
     const ups = addXp(xpWin); announceUps(ups);
     const passGain = prevStars >= 3 ? 1 : stars, tierBefore = passTier(save.pass.pts);
     save.pass.pts += passGain;
@@ -3027,16 +3030,126 @@
     return (cubiCache = out);
   }
 
+  // ---------------- configuración en directo (panel de administración) ----------------
+  // Lo que se cambia en el panel sin publicar versión: fechas de eventos, bonificaciones x2, avisos, regalos para todos,
+  // códigos regalo, frecuencia de anuncios, mantenimiento y versión mínima. Ver live.js.
+  const liveCfg = () => (window.Live && window.Live.cfg) || {};
+  const liveMult = k => (window.Live ? window.Live.mult(k) : 1);
+  const liveWin = o => (window.Live ? window.Live.inWin(o) : false);
+  const lt = s => (window.I18N ? I18N.t(s) : s);
+  // número de compilación (1.0.N): lo pone tools/build.js en Ajustes; en las versiones de pruebas no hay
+  const BUILD = (() => { const m = /\b1\.0\.(\d+)\b/.exec(($('settings') || document.body).textContent); return m ? +m[1] : 0; })();
+  const STORE_URL = 'https://play.google.com/store/apps/details?id=com.lostanarchygames.rocketrush';
+  function openUrl(u) { try { if (window.ChromaAndroid && window.ChromaAndroid.openUrl) { window.ChromaAndroid.openUrl(u); return; } } catch (e) { /* nada */ } window.open(u, '_blank'); }
+  // texto escrito en el panel, en el idioma del jugador si se tradujo (si no, en español)
+  function ltxt(o, f) { const L = window.I18N ? I18N.lang : 'es', t = o && o.tr && o.tr[L]; return String((t && t[f]) || (o && o[f]) || ''); }
+  const escH = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  function leftTxt(ms) { ms = Math.max(0, ms); const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60; return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`; }
+  const BOOST_TXT = { coins: 'MONEDAS', xp: 'EXPERIENCIA', candy: 'CARAMELOS' }, BOOST_IC = { coins: '🪙', xp: '⭐', candy: '🍬' };
+  // cartel de la portada con las bonificaciones activas
+  function liveUi() {
+    const el = $('liveBoost'); if (!el) return;
+    const bs = window.Live ? window.Live.boosts().filter(b => BOOST_TXT[b.kind] && (b.kind !== 'candy' || hwActive())) : [];
+    el.hidden = !bs.length;
+    el.innerHTML = bs.map(b => `<span>${BOOST_IC[b.kind]} x${Math.min(5, +b.mult)} ${escH(lt(BOOST_TXT[b.kind]))}${b.end ? ' · ⏳ ' + leftTxt(+b.end - Date.now()) : ''}</span>`).join('');
+  }
+  // ventana de avisos (actualizar, mantenimiento, regalos, noticias y canjear código)
+  function liveBox(o) {
+    $('lbRib').textContent = lt(o.rib || 'AVISO');
+    $('lbIco').textContent = o.ico || '';
+    $('lbTitle').textContent = o.title || ''; $('lbTitle').hidden = !o.title;
+    $('lbBody').textContent = o.body || ''; $('lbBody').hidden = !o.body;
+    $('lbExtra').innerHTML = o.extra || '';
+    $('lbX').hidden = !!o.noClose;
+    const B = $('lbBtns'); B.innerHTML = '';
+    for (const b of o.btns || []) {
+      const el = document.createElement('button'); el.className = 'btn ' + (b.cls || 'green'); el.textContent = lt(b.t);
+      el.addEventListener('click', ev => { ev.stopPropagation(); Audio.init(); Audio.click(); b.fn(); }); B.appendChild(el);
+    }
+    $('liveBox').classList.add('on');
+  }
+  function liveClose() { $('liveBox').classList.remove('on'); setTimeout(liveCheck, 600); }
+  const liveSeen = {};          // en esta sesión (mantenimiento, actualizar sin obligar)
+  function liveNext() {
+    const c = liveCfg(), u = c.update || {};
+    if (BUILD && +u.min > BUILD && (u.force || !liveSeen.update)) return () => {
+      liveSeen.update = 1;
+      liveBox({ rib: '¡NUEVA VERSIÓN!', ico: '🚀', title: lt('Hay una versión nueva de Rocket Rush'), body: u.msg || lt('Actualiza para seguir jugando con todas las novedades.'), noClose: !!u.force,
+        btns: [{ t: 'ACTUALIZAR', fn: () => openUrl(STORE_URL) }].concat(u.force ? [] : [{ t: 'Más tarde', cls: 'gray', fn: liveClose }]) });
+    };
+    if (c.maint && c.maint.on && !liveSeen.maint) return () => {
+      liveSeen.maint = 1;
+      liveBox({ rib: 'MANTENIMIENTO', ico: '🛠️', title: lt('Estamos haciendo mejoras'), body: c.maint.msg || lt('Amigos y clasificaciones vuelven enseguida. Puedes seguir jugando.'), btns: [{ t: 'ENTENDIDO', fn: liveClose }] });
+    };
+    save.liveGot = save.liveGot || {};
+    const g = (c.gifts || []).find(x => x && x.id && liveWin(x) && !save.liveGot['g' + x.id]);
+    if (g) return () => {
+      const r = { coins: +g.coins || 0, gems: +g.gems || 0, bomb: +g.bomb || 0, rainbow: +g.rainbow || 0, golden: +g.golden || 0 };
+      const parts = [r.coins && `🪙 ${r.coins}`, r.gems && `💎 ${r.gems}`, r.bomb && `💣 ${r.bomb}`, r.rainbow && `🌈 ${r.rainbow}`, r.golden && `✨ ${r.golden}`].filter(Boolean);
+      liveBox({ rib: '¡REGALO!', ico: '🎁', title: ltxt(g, 'title') || lt('Un regalo para ti'), body: ltxt(g, 'body'), extra: `<div class="lbgift">${parts.map(p => `<span>${p}</span>`).join('')}</div>`, noClose: true,
+        btns: [{ t: 'RECOGER', fn: () => { save.liveGot['g' + g.id] = Date.now(); grant(r); persist(); setCoins(); Audio.coin(); vibe(20); toast(lt('¡Regalo recogido!')); liveClose(); } }] });
+    };
+    const n = (c.news || []).find(x => x && x.id && liveWin(x) && !save.liveGot['n' + x.id]);
+    if (n) return () => {
+      save.liveGot['n' + n.id] = Date.now(); persist();
+      liveBox({ rib: 'NOVEDADES', ico: n.ico || '📣', title: ltxt(n, 'title'), body: ltxt(n, 'body'), btns: [{ t: 'ENTENDIDO', fn: liveClose }] });
+    };
+    return null;
+  }
+  // solo en la portada, sin otras ventanas ni el tutorial delante
+  function liveCheck() {
+    if (G.mode !== 'title' || !$('title').classList.contains('on') || document.querySelector('.screen.dim.on') || $('langPick') && !$('langPick').hidden) return;
+    if (window.Tutorial && (Tutorial.visible || Tutorial.busy())) return;
+    const f = liveNext(); if (f) f();
+  }
+  // canjear un código regalo (Ajustes): lo comprueba el servidor y se apunta en el móvil para no repetirlo
+  function openRedeem() {
+    $('settings').classList.remove('on');
+    liveBox({ rib: 'CÓDIGO REGALO', ico: '🎟️', title: lt('Escribe tu código'), extra: '<input id="lbCode" class="lbinput" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ROCKET2026"><p class="sub lbmsg" id="lbMsg"></p>',
+      btns: [{ t: 'CANJEAR', fn: doRedeem }, { t: 'Cerrar', cls: 'gray', fn: () => { $('liveBox').classList.remove('on'); show('settings'); } }] });
+    setTimeout(() => { const i = $('lbCode'); if (i) i.focus(); }, 50);
+  }
+  async function doRedeem() {
+    const inp = $('lbCode'), msg = $('lbMsg'); if (!inp) return;
+    const code = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const say = t => { msg.textContent = lt(t); };
+    if (code.length < 4) { say('El código no es válido'); return; }
+    save.codesUsed = save.codesUsed || {};
+    if (save.codesUsed[code]) { say('Ya has canjeado este código'); return; }
+    if (!window.Social || !window.Social.redeem) { say('Necesitas conexión a internet'); return; }
+    say('Comprobando…');
+    try {
+      const r = await window.Social.redeem(code);
+      save.codesUsed[code] = Date.now();
+      const out = grant({ coins: +r.coins || 0, gems: +r.gems || 0, bomb: +r.bomb || 0, rainbow: +r.rainbow || 0, golden: +r.golden || 0 });
+      persist(); setCoins(); Audio.win(); vibe([20, 30, 20]);
+      say('¡Código canjeado!'); msg.textContent += ' ' + out.map(lt).join(' · ');
+      inp.disabled = true;
+    } catch (e) {
+      say(({ NOT_FOUND: 'El código no existe', EXPIRED: 'Este código ha caducado', USED_UP: 'Este código ya se ha agotado', NOT_YET: 'Este código aún no está activo' })[e.code] || 'Necesitas conexión a internet');
+    }
+  }
+
   // ---------------- evento de Halloween ----------------
   // Hasta el 1 de noviembre a las 23:59 (hora de España): mundo de 50 niveles, caramelos en las partidas,
   // tienda de Halloween que se paga con caramelos, portada con el castillo encantado y música de miedo.
   const HW_END = Date.UTC(2026, 10, 1, 22, 59, 59);
   const HWL = Levels.HW || [];
-  function hwActive() { return HWL.length > 0 && (Date.now() < HW_END || (TEST_MODE && save.hwForce)); }
+  // las fechas se pueden cambiar desde el panel de administración (config en directo «hw»: on, start, end)
+  const hwCfg = () => (window.Live && window.Live.cfg.hw) || null;
+  function hwEnd() { const h = hwCfg(); return h && h.end ? +h.end : HW_END; }
+  function hwActive() {
+    if (!HWL.length) return false;
+    if (TEST_MODE && save.hwForce) return true;
+    const h = hwCfg(), t = Date.now();
+    if (h && h.on === false) return false;
+    if (h && h.start && t < +h.start) return false;
+    return t < hwEnd();
+  }
   function hwState() { if (!save.hw) save.hw = { unlocked: 1 }; return save.hw; }
   function addCandy(n) { save.candy = (save.candy || 0) + n; persist(); hwCandyChip(); document.querySelectorAll('.candyTxt').forEach(el => { el.textContent = save.candy; }); }
   function hwLeft() {
-    const ms = Math.max(0, HW_END - Date.now()), d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
+    const ms = Math.max(0, hwEnd() - Date.now()), d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
     return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`;
   }
   let pumpN = 0;
@@ -3701,6 +3814,11 @@
   on('btnSetT', () => { refreshToggles(); $('settings').classList.add('on'); });
   on('sClose', () => $('settings').classList.remove('on'));
   on('sTest', toggleTest);
+  // configuración en directo: ventana de avisos y código regalo
+  on('lbX', liveClose);
+  on('sCode', openRedeem);
+  if (window.Live) window.Live.on(() => { liveUi(); hwUi(); setTimeout(liveCheck, 300); if (G.mode === 'title' && G.titleReady && G.hwWorld !== (hwActive() && !!window.Halloween)) goTitle(); });
+  setInterval(() => { if (document.hidden) return; liveUi(); liveCheck(); }, 5000);
   on('sReset', () => {
     const b = $('sReset');
     if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Toca otra vez para borrar todo'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Borrar progreso'; }, 3000); return; }
@@ -3800,8 +3918,9 @@
     $('sState').textContent = `Sonido ${save.sound ? 'sí' : 'no'} · Vibración ${save.vibe ? 'sí' : 'no'} · Música ${save.music ? 'sí' : 'no'}`;
   }
   function maybeInterstitial(next) {
+    const AD = liveCfg().ads || {}, adFrom = +AD.from || 10, adGap = (AD.gapMin != null ? +AD.gapMin : 3) * 60000;
     const now = Date.now();
-    if (!save.adsRemoved && G.level && !G.level.bonus && G.level.id >= 10 && now - (save.lastInter || 0) > 180000) { save.lastInter = now; persist(); showRewarded(() => next()); }
+    if (!AD.off && !save.adsRemoved && G.level && !G.level.bonus && G.level.id >= adFrom && now - (save.lastInter || 0) > adGap) { save.lastInter = now; persist(); showRewarded(() => next()); }
     else next();
   }
 
@@ -3923,7 +4042,7 @@
   window.RRGame = { cubiFrames, openShop, goMap, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, hwState, addCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
-    stats, plState, starsTotal, countLv, LEVELS, myCode, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast,
+    stats, plState, starsTotal, countLv, LEVELS, myCode, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,
     addBlockView: d => blockView(d), weatherChip: w => setWeatherChip({ weather: w }), weatherFx: w => { Weather.set(w); const el = $('wxChip'); if (!w) el.hidden = true; },
     // el jefe ha caído: el nivel se gana con las bolas que quedaban
     bossWin(left) { const sim = G.sim; if (!sim || G.mode !== 'play') return; sim.queue = Array.from({ length: left }, () => 'heavy'); sim.goalReached = true; sim.finish(); G.winAt = G.t - 1; } };
@@ -3945,5 +4064,5 @@
   goTitle(); setCoins(); scheduleReminder();
   requestAnimationFrame(() => requestAnimationFrame(autoDailySoon));   // cuenta desde que la portada ya se ve
   requestAnimationFrame(frame);
-  window.ChromaGame = { G, startLevel, tick, manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, LEVELS, goTitle };
+  window.ChromaGame = { G, startLevel, tick, manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, LEVELS, goTitle, finishWin };
 })();

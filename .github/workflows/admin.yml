@@ -1,0 +1,32 @@
+name: Administradores del panel
+
+# Da o quita acceso al panel (https://rocket-rush-7297c.web.app/admin) a una cuenta de correo.
+# Antes hay que crear la cuenta en Firebase › Authentication › Usuarios › Agregar usuario.
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'Correo de la cuenta (la que creaste en Firebase Authentication)'
+        required: true
+      accion:
+        description: 'Dar o quitar acceso'
+        type: choice
+        options: ['dar acceso', 'quitar acceso']
+        default: 'dar acceso'
+
+jobs:
+  admin:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cambiar administradores
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          EMAIL: ${{ github.event.inputs.email }}
+          ACCION: ${{ github.event.inputs.accion }}
+        run: |
+          if [ -z "$SA" ]; then echo "::error::Falta el secreto FIREBASE_SERVICE_ACCOUNT"; exit 1; fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" -q > /dev/null 2>&1
+          A=add; [ "$ACCION" = "quitar acceso" ] && A=remove
+          python3 tools/add_admin.py "$(gcloud auth print-access-token)" "$EMAIL" "$A"

@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#170c34">
+<title>Rocket Rush · Panel</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#120a2a;--bg2:#1b1040;--card:#251656;--card2:#2e1c68;--line:#3d2a80;--txt:#f5f1ff;--mut:#b4a9df;--acc:#ff7a3d;--acc2:#ffb020;--ok:#3fc95a;--bad:#ff4f6d;--info:#3d9bff;--r:16px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body{min-height:100vh;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{margin:0;line-height:1.2}
+a{color:var(--acc2)}
+[hidden]{display:none!important}
+/* acceso */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.lcard{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:28px 22px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.lcard img{width:84px;height:84px;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.lcard h1{font-size:22px;margin:14px 0 4px}
+.lcard p{color:var(--mut);margin:0 0 18px}
+.lcard .fld{text-align:left}
+.lmsg{min-height:20px;color:var(--bad);font-weight:600;font-size:14px;margin-top:10px}
+.lmsg.ok{color:var(--ok)}
+.link{background:none;border:0;color:var(--mut);text-decoration:underline;cursor:pointer;margin-top:12px;font-size:13px}
+/* estructura */
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:rgba(18,10,42,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+header img{width:34px;height:34px;border-radius:9px}
+header .tt{flex:1;min-width:0}
+header .tt b{display:block;font-size:16px}
+header .tt small{display:block;color:var(--mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;background:rgba(18,10,42,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+nav button{flex:1;max-width:120px;background:none;border:0;border-radius:12px;padding:6px 2px;color:var(--mut);font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button span{font-size:21px;line-height:1}
+nav button.on{color:var(--txt);background:var(--card)}
+main{max-width:860px;margin:0 auto;padding:16px}
+section>h2{font-size:20px;margin:6px 2px 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.card h3{font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h3 .grow{flex:1}
+.card .hint{color:var(--mut);font-size:13px;margin:6px 0 0}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:640px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.kpi small{color:var(--mut);font-weight:600;font-size:12px}
+.kpi b{display:block;font-size:28px;margin-top:2px;font-variant-numeric:tabular-nums}
+/* formularios */
+.grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+@media(min-width:560px){.grid.two{grid-template-columns:1fr 1fr}.grid.three{grid-template-columns:repeat(3,1fr)}}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld>span{font-size:12px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+input,select,textarea{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:11px 12px;outline:none;min-height:44px}
+textarea{min-height:84px;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+input[type=checkbox]{width:22px;height:22px;min-height:0;accent-color:var(--acc)}
+.chk{display:flex;align-items:center;gap:10px;font-weight:600;cursor:pointer;min-height:44px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:0;border-radius:12px;padding:10px 16px;min-height:44px;font-weight:800;cursor:pointer;background:var(--card2);border:1px solid var(--line)}
+.btn.acc{background:linear-gradient(170deg,#ffa067,#ff7a3d 55%,#e0561a);border:0;color:#fff}
+.btn.ok{background:linear-gradient(170deg,#7be26c,#3fc95a 55%,#22a046);border:0;color:#062a10}
+.btn.bad{background:transparent;border:1px solid var(--bad);color:#ff9aac}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.full{width:100%;margin-top:14px}
+/* listas */
+.item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.item:first-of-type{border-top:0}
+.item .ic{font-size:26px;line-height:1;width:34px;text-align:center;flex:none}
+.item .bd{flex:1;min-width:0}
+.item .bd b{display:block;word-break:break-word}
+.item .bd small{display:block;color:var(--mut);font-size:13px;word-break:break-word}
+.item .ac{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.empty{color:var(--mut);font-size:14px;padding:6px 0}
+.pill{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:2px 9px;vertical-align:middle;letter-spacing:.3px}
+.pill.on{background:rgba(63,201,90,.18);color:#7be88f}
+.pill.soon{background:rgba(61,155,255,.18);color:#8cc4ff}
+.pill.off{background:rgba(180,169,223,.15);color:var(--mut)}
+.pill.warn{background:rgba(255,79,109,.18);color:#ff9aac}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--mut);font-weight:700;font-size:13px}
+.tr{border-left:3px solid var(--line);padding-left:10px;margin-top:10px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.5px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 14px;margin-top:10px;font-size:13px}
+@media(min-width:560px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stats div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:3px 0}
+.stats div span{color:var(--mut)}
+/* barra de guardar y avisos */
+#savebar{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:25;max-width:640px;margin:0 auto;display:flex;align-items:center;gap:8px;background:#3a1f00;border:1px solid var(--acc2);border-radius:16px;padding:10px 12px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+#savebar span{flex:1;font-weight:700;font-size:14px}
+#toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top));transform:translateX(-50%);z-index:40;background:#fff;color:#1b0f3b;font-weight:700;border-radius:12px;padding:10px 16px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px);text-align:center;display:none}
+#toast.bad{background:var(--bad);color:#fff}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--mut);border-top-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="lcard">
+    <img src="icon-192.png" alt="">
+    <h1>Panel de Rocket Rush</h1>
+    <p>Eventos, regalos, avisos y jugadores</p>
+    <form id="lform">
+      <label class="fld"><span>Correo</span><input id="lEmail" type="email" autocomplete="username" required></label>
+      <label class="fld" style="margin-top:10px"><span>Contraseña</span><input id="lPass" type="password" autocomplete="current-password" required></label>
+      <button class="btn acc full" id="lGo">Entrar</button>
+    </form>
+    <div class="lmsg" id="lMsg"></div>
+    <button class="link" id="lForgot" type="button">He olvidado la contraseña</button>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <img src="icon-192.png" alt="">
+    <div class="tt"><b>Panel de Rocket Rush</b><small id="who"></small></div>
+    <button class="btn sm" id="reload" title="Volver a cargar">⟳</button>
+    <button class="btn sm" id="logout">Salir</button>
+  </header>
+  <main id="main"></main>
+  <div id="savebar" hidden><span>Cambios sin guardar</span><button class="btn sm" id="discard">Descartar</button><button class="btn sm ok" id="save">Guardar</button></div>
+  <nav id="nav">
+    <button data-tab="home" class="on"><span>📊</span>Resumen</button>
+    <button data-tab="events"><span>🎃</span>Eventos</button>
+    <button data-tab="msgs"><span>🎁</span>Avisos</button>
+    <button data-tab="codes"><span>🎟️</span>Códigos</button>
+    <button data-tab="players"><span>👥</span>Jugadores</button>
+    <button data-tab="settings"><span>⚙️</span>Ajustes</button>
+  </nav>
+</div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+// Panel de administración de Rocket Rush. Habla con Firebase por REST (sin librerías):
+//  · acceso con correo y contraseña (Firebase Authentication) y comprobación de admins/{uid}
+//  · config/live: un JSON con eventos, bonificaciones, avisos, regalos, anuncios, mantenimiento y versión mínima
+//    (lo lee el juego al arrancar: src/live.js). Antes de guardar se copia la versión anterior en config/prev.
+//  · giftcodes/{CÓDIGO}: códigos regalo · users/{uid}: jugadores (buscar, corregir, bloquear)
+const FB = { key: 'AIzaSyC9Rbs2qrzJaSugbHCjOTpuH_QQZKw8DNc', pid: 'rocket-rush-7297c' };
+const ROOT = `projects/${FB.pid}/databases/(default)/documents`, FS = 'https://firestore.googleapis.com/v1/' + ROOT;
+const IDT = 'https://identitytoolkit.googleapis.com/v1', STS = 'https://securetoken.googleapis.com/v1';
+const HW_DEFAULT_END = Date.UTC(2026, 10, 1, 22, 59, 59);   // la fecha que trae el juego
+const $ = id => document.getElementById(id);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { /* nada */ } } };
+function toast(msg, bad) { const t = $('toast'); t.textContent = msg; t.className = bad ? 'bad' : ''; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => { t.style.display = 'none'; }, bad ? 4500 : 2200); }
+
+// ---------------- conexión ----------------
+let auth = null; try { auth = JSON.parse(ls.get('rr.admin.auth') || 'null'); } catch (e) { auth = null; }
+const saveAuth = () => ls.set('rr.admin.auth', auth ? JSON.stringify(auth) : null);
+class FbErr extends Error { constructor(status, code, msg) { super(msg || code); this.status = status; this.code = code || ''; } }
+async function call(url, opt, authed) {
+  opt = opt || {};
+  const h = Object.assign({ 'Content-Type': 'application/json' }, opt.headers || {});
+  if (authed !== false) h.Authorization = 'Bearer ' + await token();
+  let r; try { r = await fetch(url, Object.assign({}, opt, { headers: h })); } catch (e) { throw new FbErr(0, 'NETWORK', 'Sin conexión'); }
+  const txt = await r.text(); let j = null; try { j = txt ? JSON.parse(txt) : null; } catch (e) { j = null; }
+  if (!r.ok) { const er = (j && (j.error || (Array.isArray(j) && j[0] && j[0].error))) || {}; throw new FbErr(r.status, er.status || er.message || 'HTTP', er.message || txt.slice(0, 200)); }
+  return j;
+}
+let tokP = null;
+function token() {
+  if (auth && auth.id && auth.exp > Date.now() + 60e3) return Promise.resolve(auth.id);
+  return tokP || (tokP = (async () => {
+    if (!auth || !auth.refresh) throw new FbErr(401, 'NO_SESSION', 'Sesión caducada');
+    const j = await call(`${STS}/token?key=${FB.key}`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(auth.refresh) }, false);
+    auth = Object.assign(auth, { uid: j.user_id, id: j.id_token, refresh: j.refresh_token, exp: Date.now() + (+j.expires_in || 3600) * 1000 }); saveAuth();
+    return auth.id;
+  })().finally(() => { tokP = null; }));
+}
+function enc(v) {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (v instanceof Date) return { timestampValue: v.toISOString() };
+  if (typeof v === 'boolean') return { booleanValue: v };
+  if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (typeof v === 'string') return { stringValue: v };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(enc) } };
+  const fields = {}; for (const k in v) if (v[k] !== undefined) fields[k] = enc(v[k]); return { mapValue: { fields } };
+}
+function dec(x) {
+  if (!x) return null;
+  if ('stringValue' in x) return x.stringValue; if ('integerValue' in x) return Number(x.integerValue); if ('doubleValue' in x) return Number(x.doubleValue);
+  if ('booleanValue' in x) return x.booleanValue; if ('timestampValue' in x) return Date.parse(x.timestampValue); if ('nullValue' in x) return null;
+  if ('arrayValue' in x) return (x.arrayValue.values || []).map(dec); if ('mapValue' in x) return decF(x.mapValue.fields);
+  return null;
+}
+function decF(f) { const o = {}; for (const k in f || {}) o[k] = dec(f[k]); return o; }
+const docOf = d => d && d.name ? Object.assign(decF(d.fields), { _id: d.name.split('/').pop(), _ut: d.updateTime }) : null;
+const fs = {
+  async get(p) { try { return docOf(await call(`${FS}/${p}`)); } catch (e) { if (e.status === 404) return null; throw e; } },
+  async patch(p, data, q) { const m = Object.keys(data).map(k => 'updateMask.fieldPaths=' + encodeURIComponent(k)); return docOf(await call(`${FS}/${p}?${m.concat(q || []).join('&')}`, { method: 'PATCH', body: JSON.stringify({ fields: enc(data).mapValue.fields }) })); },
+  async unset(p, keys) { return docOf(await call(`${FS}/${p}?${keys.map(k => 'updateMask.fieldPaths=' + encodeURIComponent(k)).join('&')}`, { method: 'PATCH', body: JSON.stringify({ fields: {} }) })); },
+  del: p => call(`${FS}/${p}`, { method: 'DELETE' }),
+  async query(sq) { const j = await call(`${FS}:runQuery`, { method: 'POST', body: JSON.stringify({ structuredQuery: sq }) }); return (j || []).filter(x => x && x.document).map(x => docOf(x.document)); },
+  async count(where) { const j = await call(`${FS}:runAggregationQuery`, { method: 'POST', body: JSON.stringify({ structuredAggregationQuery: { structuredQuery: Object.assign({ from: [{ collectionId: 'users' }] }, where ? { where } : {}), aggregations: [{ alias: 'n', count: {} }] } }) }); const f = j && j[0] && j[0].result && j[0].result.aggregateFields; return f && f.n ? dec(f.n) : 0; },
+  async list(col) { const j = await call(`${FS}/${col}?pageSize=300`); return ((j && j.documents) || []).map(docOf); },
+};
+const ff = (f, op, v) => ({ fieldFilter: { field: { fieldPath: f }, op, value: enc(v) } });
+
+// ---------------- acceso ----------------
+const AUTH_ERR = { INVALID_LOGIN_CREDENTIALS: 'Correo o contraseña incorrectos', EMAIL_NOT_FOUND: 'Correo o contraseña incorrectos', INVALID_PASSWORD: 'Correo o contraseña incorrectos',
+  INVALID_EMAIL: 'El correo no es válido', USER_DISABLED: 'Esta cuenta está desactivada', TOO_MANY_ATTEMPTS_TRY_LATER: 'Demasiados intentos: espera unos minutos',
+  OPERATION_NOT_ALLOWED: 'Activa «Correo electrónico/contraseña» en Firebase › Authentication › Método de acceso', NETWORK: 'Sin conexión' };
+const authMsg = e => AUTH_ERR[(e.message || '').split(' ')[0]] || AUTH_ERR[e.code] || ('Error: ' + (e.message || e.code));
+$('lform').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const m = $('lMsg'); m.className = 'lmsg'; m.innerHTML = '<span class="spin"></span>'; $('lGo').disabled = true;
+  try {
+    const j = await call(`${IDT}/accounts:signInWithPassword?key=${FB.key}`, { method: 'POST', body: JSON.stringify({ email: $('lEmail').value.trim(), password: $('lPass').value, returnSecureToken: true }) }, false);
+    auth = { email: j.email, uid: j.localId, id: j.idToken, refresh: j.refreshToken, exp: Date.now() + (+j.expiresIn || 3600) * 1000 }; saveAuth();
+    $('lPass').value = ''; m.textContent = '';
+    await enter();
+  } catch (e) { m.textContent = authMsg(e); }
+  $('lGo').disabled = false;
+});
+$('lForgot').addEventListener('click', async () => {
+  const m = $('lMsg'), email = $('lEmail').value.trim();
+  if (!email) { m.className = 'lmsg'; m.textContent = 'Escribe primero tu correo'; return; }
+  try { await call(`${IDT}/accounts:sendOobCode?key=${FB.key}`, { method: 'POST', body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }) }, false); m.className = 'lmsg ok'; m.textContent = 'Te hemos enviado un correo para cambiarla'; }
+  catch (e) { m.className = 'lmsg'; m.textContent = authMsg(e); }
+});
+$('logout').addEventListener('click', () => { if (dirty() && !confirm('Hay cambios sin guardar. ¿Salir igualmente?')) return; auth = null; saveAuth(); location.reload(); });
+async function enter() {
+  let ok = false;
+  try { ok = !!(await fs.get(`admins/${auth.uid}`)); } catch (e) { if (e.status !== 403) { $('lMsg').textContent = authMsg(e); return; } }
+  if (!ok) {
+    $('lMsg').innerHTML = `Esta cuenta no es administradora.<br><small style="color:var(--mut)">Lanza en GitHub la acción «Administradores del panel» con tu correo.</small>`;
+    auth = null; saveAuth(); return;
+  }
+  $('login').hidden = true; $('app').hidden = false; $('who').textContent = auth.email || '';
+  await loadCfg(); go(ls.get('rr.admin.tab') || 'home');
+}
+
+// ---------------- configuración en directo ----------------
+let cfg = {}, draft = {}, cfgUt = null, cfgMeta = {};
+const clone = o => JSON.parse(JSON.stringify(o || {}));
+const dirty = () => JSON.stringify(draft) !== JSON.stringify(cfg);
+async function loadCfg() {
+  const d = await fs.get('config/live');
+  cfg = {}; cfgUt = d ? d._ut : null; cfgMeta = d || {};
+  if (d && d.data) { try { cfg = JSON.parse(d.data) || {}; } catch (e) { cfg = {}; toast('La configuración guardada no se pudo leer', true); } }
+  draft = clone(cfg); syncBar();
+}
+function syncBar() { $('savebar').hidden = !dirty(); }
+function touch() { syncBar(); }
+$('discard').addEventListener('click', () => { draft = clone(cfg); syncBar(); render(); toast('Cambios descartados'); });
+$('save').addEventListener('click', saveCfg);
+async function saveCfg() {
+  const b = $('save'); b.disabled = true;
+  try {
+    // copia de la versión anterior (para «Deshacer el último guardado»)
+    await fs.patch('config/prev', { data: JSON.stringify(cfg), savedAt: new Date(), by: auth.email || '' });
+    const q = cfgUt ? ['currentDocument.updateTime=' + encodeURIComponent(cfgUt)] : ['currentDocument.exists=false'];
+    const d = await fs.patch('config/live', { data: JSON.stringify(draft), updatedAt: new Date(), by: auth.email || '' }, q);
+    cfg = clone(draft); cfgUt = d._ut; cfgMeta = d; syncBar(); render(); toast('Guardado: los jugadores lo verán al abrir el juego');
+  } catch (e) {
+    if (e.status === 400 || e.status === 409 || /PRECONDITION/.test(e.code)) toast('Alguien ha cambiado la configuración mientras tanto: pulsa ⟳ para recargar', true);
+    else toast('No se ha podido guardar: ' + (e.message || e.code), true);
+  }
+  b.disabled = false;
+}
+$('reload').addEventListener('click', async () => { if (dirty() && !confirm('Hay cambios sin guardar. ¿Recargar y perderlos?')) return; await loadCfg(); render(); toast('Actualizado'); });
+addEventListener('beforeunload', e => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
+
+// ---------------- fechas ----------------
+const pad = n => String(n).padStart(2, '0');
+function toInput(ms) { if (!ms) return ''; const d = new Date(+ms); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function fromInput(s) { if (!s) return 0; const t = new Date(s).getTime(); return isNaN(t) ? 0 : t; }
+const fmt = ms => ms ? new Date(+ms).toLocaleString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+function left(ms) { ms = Math.max(0, ms); const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60; return d ? `${d} d ${h} h` : h ? `${h} h ${m} min` : `${m} min`; }
+function state(o) {
+  const t = Date.now();
+  if (o && o.on === false) return ['off', 'Apagado'];
+  if (o && o.start && t < o.start) return ['soon', 'Empieza en ' + left(o.start - t)];
+  if (o && o.end && t >= o.end) return ['off', 'Terminado'];
+  return ['on', o && o.end ? 'Activo · quedan ' + left(o.end - t) : 'Activo'];
+}
+const pill = o => { const [c, t] = state(o); return `<span class="pill ${c}">${esc(t)}</span>`; };
+const when = o => [o.start ? 'desde ' + fmt(o.start) : 'desde ya', o.end ? 'hasta ' + fmt(o.end) : 'sin fin'].join(' · ');
+const nid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+function nextAt(dow, hour) { const d = new Date(); d.setHours(hour, 0, 0, 0); let add = (dow - d.getDay() + 7) % 7; if (add === 0 && d.getTime() <= Date.now()) add = 7; d.setDate(d.getDate() + add); return d.getTime(); }
+
+// ---------------- pantallas ----------------
+let tab = 'home';
+const TABS = { home: renderHome, events: renderEvents, msgs: renderMsgs, codes: renderCodes, players: renderPlayers, settings: renderSettings };
+$('nav').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) go(b.dataset.tab); });
+function go(t) { tab = TABS[t] ? t : 'home'; ls.set('rr.admin.tab', tab); document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab)); render(); scrollTo(0, 0); }
+function render() { $('main').innerHTML = ''; TABS[tab](); }
+const sec = (title, html) => { const s = document.createElement('section'); s.innerHTML = `<h2>${title}</h2>` + html; $('main').appendChild(s); return s; };
+const val = (root, n) => { const el = root.querySelector(`[name="${n}"]`); return el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined; };
+const num = (root, n) => Math.max(0, Math.round(+val(root, n) || 0));
+
+const KIND = { coins: ['🪙', 'Monedas'], xp: ['⭐', 'Experiencia'], candy: ['🍬', 'Caramelos'] };
+function nowItems() {
+  const out = [], t = Date.now(), d = draft, live = o => o && (!o.start || t >= o.start) && (!o.end || t < o.end);
+  const hw = d.hw || {}, hwOn = hw.on !== false && (!hw.start || t >= hw.start) && t < (hw.end || HW_DEFAULT_END);
+  out.push(hwOn ? `🎃 Halloween · quedan ${left((hw.end || HW_DEFAULT_END) - t)}` : '🎃 Halloween apagado');
+  for (const b of d.boosts || []) if (live(b)) out.push(`${(KIND[b.kind] || ['🔥'])[0]} x${b.mult} ${(KIND[b.kind] || ['', b.kind])[1].toLowerCase()}`);
+  for (const g of d.gifts || []) if (live(g)) out.push('🎁 ' + (g.title || 'Regalo'));
+  for (const n of d.news || []) if (live(n)) out.push('📣 ' + (n.title || 'Aviso'));
+  if (d.maint && d.maint.on) out.push('🛠️ Mantenimiento activado');
+  if (d.update && d.update.min) out.push(`🚀 Versión mínima 1.0.${d.update.min}${d.update.force ? ' (obligatoria)' : ''}`);
+  if (d.ads && d.ads.off) out.push('📺 Anuncios entre niveles apagados');
+  return out;
+}
+
+// ---- resumen ----
+function renderHome() {
+  const s = sec('Resumen', `<div class="kpis">
+      <div class="kpi"><small>Jugadores</small><b id="kTot">…</b></div><div class="kpi"><small>Nuevos 24 h</small><b id="kNew1">…</b></div>
+      <div class="kpi"><small>Nuevos 7 días</small><b id="kNew7">…</b></div><div class="kpi"><small>Activos 24 h</small><b id="kAct">…</b></div></div>
+    <div class="card"><h3>Ahora mismo en el juego</h3><div class="chips">${nowItems().map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div>
+      <p class="hint">${cfgMeta.updatedAt ? 'Último cambio: ' + fmt(cfgMeta.updatedAt) + (cfgMeta.by ? ' · ' + esc(cfgMeta.by) : '') : 'Aún no se ha guardado nada desde el panel.'}</p></div>
+    <div class="card"><h3>Últimos jugadores</h3><div id="lastP"><div class="empty"><span class="spin"></span></div></div></div>`);
+  const day = new Date(Date.now() - 864e5), week = new Date(Date.now() - 7 * 864e5);
+  const put = (id, p) => p.then(n => { $(id) && ($(id).textContent = n.toLocaleString('es-ES')); }).catch(() => { $(id) && ($(id).textContent = '—'); });
+  put('kTot', fs.count()); put('kNew1', fs.count(ff('createdAt', 'GREATER_THAN_OR_EQUAL', day)));
+  put('kNew7', fs.count(ff('createdAt', 'GREATER_THAN_OR_EQUAL', week))); put('kAct', fs.count(ff('updatedAt', 'GREATER_THAN_OR_EQUAL', day)));
+  fs.query({ from: [{ collectionId: 'users' }], orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }], limit: 10 })
+    .then(us => { const el = s.querySelector('#lastP'); if (el) el.innerHTML = us.length ? us.map(playerRow).join('') : '<div class="empty">Todavía no hay jugadores.</div>'; bindPlayers(el); })
+    .catch(e => { const el = s.querySelector('#lastP'); if (el) el.innerHTML = `<div class="empty">No se pudo cargar (${esc(e.message)})</div>`; });
+}
+
+// ---- eventos ----
+function renderEvents() {
+  const hw = Object.assign({ on: true, start: 0, end: HW_DEFAULT_END }, draft.hw || {});
+  const s = sec('Eventos', `
+    <div class="card" id="hwCard"><h3>🎃 Halloween <span class="grow"></span>${pill(Object.assign({}, hw, { end: hw.end || HW_DEFAULT_END }))}</h3>
+      <p class="hint">El mundo de 50 niveles, los caramelos y su tienda ya están en el juego: aquí decides cuándo se ven.</p>
+      <label class="chk"><input type="checkbox" name="on" ${hw.on !== false ? 'checked' : ''}> Evento encendido</label>
+      <div class="grid two"><label class="fld"><span>Empieza</span><input type="datetime-local" name="start" value="${toInput(hw.start)}"></label>
+        <label class="fld"><span>Termina</span><input type="datetime-local" name="end" value="${toInput(hw.end || HW_DEFAULT_END)}"></label></div>
+      <div class="row"><button class="btn sm" data-x="hwExt">+7 días</button><button class="btn sm" data-x="hwDef">Fecha original (1 nov 23:59)</button></div></div>
+    <div class="card"><h3>🔥 Bonificaciones <span class="grow"></span><span class="pill off">${(draft.boosts || []).length}</span></h3>
+      <p class="hint">Multiplican lo que se gana al superar un nivel. En la portada sale un cartel con la cuenta atrás.</p>
+      <div id="bList"></div></div>
+    <div class="card" id="bForm"><h3>Nueva bonificación</h3>
+      <div class="presets"><button class="btn sm" data-x="pWeekend">Fin de semana x2 monedas</button><button class="btn sm" data-x="pDay">24 h x2 experiencia</button></div>
+      <div class="grid three"><label class="fld"><span>Qué</span><select name="kind"><option value="coins">🪙 Monedas</option><option value="xp">⭐ Experiencia</option><option value="candy">🍬 Caramelos (Halloween)</option></select></label>
+        <label class="fld"><span>Multiplicador</span><select name="mult"><option>2</option><option>3</option></select></label>
+        <label class="fld"><span>Nombre (solo para ti)</span><input name="title" placeholder="Fin de semana x2"></label></div>
+      <div class="grid two"><label class="fld"><span>Empieza</span><input type="datetime-local" name="start"></label><label class="fld"><span>Termina</span><input type="datetime-local" name="end"></label></div>
+      <button class="btn acc full" data-x="bAdd">Añadir bonificación</button></div>`);
+  const hc = s.querySelector('#hwCard');
+  const hwSave = () => { draft.hw = { on: val(hc, 'on'), start: fromInput(val(hc, 'start')), end: fromInput(val(hc, 'end')) || HW_DEFAULT_END }; touch(); };
+  hc.addEventListener('change', () => { hwSave(); render(); });
+  const bl = s.querySelector('#bList');
+  bl.innerHTML = (draft.boosts || []).map((b, i) => `<div class="item"><div class="ic">${(KIND[b.kind] || ['🔥'])[0]}</div><div class="bd"><b>x${b.mult} ${esc((KIND[b.kind] || ['', b.kind])[1].toLowerCase())}${b.title ? ' · ' + esc(b.title) : ''} ${pill(b)}</b><small>${esc(when(b))}</small></div>
+    <div class="ac"><button class="btn sm bad" data-del="${i}">Quitar</button></div></div>`).join('') || '<div class="empty">No hay ninguna.</div>';
+  bl.addEventListener('click', e => { const b = e.target.closest('[data-del]'); if (!b) return; draft.boosts.splice(+b.dataset.del, 1); touch(); render(); });
+  const bf = s.querySelector('#bForm');
+  s.addEventListener('click', e => {
+    const x = e.target.closest('[data-x]'); if (!x) return;
+    const set = (n, v) => { bf.querySelector(`[name="${n}"]`).value = v; };
+    if (x.dataset.x === 'hwExt') { hc.querySelector('[name=end]').value = toInput(Math.max(Date.now(), fromInput(val(hc, 'end')) || HW_DEFAULT_END) + 7 * 864e5); hwSave(); render(); }
+    if (x.dataset.x === 'hwDef') { hc.querySelector('[name=end]').value = toInput(HW_DEFAULT_END); hc.querySelector('[name=start]').value = ''; hwSave(); render(); }
+    if (x.dataset.x === 'pWeekend') { const st = nextAt(5, 18); set('kind', 'coins'); set('mult', '2'); set('title', 'Fin de semana x2'); set('start', toInput(st)); set('end', toInput(st + 54 * 36e5)); }
+    if (x.dataset.x === 'pDay') { set('kind', 'xp'); set('mult', '2'); set('title', '24 h de experiencia doble'); set('start', toInput(Date.now())); set('end', toInput(Date.now() + 864e5)); }
+    if (x.dataset.x === 'bAdd') {
+      const b = { id: nid(), kind: val(bf, 'kind'), mult: +val(bf, 'mult') || 2, title: val(bf, 'title').trim(), start: fromInput(val(bf, 'start')), end: fromInput(val(bf, 'end')) };
+      if (!b.end) { toast('Pon cuándo termina', true); return; }
+      if (b.start && b.end <= b.start) { toast('Termina antes de empezar', true); return; }
+      draft.boosts = (draft.boosts || []).concat(b); touch(); render(); toast('Añadida: pulsa Guardar para publicarla');
+    }
+  });
+}
+
+// ---- avisos y regalos ----
+const LANGS = [['en', 'Inglés'], ['pt', 'Portugués'], ['fr', 'Francés'], ['de', 'Alemán'], ['it', 'Italiano']];
+function renderMsgs() {
+  const gifts = draft.gifts || [], news = draft.news || [];
+  const s = sec('Avisos y regalos', `
+    <div class="card"><h3>🎁 Regalos para todos <span class="grow"></span><span class="pill off">${gifts.length}</span></h3>
+      <p class="hint">Al abrir el juego sale una ventana con el regalo y un botón «Recoger». Cada jugador lo recoge una vez.</p><div id="gList"></div></div>
+    <div class="card" id="gForm"><h3>Nuevo regalo</h3>
+      <div class="grid two"><label class="fld"><span>Título</span><input name="title" maxlength="40" placeholder="¡Gracias por jugar!"></label><label class="fld"><span>Texto (opcional)</span><input name="body" maxlength="120" placeholder="Un regalo por las 10.000 descargas"></label></div>
+      <div class="grid three"><label class="fld"><span>🪙 Monedas</span><input type="number" min="0" name="coins" value="0"></label><label class="fld"><span>💎 Gemas</span><input type="number" min="0" name="gems" value="0"></label><label class="fld"><span>💣 Bombas</span><input type="number" min="0" name="bomb" value="0"></label>
+        <label class="fld"><span>🌈 Arcoíris</span><input type="number" min="0" name="rainbow" value="0"></label><label class="fld"><span>✨ Bolas doradas</span><input type="number" min="0" name="golden" value="0"></label></div>
+      <div class="grid two"><label class="fld"><span>Desde</span><input type="datetime-local" name="start"></label><label class="fld"><span>Hasta</span><input type="datetime-local" name="end"></label></div>
+      ${trFields()}
+      <button class="btn acc full" data-x="gAdd">Añadir regalo</button></div>
+    <div class="card"><h3>📣 Noticias <span class="grow"></span><span class="pill off">${news.length}</span></h3>
+      <p class="hint">Una ventana que cada jugador ve una sola vez en la portada: novedades, eventos que llegan, avisos.</p><div id="nList"></div></div>
+    <div class="card" id="nForm"><h3>Nueva noticia</h3>
+      <div class="grid two"><label class="fld"><span>Icono</span><input name="ico" maxlength="4" value="📣"></label><label class="fld"><span>Título</span><input name="title" maxlength="50" placeholder="¡Llega la Navidad!"></label></div>
+      <label class="fld" style="margin-top:10px"><span>Texto</span><textarea name="body" maxlength="400" placeholder="El 1 de diciembre abre un mundo nuevo…"></textarea></label>
+      <div class="grid two"><label class="fld"><span>Desde</span><input type="datetime-local" name="start"></label><label class="fld"><span>Hasta</span><input type="datetime-local" name="end"></label></div>
+      ${trFields()}
+      <button class="btn acc full" data-x="nAdd">Añadir noticia</button></div>`);
+  const reward = g => [['coins', '🪙'], ['gems', '💎'], ['bomb', '💣'], ['rainbow', '🌈'], ['golden', '✨']].filter(([k]) => g[k]).map(([k, i]) => `${i} ${g[k]}`).join(' · ');
+  s.querySelector('#gList').innerHTML = gifts.map((g, i) => `<div class="item"><div class="ic">🎁</div><div class="bd"><b>${esc(g.title || 'Regalo')} ${pill(g)}</b><small>${esc(reward(g) || 'sin premio')} · ${esc(when(g))}</small></div><div class="ac"><button class="btn sm bad" data-del="g${i}">Quitar</button></div></div>`).join('') || '<div class="empty">No hay ninguno.</div>';
+  s.querySelector('#nList').innerHTML = news.map((n, i) => `<div class="item"><div class="ic">${esc(n.ico || '📣')}</div><div class="bd"><b>${esc(n.title || '(sin título)')} ${pill(n)}</b><small>${esc((n.body || '').slice(0, 90))}${(n.body || '').length > 90 ? '…' : ''}</small><small>${esc(when(n))}${n.tr && Object.keys(n.tr).length ? ' · traducida a ' + Object.keys(n.tr).length + ' idiomas' : ''}</small></div><div class="ac"><button class="btn sm bad" data-del="n${i}">Quitar</button></div></div>`).join('') || '<div class="empty">No hay ninguna.</div>';
+  s.addEventListener('click', e => {
+    const d = e.target.closest('[data-del]');
+    if (d) { const k = d.dataset.del, arr = k[0] === 'g' ? draft.gifts : draft.news; arr.splice(+k.slice(1), 1); touch(); render(); return; }
+    const x = e.target.closest('[data-x]'); if (!x) return;
+    if (x.dataset.x === 'gAdd') {
+      const f = s.querySelector('#gForm');
+      const g = { id: nid(), title: val(f, 'title').trim(), body: val(f, 'body').trim(), coins: num(f, 'coins'), gems: num(f, 'gems'), bomb: num(f, 'bomb'), rainbow: num(f, 'rainbow'), golden: num(f, 'golden'), start: fromInput(val(f, 'start')), end: fromInput(val(f, 'end')), tr: readTr(f) };
+      if (!g.title) { toast('Ponle un título', true); return; }
+      if (!(g.coins || g.gems || g.bomb || g.rainbow || g.golden)) { toast('El regalo está vacío', true); return; }
+      if (g.gems > 500 || g.coins > 100000) { if (!confirm('Es un regalo muy grande. ¿Seguro?')) return; }
+      draft.gifts = gifts.concat(g); touch(); render(); toast('Añadido: pulsa Guardar para publicarlo');
+    }
+    if (x.dataset.x === 'nAdd') {
+      const f = s.querySelector('#nForm');
+      const n = { id: nid(), ico: val(f, 'ico').trim() || '📣', title: val(f, 'title').trim(), body: val(f, 'body').trim(), start: fromInput(val(f, 'start')), end: fromInput(val(f, 'end')), tr: readTr(f) };
+      if (!n.title) { toast('Ponle un título', true); return; }
+      draft.news = news.concat(n); touch(); render(); toast('Añadida: pulsa Guardar para publicarla');
+    }
+  });
+}
+function trFields() { return `<details><summary>Traducciones (opcional: si no, se ve en español)</summary>${LANGS.map(([c, n]) => `<div class="tr"><div class="grid two"><label class="fld"><span>${n} · título</span><input name="tr_${c}_title"></label><label class="fld"><span>${n} · texto</span><input name="tr_${c}_body"></label></div></div>`).join('')}</details>`; }
+function readTr(f) { const tr = {}; for (const [c] of LANGS) { const t = val(f, `tr_${c}_title`).trim(), b = val(f, `tr_${c}_body`).trim(); if (t || b) tr[c] = { title: t, body: b }; } return tr; }
+
+// ---- códigos regalo ----
+function renderCodes() {
+  const s = sec('Códigos regalo', `
+    <div class="card" id="cForm"><h3>Nuevo código</h3>
+      <p class="hint">Los jugadores lo escriben en Ajustes › Canjear código. Cada móvil lo canjea una vez.</p>
+      <div class="grid two"><label class="fld"><span>Código</span><input name="code" class="mono" maxlength="20" placeholder="NAVIDAD2026" style="text-transform:uppercase"></label>
+        <label class="fld"><span>Usos máximos (0 = sin límite)</span><input type="number" min="0" name="max" value="0"></label></div>
+      <div class="row"><button class="btn sm" data-x="gen">Generar uno al azar</button></div>
+      <div class="grid three"><label class="fld"><span>🪙 Monedas</span><input type="number" min="0" name="coins" value="0"></label><label class="fld"><span>💎 Gemas</span><input type="number" min="0" name="gems" value="0"></label><label class="fld"><span>💣 Bombas</span><input type="number" min="0" name="bomb" value="0"></label>
+        <label class="fld"><span>🌈 Arcoíris</span><input type="number" min="0" name="rainbow" value="0"></label><label class="fld"><span>✨ Bolas doradas</span><input type="number" min="0" name="golden" value="0"></label><label class="fld"><span>Nota (solo para ti)</span><input name="note" maxlength="60" placeholder="Sorteo de Instagram"></label></div>
+      <div class="grid two"><label class="fld"><span>Válido desde</span><input type="datetime-local" name="start"></label><label class="fld"><span>Caduca</span><input type="datetime-local" name="end"></label></div>
+      <button class="btn acc full" data-x="cAdd">Crear código</button></div>
+    <div class="card"><h3>Códigos creados</h3><div id="cList"><div class="empty"><span class="spin"></span></div></div></div>`);
+  const f = s.querySelector('#cForm');
+  const load = () => fs.list('giftcodes').then(cs => {
+    cs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    s.querySelector('#cList').innerHTML = cs.map(c => {
+      const [cls, st] = c.end && Date.now() >= c.end ? ['off', 'Caducado'] : c.max && (c.used || 0) >= c.max ? ['warn', 'Agotado'] : c.start && Date.now() < c.start ? ['soon', 'Aún no'] : ['on', 'Activo'];
+      const rw = [['coins', '🪙'], ['gems', '💎'], ['bomb', '💣'], ['rainbow', '🌈'], ['golden', '✨']].filter(([k]) => c[k]).map(([k, i]) => `${i} ${c[k]}`).join(' · ');
+      return `<div class="item"><div class="ic">🎟️</div><div class="bd"><b class="mono">${esc(c._id)} <span class="pill ${cls}">${st}</span></b><small>${esc(rw)} · usado ${c.used || 0}${c.max ? ' de ' + c.max : ''} veces</small><small>${esc([c.end ? 'caduca ' + fmt(c.end) : 'no caduca', c.note].filter(Boolean).join(' · '))}</small></div>
+        <div class="ac"><button class="btn sm" data-copy="${esc(c._id)}">Copiar</button><button class="btn sm bad" data-delc="${esc(c._id)}">Borrar</button></div></div>`;
+    }).join('') || '<div class="empty">Todavía no hay códigos.</div>';
+  }).catch(e => { s.querySelector('#cList').innerHTML = `<div class="empty">No se pudo cargar (${esc(e.message)})</div>`; });
+  load();
+  s.addEventListener('click', async e => {
+    const cp = e.target.closest('[data-copy]'); if (cp) { try { await navigator.clipboard.writeText(cp.dataset.copy); toast('Copiado'); } catch (er) { toast(cp.dataset.copy); } return; }
+    const dl = e.target.closest('[data-delc]');
+    if (dl) { if (!confirm(`¿Borrar el código ${dl.dataset.delc}? Ya no se podrá canjear.`)) return; try { await fs.del('giftcodes/' + dl.dataset.delc); toast('Borrado'); load(); } catch (er) { toast('No se pudo borrar: ' + er.message, true); } return; }
+    const x = e.target.closest('[data-x]'); if (!x) return;
+    if (x.dataset.x === 'gen') { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = 'RR'; for (let i = 0; i < 8; i++) c += A[Math.floor(Math.random() * A.length)]; f.querySelector('[name=code]').value = c; }
+    if (x.dataset.x === 'cAdd') {
+      const code = val(f, 'code').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const c = { coins: num(f, 'coins'), gems: num(f, 'gems'), bomb: num(f, 'bomb'), rainbow: num(f, 'rainbow'), golden: num(f, 'golden'), max: num(f, 'max'), used: 0, start: fromInput(val(f, 'start')), end: fromInput(val(f, 'end')), note: val(f, 'note').trim(), createdAt: Date.now() };
+      if (code.length < 4) { toast('El código necesita al menos 4 letras o números', true); return; }
+      if (!(c.coins || c.gems || c.bomb || c.rainbow || c.golden)) { toast('El código no da nada', true); return; }
+      x.disabled = true;
+      try { await fs.patch('giftcodes/' + code, c, ['currentDocument.exists=false']); toast('Código ' + code + ' creado'); f.querySelector('[name=code]').value = ''; load(); }
+      catch (er) { toast(er.status === 400 || er.status === 409 ? 'Ese código ya existe' : 'No se pudo crear: ' + er.message, true); }
+      x.disabled = false;
+    }
+  });
+}
+
+// ---- jugadores ----
+const STAT_N = { level: 'Niveles', stars: 'Estrellas', lv: 'Nivel jugador', wins: 'Victorias', plays: 'Partidas', bestRun: 'Mejor racha', daily: 'Racha diaria', bosses: 'Jefes', bestShot: 'Mejor disparo', blocks: 'Bloques', perfect: '3 estrellas', dailyBest: 'Mejor diaria', winRun: 'Racha actual' };
+let players = {};
+function playerRow(u) {
+  players[u._id] = u; const s = u.stats || {};
+  return `<div class="item"><div class="ic">${esc(u.avatar || '🙂')}</div><div class="bd"><b>${esc(u.name || '(sin nombre)')} ${u.banned ? '<span class="pill warn">Bloqueado</span>' : ''}</b>
+    <small>${esc(u.code || '')}${u.country ? ' · ' + esc(u.country) : ''} · nivel ${s.level || 0} · ${s.stars || 0} ★${u.createdAt ? ' · desde ' + fmt(u.createdAt) : ''}</small></div>
+    <div class="ac"><button class="btn sm" data-open="${esc(u._id)}">Ver</button></div></div>`;
+}
+function playerCard(u) {
+  const s = u.stats || {};
+  return `<div class="card" id="pc"><h3><span style="font-size:28px">${esc(u.avatar || '🙂')}</span> ${esc(u.name || '(sin nombre)')} <span class="grow"></span>${u.banned ? '<span class="pill warn">Bloqueado</span>' : '<span class="pill on">Normal</span>'}</h3>
+    <p class="hint">Código ${esc(u.code || '—')} · ${esc(u.country || '—')} · idioma ${esc(u.lang || '—')}<br>Alta ${fmt(u.createdAt) || '—'} · última vez ${fmt(u.updatedAt) || '—'}<br><span class="mono" style="font-size:11px">${esc(u._id)}</span></p>
+    <div class="stats">${Object.keys(STAT_N).filter(k => k in s).map(k => `<div><span>${STAT_N[k]}</span><b>${(+s[k] || 0).toLocaleString('es-ES')}</b></div>`).join('')}</div>
+    <div class="row"><button class="btn sm" data-p="rename">Cambiar nombre</button><button class="btn sm" data-p="zero">Poner a cero</button>
+      ${u.banned ? '<button class="btn sm ok" data-p="unban">Desbloquear</button>' : '<button class="btn sm bad" data-p="ban">Bloquear</button>'}<button class="btn sm bad" data-p="del">Borrar perfil</button></div>
+    <p class="hint">Bloquear quita al jugador de las clasificaciones (estadísticas a cero) y ya no puede volver a subir su perfil. Borrar el perfil no le impide crearlo de nuevo.</p></div>`;
+}
+function bindPlayers(root) { if (!root) return; root.addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b) showPlayer(players[b.dataset.open]); }); }
+function showPlayer(u) {
+  go('players'); const box = $('pBox'); box.innerHTML = playerCard(u); box.scrollIntoView({ behavior: 'smooth' });
+  box.querySelector('#pc').addEventListener('click', async e => {
+    const a = e.target.closest('[data-p]'); if (!a) return;
+    const p = 'users/' + u._id, zero = () => { const z = {}; for (const k in u.stats || {}) z[k] = 0; return z; };
+    try {
+      if (a.dataset.p === 'rename') { const n = prompt('Nuevo nombre (máximo 16 letras):', 'Jugador'); if (!n) return; u = Object.assign(u, await fs.patch(p, { name: n.trim().slice(0, 16) })); toast('Nombre cambiado'); }
+      if (a.dataset.p === 'zero') { if (!confirm('¿Poner todas sus estadísticas a cero? (sale de lo alto de las clasificaciones)')) return; u = Object.assign(u, await fs.patch(p, { stats: zero() })); toast('Estadísticas a cero'); }
+      if (a.dataset.p === 'ban') { if (!confirm(`¿Bloquear a ${u.name}? Sus estadísticas se ponen a cero y ya no podrá subir su perfil.`)) return; u = Object.assign(u, await fs.patch(p, { banned: true, stats: zero() })); toast('Jugador bloqueado'); }
+      if (a.dataset.p === 'unban') { await fs.unset(p, ['banned']); delete u.banned; toast('Desbloqueado: su perfil se volverá a subir la próxima vez que juegue'); }
+      if (a.dataset.p === 'del') { if (!confirm(`¿Borrar el perfil de ${u.name}? (también su código de amigo)`)) return; await fs.del(p); const core = normCode(u.code || ''); if (core) await fs.del('codes/' + core).catch(() => {}); $('pBox').innerHTML = '<div class="card empty">Perfil borrado.</div>'; toast('Perfil borrado'); return; }
+      showPlayer(u);
+    } catch (er) { toast('No se pudo: ' + er.message, true); }
+  });
+}
+function normCode(t) { const c = (t || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return c.length === 10 && /^(RR|CC)/.test(c) ? c.slice(2) : c; }
+function renderPlayers() {
+  const s = sec('Jugadores', `
+    <div class="card" id="pForm"><h3>Buscar</h3>
+      <div class="grid"><label class="fld"><span>Código de amigo (RR-…) o nombre exacto</span><input name="q" autocomplete="off" placeholder="RR-ABCD1234"></label></div>
+      <div class="row"><button class="btn acc" data-x="find">Buscar</button><button class="btn" data-x="top">Los 20 con más niveles</button><button class="btn" data-x="banned">Bloqueados</button></div></div>
+    <div id="pBox"></div><div class="card" id="pRes" hidden></div>`);
+  const f = s.querySelector('#pForm'), res = s.querySelector('#pRes');
+  const show = (title, us) => { res.hidden = false; res.innerHTML = `<h3>${title}</h3>` + (us.length ? us.map(playerRow).join('') : '<div class="empty">Nadie.</div>'); };
+  bindPlayers(res);
+  f.querySelector('[name=q]').addEventListener('keydown', e => { if (e.key === 'Enter') f.querySelector('[data-x=find]').click(); });
+  f.addEventListener('click', async e => {
+    const x = e.target.closest('[data-x]'); if (!x) return;
+    res.hidden = false; res.innerHTML = '<div class="empty"><span class="spin"></span></div>';
+    try {
+      if (x.dataset.x === 'find') {
+        const q = val(f, 'q').trim(); if (!q) { res.hidden = true; return; }
+        const core = normCode(q); let us = [];
+        if (/^[A-Z0-9]{8}$/.test(core)) { const c = await fs.get('codes/' + core); if (c && c.uid) { const u = await fs.get('users/' + c.uid); if (u) us = [u]; } }
+        if (!us.length) us = await fs.query({ from: [{ collectionId: 'users' }], where: ff('name', 'EQUAL', q), limit: 20 });
+        if (us.length === 1) { res.hidden = true; showPlayer(us[0]); return; }
+        show('Resultados', us);
+      }
+      if (x.dataset.x === 'top') show('Los 20 con más niveles', await fs.query({ from: [{ collectionId: 'users' }], orderBy: [{ field: { fieldPath: 'stats.level' }, direction: 'DESCENDING' }], limit: 20 }));
+      if (x.dataset.x === 'banned') show('Bloqueados', await fs.query({ from: [{ collectionId: 'users' }], where: ff('banned', 'EQUAL', true), limit: 50 }));
+    } catch (er) { res.innerHTML = `<div class="empty">No se pudo buscar (${esc(er.message)})</div>`; }
+  });
+}
+
+// ---- ajustes ----
+function renderSettings() {
+  const ads = draft.ads || {}, mt = draft.maint || {}, up = draft.update || {};
+  const s = sec('Ajustes del juego', `
+    <div class="card" id="adsF"><h3>📺 Anuncios entre niveles</h3>
+      <div class="grid two"><label class="fld"><span>Desde el nivel</span><input type="number" min="1" name="from" value="${ads.from || 10}"></label>
+        <label class="fld"><span>Como mucho uno cada (minutos)</span><input type="number" min="0" name="gapMin" value="${ads.gapMin != null ? ads.gapMin : 3}"></label></div>
+      <label class="chk"><input type="checkbox" name="off" ${ads.off ? 'checked' : ''}> Apagar los anuncios entre niveles (los de recompensa siguen)</label></div>
+    <div class="card" id="mtF"><h3>🛠️ Mantenimiento <span class="grow"></span>${mt.on ? '<span class="pill warn">Activado</span>' : '<span class="pill off">Apagado</span>'}</h3>
+      <p class="hint">Se puede seguir jugando; amigos y clasificaciones se pausan y sale un aviso una vez.</p>
+      <label class="chk"><input type="checkbox" name="on" ${mt.on ? 'checked' : ''}> Activar mantenimiento</label>
+      <label class="fld"><span>Mensaje</span><input name="msg" maxlength="140" value="${esc(mt.msg || '')}" placeholder="Amigos y clasificaciones vuelven enseguida."></label></div>
+    <div class="card" id="upF"><h3>🚀 Versión mínima</h3>
+      <p class="hint">El número de la versión es el último de «1.0.N» (sale en Ajustes del juego y en el nombre del APK/AAB). Quien tenga una más antigua verá «Hay una versión nueva».</p>
+      <div class="grid two"><label class="fld"><span>Versión mínima (N de 1.0.N, 0 = no pedir)</span><input type="number" min="0" name="min" value="${up.min || 0}"></label>
+        <label class="fld"><span>Mensaje (opcional)</span><input name="msg" maxlength="140" value="${esc(up.msg || '')}"></label></div>
+      <label class="chk"><input type="checkbox" name="force" ${up.force ? 'checked' : ''}> Obligatoria (no deja seguir sin actualizar)</label></div>
+    <div class="card"><h3>💾 Copias</h3>
+      <p class="hint">Cada vez que guardas, la versión anterior se queda como copia.</p>
+      <div class="row"><button class="btn" data-x="undo">Deshacer el último guardado</button><button class="btn" data-x="json">Ver o pegar la configuración</button></div>
+      <div id="jsonBox" hidden><textarea id="jsonTxt" class="mono" style="min-height:220px;margin-top:12px;font-size:12px"></textarea><div class="row"><button class="btn acc" data-x="jsonApply">Usar este texto</button></div></div></div>`);
+  const bindCard = (id, fn) => s.querySelector(id).addEventListener('input', () => { fn(s.querySelector(id)); touch(); });
+  bindCard('#adsF', f => { draft.ads = { from: Math.max(1, num(f, 'from')), gapMin: num(f, 'gapMin'), off: val(f, 'off') }; });
+  bindCard('#mtF', f => { draft.maint = { on: val(f, 'on'), msg: val(f, 'msg').trim() }; });
+  bindCard('#upF', f => { draft.update = { min: num(f, 'min'), force: val(f, 'force'), msg: val(f, 'msg').trim() }; });
+  s.addEventListener('change', e => { if (e.target.type === 'checkbox') { e.target.closest('.card').dispatchEvent(new Event('input')); render(); } });
+  s.addEventListener('click', async e => {
+    const x = e.target.closest('[data-x]'); if (!x) return;
+    if (x.dataset.x === 'undo') {
+      try { const p = await fs.get('config/prev'); if (!p || !p.data) { toast('No hay copia todavía', true); return; } draft = JSON.parse(p.data); touch(); render(); toast('Copia de ' + fmt(p.savedAt) + ' cargada: pulsa Guardar para aplicarla'); }
+      catch (er) { toast('No se pudo: ' + er.message, true); }
+    }
+    if (x.dataset.x === 'json') { s.querySelector('#jsonBox').hidden = false; s.querySelector('#jsonTxt').value = JSON.stringify(draft, null, 2); }
+    if (x.dataset.x === 'jsonApply') { try { const o = JSON.parse(s.querySelector('#jsonTxt').value); if (!o || typeof o !== 'object' || Array.isArray(o)) throw new Error(); draft = o; touch(); render(); toast('Cargado: pulsa Guardar para aplicarlo'); } catch (er) { toast('El texto no es una configuración válida', true); } }
+  });
+}
+
+// ---------------- arranque ----------------
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+(async () => {
+  if (auth && auth.refresh) { try { await token(); await enter(); return; } catch (e) { auth = null; saveAuth(); } }
+  $('login').hidden = false;
+})();
+</script>
+</body>
+</html>

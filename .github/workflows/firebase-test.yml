@@ -5,7 +5,7 @@ name: Probar Firebase
 on:
   push:
     branches: [main]
-    paths: ['src/social.js', 'tools/firebase_live.mjs', 'tools/socialflow.py', '.github/workflows/firebase-test.yml']
+    paths: ['src/social.js', 'src/live.js', 'firebase/**', 'tools/firebase_live.mjs', 'tools/socialflow.py', '.github/workflows/firebase-test.yml']
   workflow_dispatch:
     inputs:
       db:
@@ -43,12 +43,19 @@ jobs:
           python3 tools/deploy_indexes.py "$(gcloud auth print-access-token)" 2>&1 | tee res/deploy.txt || ok=1
           python3 tools/clean_test_users.py "$(gcloud auth print-access-token)" 2>&1 | tee -a res/deploy.txt
           # sin el rol «Administrador de Firebase Rules» no se pueden publicar: aviso, no error (se pegan a mano en la consola)
-          npx --yes firebase-tools@14 deploy --only firestore:rules --project rocket-rush-7297c --non-interactive --force 2>&1 | tee -a res/deploy.txt || echo "::warning::No se han publicado las reglas: falta el rol Administrador de Firebase Rules (pégalas a mano si cambian)"
+          if npx --yes firebase-tools@14 deploy --only firestore:rules --project rocket-rush-7297c --non-interactive --force 2>&1 | tee -a res/deploy.txt; then
+            sleep 40   # las reglas nuevas tardan un poco en aplicarse
+          else
+            echo "::warning::No se han publicado las reglas: falta el rol Administrador de Firebase Rules (pégalas a mano si cambian)"
+          fi
           exit $ok
       - name: Reglas y servidor (API directa)
         if: always()
         shell: bash
-        run: set -o pipefail; node tools/firebase_live.mjs 2>&1 | tee res/api.txt
+        run: |
+          set -o pipefail
+          # con la cuenta de servicio también se prueba el panel de administración (crea un administrador de prueba)
+          SA_TOKEN="$(gcloud auth print-access-token 2>/dev/null || true)" node tools/firebase_live.mjs 2>&1 | tee res/api.txt
       - name: El juego de verdad en el navegador (dos jugadores)
         if: always()
         shell: bash
