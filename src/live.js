@@ -1,6 +1,7 @@
 // Rocket Rush — configuración en directo (la que se cambia desde el panel de administración).
 // Un solo documento público de Firestore, config/live, con un campo «data» que es un JSON:
 //   hw: { on, start, end }                         evento de Halloween (fechas en milisegundos)
+//   xm: { on, start, end }                         evento de Navidad (por defecto, del 1 de diciembre al 6 de enero)
 //   boosts: [{ id, kind: coins|xp|candy, mult, start, end, title }]   bonificaciones temporales (x2 monedas…)
 //   news: [{ id, title, body, start, end, tr: { en: {title, body}, … } }]   avisos que salen una vez en la portada
 //   gifts: [{ id, title, coins, gems, bomb, rainbow, golden, start, end }]  regalo para todos (una vez por jugador)

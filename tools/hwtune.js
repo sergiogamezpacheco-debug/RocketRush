@@ -1,4 +1,5 @@
-// Afina los 50 niveles de Halloween (bolas y objetivo) y los guarda en src/gentune.js con su gid (hw1…hw50).
+// Afina los 50 niveles de un evento (bolas y objetivo) y los guarda en src/gentune.js con su gid (hw1…hw50, xm1…xm50).
+// Evento: EV=hw (Halloween, por defecto) o EV=xm (Navidad).
 // node tools/hwtune.js parte total salida.jsonl  ·  node tools/hwtune.js --merge a.jsonl b.jsonl …
 global.CANNON = require('../vendor/cannon-es.cjs.js');
 const fs = require('fs'), path = require('path');
@@ -12,11 +13,11 @@ if (process.argv[2] === '--merge') {
   else root.GenTuning = T;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 `);
-  console.log('ok', Object.keys(T).filter(k => k.startsWith('hw')).length, 'niveles de Halloween');
+  console.log('ok', Object.keys(T).filter(k => k.startsWith('hw')).length, 'niveles de Halloween ·', Object.keys(T).filter(k => k.startsWith('xm')).length, 'de Navidad');
   process.exit(0);
 }
 const { Sim } = require('../src/sim3d.js');
-const { HW, retune } = require('../src/levels3d.js');
+const LV = require('../src/levels3d.js'), HW = process.env.EV === 'xm' ? LV.XM : LV.HW, retune = LV.retune;
 const part = +process.argv[2] || 0, parts = +process.argv[3] || 1, out = process.argv[4], N = 8;
 function rng(seed) { let s = seed; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
 function measure(L) {

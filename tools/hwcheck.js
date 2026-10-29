@@ -3,7 +3,7 @@ global.CANNON = require('../vendor/cannon-es.cjs.js');
 const { Sim, obbGap } = require('../src/sim3d.js');
 const { ALL } = require('../src/levels3d.js');
 let bad = 0;
-for (const L of require("../src/levels3d.js").HW) {
+for (const L of require("../src/levels3d.js")[process.env.EV === "xm" ? "XM" : "HW"]) {
   const probs = [];
   const s = new Sim(L);
   const bl = s.blocks;

@@ -109,6 +109,8 @@
     intro.classList.remove('on'); void intro.offsetWidth; intro.classList.add('on');
     S.introT = 3.4;
     X.Audio.horn && X.Audio.horn();
+    // Navidad: Cascanueces, Caja Sorpresa y Capitán Escarcha (christmas.js cambia el aspecto; el combate es el mismo)
+    if (L.xm && window.Christmas && window.Christmas.boss) window.Christmas.boss(S);
     updateBar(true);
   }
 

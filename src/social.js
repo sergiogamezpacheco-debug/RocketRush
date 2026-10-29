@@ -121,7 +121,8 @@
   // ---------------- perfil ----------------
   const AVATARS = ['🚀', '💣', '🦊', '🐼', '🐸', '🐯', '🦁', '🐙', '🤖', '👾', '🐲', '🦄', '🐧', '🐨', '🐵', '🦖', '⚡', '🔥', '⭐', '👑'];
   const HW_AVATARS = ['🧛', '🧙', '👻', '🎃', '💀', '🕷️'];       // se compran en la tienda de Halloween
-  const avatars = () => X.save.hwAvatars ? AVATARS.concat(HW_AVATARS) : AVATARS;
+  const XM_AVATARS = ['🎅', '🦌', '⛄', '🎄', '🎁', '💂'];       // se compran en la tienda de Navidad
+  const avatars = () => AVATARS.concat(X.save.hwAvatars ? HW_AVATARS : [], X.save.xmAvatars ? XM_AVATARS : []);
   const COUNTRIES = ['ES', 'MX', 'AR', 'CO', 'CL', 'PE', 'VE', 'EC', 'UY', 'PY', 'BO', 'CR', 'PA', 'DO', 'GT', 'HN', 'SV', 'NI', 'CU', 'PR', 'US', 'CA',
     'BR', 'PT', 'FR', 'DE', 'IT', 'GB', 'IE', 'NL', 'BE', 'CH', 'AT', 'LU', 'PL', 'CZ', 'RO', 'GR', 'SE', 'NO', 'DK', 'FI', 'TR', 'MA', 'DZ', 'TN', 'EG',
     'SN', 'NG', 'ZA', 'AO', 'MZ', 'IN', 'CN', 'JP', 'KR', 'PH', 'ID', 'AU', 'NZ'];

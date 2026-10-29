@@ -988,13 +988,45 @@
     HW.push(l);
   }
   ALL.push(...HW);
+
+  // ---- evento de Navidad: 50 niveles en 5 zonas del pueblo nevado; el 10.º de cada zona es un jefe ----
+  // Mismo reparto que Halloween (de fácil a media-difícil), con otra semilla: formas distintas a las del juego y a las de Halloween.
+  const XM = [];
+  const XM_ZONES = ['Plaza del pueblo', 'Mercadillo navideño', 'Bosque de los abetos', 'Lago helado', 'Taller de Papá Noel'];
+  const XM_BOSS = [['golem', 'Cascanueces Mayor'], ['pyramid', 'Caja Sorpresa'], ['ship', 'Capitán Escarcha'], ['golem', 'General Cascanueces'], ['pyramid', 'Gran Caja Sorpresa']];
+  const XM_NAMES = ['Campanilla', 'Muérdago', 'Villancico', 'Chimenea', 'Calcetín', 'Trineo', 'Copo', 'Turrón', 'Estrella', 'Guirnalda', 'Bastón', 'Polvorón', 'Muñeco', 'Abeto', 'Regalo'];
+  const XM_FIX = { 9: 1 };
+  for (let i = 1; i <= 50; i++) {
+    const z = Math.ceil(i / 10) - 1;
+    let l;
+    if (i % 10 === 0) {
+      const [k, nm] = XM_BOSS[z];
+      l = bossLevel(k, 'sea', 4 + z * 6);
+      Object.assign(l, { name: nm, bossName: nm, bossD: Math.min(1, z * 0.22), goal: 'Jefe de Navidad: derríbalo para abrir la siguiente zona.' });
+      l._colored = true; l.balls0 = l.balls;
+    } else {
+      for (let salt = (XM_FIX[i] || 0) * 31; ; salt += 97) {
+        l = genLevel(121 + Math.round((i - z - 1) * 13.5), 'sea', hwExtras, 9191 + i + salt);
+        if (z > 0 || l.tier !== 'hard' || salt > 2000) break;
+      }
+      l.gid = 'xm' + i; l.name = XM_NAMES[(i * 7) % XM_NAMES.length] + ' ' + (i - z * 10);
+      l.tier = { e: 'easy', m: 'medium', h: 'hard' }[HW_TIERS[z][i - z * 10 - 1]];
+      l.goal = 'Rompe los regalos para llevarte sus caramelos y bastones.';
+    }
+    Object.assign(l, { id: 30000 + i, xm: true, world: 0, pos: i, zone: z, zoneName: XM_ZONES[z], biome: 'xmas', variant: 'noche', weather: null });
+    l.hard = l.tier === 'hard';
+    finalize(l);
+    if (l.boss) { l.target = 1.5; if (l.boss === 'golem') { l.cannon.z = Math.min(14.5, l.cannon.z + 0.8); l.viewTop = Math.max(...l.blocks.map(b => b.y + b.h / 2)) + 4.2; } }
+    XM.push(l);
+  }
+  ALL.push(...XM);
   const byId = id => ALL.find(l => l.id === id);
 
   // para el afinador: cambia bolas y objetivo de un nivel
   function retune(l, nb, target) {
     if (l.bonus) { l.target = target; l.balls = balancedBalls(l, nb); l.nb = l.balls.length; return; } l.nb = nb; l.target = target; l.balls = l.balls0 && l.balls0.length >= nb ? l.balls0.slice(0, nb) : (l.balls0 || '') + autoBalls(l, nb - (l.balls0 || '').length); }
 
-  const Levels = { HARD, MEDIUM, GEN_BIOMES, VARIANTS, LEVELS, BONUS, WORLDS, ALL, HW, HW_ZONES, byId, grid, box3, plank, pillar, retune, worldInfo, CLASSIC, FRESH, DEBUT };
+  const Levels = { HARD, MEDIUM, GEN_BIOMES, VARIANTS, LEVELS, BONUS, WORLDS, ALL, HW, HW_ZONES, XM, XM_ZONES, byId, grid, box3, plank, pillar, retune, worldInfo, CLASSIC, FRESH, DEBUT };
   if (typeof module !== 'undefined' && module.exports) module.exports = Levels;
   else root.Levels = Levels;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

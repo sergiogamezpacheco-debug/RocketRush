@@ -131,6 +131,11 @@
         noise(0.12, 0.25, 6000, 2500, 'highpass');
         if (big) { noise(1.6, 0.55, 500, 60, 'lowpass', 0.12 + Math.random() * 0.25); tone(48, 1.4, 'sine', 0.35, 0.7, 0.15); }
       },
+      // cascabeles del trineo: tintineo agudo con un poco de ruido metálico
+      bells() {
+        if (!ok()) return;
+        for (let i = 0; i < 14; i++) { const t = i * 0.09 + (i % 2) * 0.02; tone(2600 + (i % 3) * 420, 0.16, 'triangle', 0.07, 1.003, t); tone(5200 + (i % 3) * 840, 0.08, 'sine', 0.025, 1, t); noise(0.05, 0.05, 7000, 9000, 'highpass', t); }
+      },
       setStyle(st) { if (st === musicStyle) return; musicStyle = st; if (musicOn) { stopMusic(); startMusic(); } },
       startMusic, stopMusic,
     };
@@ -139,6 +144,7 @@
       if (!ac || musicOn) return;
       musicOn = true;
       if (musicStyle === 'spooky') { spookyMusic(); return; }
+      if (musicStyle === 'xmas') { xmasMusic(); return; }
       const chords = [[0, 4, 7], [-3, 0, 4], [-7, -3, 0], [-5, -1, 2]];
       const root = 261.63, beat = 60 / 96;
       let bar = 0;
@@ -169,6 +175,26 @@
         const m = mel[bar % 4];
         for (let i = 0; i < 8; i++) tone(fr(m[i]), beat * 0.42, 'square', 0.035, 0.995, i * beat * 0.5, mus);
         if (bar % 2 === 1) tone(fr(ch[0] + 24), beat * 2, 'sine', 0.06, 1, beat * 3, mus);
+        bar++;
+        musicTimer = setTimeout(playBar, beat * 4 * 1000);
+      };
+      playBar();
+    }
+    // Navidad: Sol mayor alegre (Sol · Do · Re · Sol), campanitas, celesta y cascabeles en cada pulso
+    function xmasMusic() {
+      const chords = [[0, 4, 7], [5, 9, 12], [7, 11, 14], [0, 4, 7]];
+      const root = 196, beat = 60 / 112;
+      const mel = [[12, 14, 16, 19, 16, 14, 12, 7], [17, 16, 14, 12, 14, 16, 17, 21], [19, 18, 19, 21, 19, 14, 11, 14], [16, 14, 12, 11, 12, 16, 19, 24]];
+      let bar = 0;
+      const playBar = () => {
+        if (!musicOn) return;
+        const ch = chords[bar % 4], fr = n => root * Math.pow(2, n / 12);
+        tone(fr(ch[0] - 12), beat * 2, 'triangle', 0.32, 1, 0, mus); tone(fr(ch[2] - 12), beat * 2, 'triangle', 0.26, 1, beat * 2, mus);
+        for (const n of ch) tone(fr(n), beat * 3.6, 'sine', 0.05, 1, 0.02, mus);
+        const m = mel[bar % 4];
+        for (let i = 0; i < 8; i++) { tone(fr(m[i] + 12), beat * 0.4, 'triangle', 0.09, 1, i * beat * 0.5, mus); tone(fr(m[i] + 24), beat * 0.2, 'sine', 0.025, 1, i * beat * 0.5, mus); }
+        for (let i = 0; i < 4; i++) noise(0.06, 0.03, 7000, 9000, 'highpass', i * beat + 0.01);
+        if (bar % 4 === 3) tone(fr(ch[0] + 24), beat * 1.5, 'sine', 0.06, 1, beat * 3, mus);
         bar++;
         musicTimer = setTimeout(playBar, beat * 4 * 1000);
       };
@@ -1008,7 +1034,7 @@
     return { set, update };
   })();
   const BIOMES = { sea: { env: [sea, decor], platform: island } };
-  const biomeBuilders = { desert: buildDesert, snow: buildSnow, jungle: buildJungle, volcano: buildVolcano, space: buildSpace, candy: buildCandy, crystal: buildCrystal, temple: buildTemple, forest: buildForest, fair: buildFair, neon: buildNeon, halloween: () => window.Halloween ? window.Halloween.build() : null };
+  const biomeBuilders = { desert: buildDesert, snow: buildSnow, jungle: buildJungle, volcano: buildVolcano, space: buildSpace, candy: buildCandy, crystal: buildCrystal, temple: buildTemple, forest: buildForest, fair: buildFair, neon: buildNeon, halloween: () => window.Halloween ? window.Halloween.build() : null, xmas: () => window.Christmas ? window.Christmas.build() : null };
   let biome = 'sea';
   function setBiome(name) {
     if (!BIOMES[name] && biomeBuilders[name]) BIOMES[name] = biomeBuilders[name]();
@@ -1317,10 +1343,11 @@
     forest: { top: 0x2a5a6a, mid: 0x7ab8a8, hor: 0xd8f0d0, fog: 0x9ac8b0, sea: 0x2a7a6a, sun: 0xfff8e0, hemi: [0xd8ffe8, 0x2a4a2a], biome: 'forest', fogNear: 28, fogFar: 110 },
     fair: { top: 0x3a2a8f, mid: 0xb06ad6, hor: 0xffc08a, fog: 0xd8a0d0, sea: 0x4a3ab0, sun: 0xffe0b8, hemi: [0xf0d8ff, 0x6a4a6a], biome: 'fair', fogNear: 45, fogFar: 150 },
     halloween: { top: 0x090316, mid: 0x2a0f4a, hor: 0x8a2a5a, fog: 0x2a1240, sea: 0x1c1036, sun: 0xc8b4ff, hemi: [0x9a7ae0, 0x1a0a24], biome: 'halloween', fogNear: 45, fogFar: 190, sunI: 1.6, hemiI: 0.8, stars: true },
+    xmas: { top: 0x050a2a, mid: 0x14306e, hor: 0x5a6ab8, fog: 0x22305e, sea: 0x14306e, sun: 0xd0dcff, hemi: [0xb8c8ff, 0x3a3a5a], biome: 'xmas', fogNear: 60, fogFar: 240, sunI: 1.5, hemiI: 1.0, stars: true },
     neon: { top: 0x070a24, mid: 0x1a1a52, hor: 0x7a2a9a, fog: 0x1a1240, sea: 0x101a50, sun: 0xb8c8ff, hemi: [0xa0b0ff, 0x2a1a4a], biome: 'neon', fogNear: 40, fogFar: 160, sunI: 1.5, hemiI: 0.9 } };
   const mixC = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
   function themeFor(world) {
-    const W = G.hwWorld || (G.level && G.level.hw) ? { biome: 'halloween', variant: 'noche' } : (WORLDS[world - 1] || { biome: 'sea', variant: 'día' });
+    const W = G.hwWorld || (G.level && G.level.hw) ? { biome: 'halloween', variant: 'noche' } : G.xmWorld || (G.level && G.level.xm) ? { biome: 'xmas', variant: 'xm' } : (WORLDS[world - 1] || { biome: 'sea', variant: 'día' });
     const base = Object.assign({}, BIOME_THEME[W.biome] || THEMES[1], { variant: W.variant, weather: W.weather });
     if (W.biome === 'sea') { delete base.biome; if (world <= 3) Object.assign(base, THEMES[1]); }
     const v = W.variant;
@@ -1494,6 +1521,9 @@
     syncView(0);
     // bloques de caramelo: solo en los niveles del mundo de Halloween (no en los mundos normales)
     if (window.Halloween && hwActive() && G.level && G.level.hw && !G.demo && !G.level.boss) window.Halloween.decorate(G, 4);
+    // bloques envueltos para regalo en el mundo de Navidad (en los jefes, todos los de colores; solo algunos llevan premio)
+    G.xgifts = [];
+    if (window.Christmas && xmActive() && G.level && G.level.xm && !G.demo) window.Christmas.decorate(G, G.level.boss ? 3 : 4, !!G.level.boss);
   }
   // la pieza que se ve de un bloque (también los que aparecen durante la partida)
   function blockView(d) {
@@ -1876,8 +1906,8 @@
         if (!g) { g = makeCarrier(m); scene.add(g); G.moverMeshes.set(m.id, g); }
         syncCarrier(m, g, sim); continue;
       }
-      const HW = biome === 'halloween' && window.Halloween;
-      if (!g) { g = m.kind === 'bird' ? (HW ? HW.makeWitch() : biome === 'space' ? makeSatellite() : makeBird()) : HW ? HW.makePirate(m) : makeShip(m); g.rotation.y = m.dir > 0 ? 0 : Math.PI; scene.add(g); G.moverMeshes.set(m.id, g); }
+      const HW = biome === 'halloween' && window.Halloween, XMB = biome === 'xmas' && window.Christmas;
+      if (!g) { g = m.kind === 'bird' ? (XMB ? XMB.makeBird() : HW ? HW.makeWitch() : biome === 'space' ? makeSatellite() : makeBird()) : HW ? HW.makePirate(m) : makeShip(m); g.rotation.y = m.dir > 0 ? 0 : Math.PI; scene.add(g); G.moverMeshes.set(m.id, g); }
       g.position.set(m.x, m.y, m.z);
       if (m.kind === 'bird') {
         const f = m.active ? (biome === 'space' ? 0 : Math.sin(G.t * 16 + m.ph) * 0.9) : 0.2;
@@ -2322,7 +2352,7 @@
   }
 
   // ---------------- pantallas ----------------
-  const screens = ['title', 'map', 'hwmap', 'pass', 'missions', 'social', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard'];
+  const screens = ['title', 'map', 'hwmap', 'xmmap', 'pass', 'missions', 'social', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard'];
   function show(id) { for (const s of screens) $(s).classList.toggle('on', s === id); }
   function hideAll() { for (const s of screens) $(s).classList.remove('on'); }
   // mensaje sobre la bandeja de bolas (no tapa el cielo ni la estructura)
@@ -2415,12 +2445,13 @@
   function goTitle() {
     if (window.Bosses) window.Bosses.stop();
     TD.phase = 'idle'; TD.t = 0;
-    G.inHw = false; G.hwWorld = hwActive() && !!window.Halloween;
+    G.inHw = false; G.inXm = false; G.hwWorld = hwActive() && !!window.Halloween;
+    G.xmWorld = !G.hwWorld && xmActive() && !!window.Christmas;
     G.mode = 'title'; G.paused = false; loadDemo(Math.min(save.unlocked, LEVELS.length));   // de fondo, el paisaje del mundo en el que vas
     // evento de Halloween: en la portada solo se ve el castillo (sin bloques), con murciélagos, la bruja y relámpagos
-    if (G.hwWorld) { for (const m of G.meshes) if (m) m.visible = false; }
-    Audio.setStyle(G.hwWorld ? 'spooky' : 'normal');
-    $('title').classList.toggle('hw', G.hwWorld); hwUi();
+    if (G.hwWorld || G.xmWorld) { for (const m of G.meshes) if (m) m.visible = false; }
+    Audio.setStyle(G.hwWorld ? 'spooky' : G.xmWorld ? 'xmas' : 'normal');
+    $('title').classList.toggle('hw', G.hwWorld); $('title').classList.toggle('xm', G.xmWorld); hwUi(); xmUi();
     $('hud').classList.remove('on'); show('title'); G.titleReady = true; updateTitle();
   }
   // pantalla inicial: nivel en curso, avisos y estela de la bola-cohete
@@ -2443,18 +2474,19 @@
   addEventListener('resize', layoutTrail);
   // en la portada la estructura baja un poco para que el cartel no la tape
   function titleView() {
-    if (G.mode === 'title' && !G.hwWorld) camera.setViewOffset(W, H, 0, -H * 0.16, W, H);
+    if (G.mode === 'title' && !G.hwWorld && !G.xmWorld) camera.setViewOffset(W, H, 0, -H * 0.16, W, H);
     else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   }
   function goMap() {
     if (G.inHw && hwActive()) { goHw(); return; }
-    G.hwWorld = false; Audio.setStyle('normal');
+    if (G.inXm && xmActive()) { goXm(); return; }
+    G.hwWorld = false; G.xmWorld = false; Audio.setStyle('normal');
     if (window.Bosses) window.Bosses.stop();
     refundGolden();
     $('btnFinish').hidden = true;
     G.mode = 'map'; G.paused = false; $('hud').classList.remove('on');
     loadDemo(Math.min(save.unlocked, LEVELS.length));
-    renderMap(); setCoins(); hwUi(); show('map'); measureWorlds();
+    renderMap(); setCoins(); hwUi(); xmUi(); show('map'); measureWorlds();
     const cur = document.querySelector('.lv.cur'); if (cur) cur.scrollIntoView({ block: 'center' });
   }
   // nivel extra del mundo w: se abre con 3 estrellas en todos sus niveles
@@ -2532,7 +2564,7 @@
     const L = byId(id); if (!L) return;
     G.preId = id; preSel = {};
     if (G.mode !== 'play') loadDemo(id);
-    $('preTitle').textContent = L.hw ? (L.boss ? 'Jefe de Halloween' : 'Halloween · ' + L.pos) : L.bonus ? 'Nivel extra ' + L.world : L.boss ? 'Jefe · nivel ' + id : 'Nivel ' + id;
+    $('preTitle').textContent = L.xm ? (L.boss ? 'Jefe de Navidad' : 'Navidad · ' + L.pos) : L.hw ? (L.boss ? 'Jefe de Halloween' : 'Halloween · ' + L.pos) : L.bonus ? 'Nivel extra ' + L.world : L.boss ? 'Jefe · nivel ' + id : 'Nivel ' + id;
     $('preTitle').classList.toggle('gold', !!L.bonus);
     $('preReward').hidden = !L.bonus;
     const replay = L.bonus && save.bonusDone && save.bonusDone[L.id];
@@ -2632,9 +2664,9 @@
     G.casi = 0; G.firstShot = false; G.swapped = false; G.winShown = false; G.winAt = 0; G.extraUsed = false; shownScore = 0; lastTray = '';
     $('btnFinish').hidden = true; G.cannonKind = null;
     G.aimTarget.set(0, 1.5, 0);
-    $('hudLevel').textContent = L.hw ? 'HALLOWEEN ' + L.pos : L.bonus ? 'EXTRA ' + L.world : 'NIVEL ' + id;
-    Audio.setStyle(L.hw ? 'spooky' : 'normal'); G.hwWorld = false;
-    G.candyRun = 0; hwCandyChip();
+    $('hudLevel').textContent = L.xm ? 'NAVIDAD ' + L.pos : L.hw ? 'HALLOWEEN ' + L.pos : L.bonus ? 'EXTRA ' + L.world : 'NIVEL ' + id;
+    Audio.setStyle(L.hw ? 'spooky' : L.xm ? 'xmas' : 'normal'); G.hwWorld = false; G.xmWorld = false;
+    G.candyRun = 0; G.xcandyRun = 0; hwCandyChip(); xmCandyChip();
     $('meterTarget').style.left = (L.target * 100) + '%';
     $('meterFill').style.transition = 'none'; $('meterFill').style.width = '0%'; void $('meterFill').offsetWidth; $('meterFill').style.transition = '';
     hideAll(); $('hud').classList.add('on');
@@ -2651,11 +2683,12 @@
     const stars = L.boss ? (G.bossStars || 1) : sim.stars();
     $('winRibbon').textContent = L.boss ? '¡JEFE DERROTADO!' : '¡DEMOLIDO!';
     const prevStars = save.stars[L.id] || 0;
-    G.mystery = !L.bonus && !L.boss && !L.hw && !prevStars && L.id % 5 === 0;
+    G.mystery = !L.bonus && !L.boss && !L.hw && !L.xm && !prevStars && L.id % 5 === 0;
     save.stars[L.id] = Math.max(prevStars, stars);
     save.best[L.id] = Math.max(save.best[L.id] || 0, sim.score);
-    if (!L.bonus && !L.hw && L.id >= save.unlocked) save.unlocked = Math.min(L.id + 1, LEVELS.length + 1);
+    if (!L.bonus && !L.hw && !L.xm && L.id >= save.unlocked) save.unlocked = Math.min(L.id + 1, LEVELS.length + 1);
     if (L.hw) { const h = hwState(); h.unlocked = Math.max(h.unlocked, L.pos + 1); }
+    if (L.xm) { const h = xmState(); h.unlocked = Math.max(h.unlocked, L.pos + 1); }
     let coins = (20 + stars * 10) * (L.hard ? 2 : L.boss ? 3 : 1), gifts = L.boss ? ' · cofre de oro' : '';
     save.bonusDone = save.bonusDone || {}; save.bonusSeen = save.bonusSeen || {};
     if (L.bonus) {
@@ -2671,6 +2704,7 @@
     coins += sim.coins || 0;
     // caramelos por superar un nivel de Halloween (los del jefe, más)
     if (L.hw && hwActive()) { const c = Math.round((L.boss ? 25 : 3 + stars * 2) * liveMult('candy')); addCandy(c); gifts += ' · +' + c + ' caramelos'; }
+    if (L.xm && xmActive()) { const c = Math.round((L.boss ? 25 : 3 + stars * 2) * liveMult('candy')); addXCandy(c); gifts += ' · +' + c + ' caramelos navideños'; }
     // bonificación temporal del panel (x2 monedas…)
     const cm = liveMult('coins'); if (cm > 1) { coins = Math.round(coins * cm); gifts += ` · x${cm} evento`; }
     G.pendingCoins = coins; save.coins += coins;
@@ -2706,7 +2740,7 @@
     $('winDouble').hidden = can3;
     $('winBalls').hidden = !can3 || G.extraUsed;
     $('winRetry').hidden = stars >= 3;
-    $('winNext').textContent = L.hw ? (L.pos < 50 ? 'SIGUIENTE' : 'HALLOWEEN') : G.newBonus ? '¡NIVEL EXTRA!' : (L.bonus || L.id < LEVELS.length) ? 'SIGUIENTE' : 'NIVELES';
+    $('winNext').textContent = L.xm ? (L.pos < 50 ? 'SIGUIENTE' : 'NAVIDAD') : L.hw ? (L.pos < 50 ? 'SIGUIENTE' : 'HALLOWEEN') : G.newBonus ? '¡NIVEL EXTRA!' : (L.bonus || L.id < LEVELS.length) ? 'SIGUIENTE' : 'NIVELES';
     if (G.newBonus) setTimeout(() => toast('¡Nivel extra desbloqueado! 3 estrellas en todo el mundo ' + L.world), 1300);
     if (L.bonus && stars >= 3) setTimeout(() => toast('¡Bola dorada! Úsala cuando quieras con el botón dorado durante una partida', 3200), 1300);
     const sw = $('winStars');
@@ -2824,11 +2858,11 @@
       <div class="fbuy"><button class="btn green" data-id="starter">${st.price}</button><small>solo una vez</small></div></div>` : '';
     const rowT = s => TAG[s.id] ? row(s).replace('<div class="shopitem">', `<div class="shopitem hot"><i class="rtag">${TAG[s.id]}</i>`) : row(s);
     const by = ids => items.filter(s => ids.includes(s.id)).map(rowT).join('');
-    const hw = hwActive();
-    $('shopTabs').innerHTML = (hw ? '<button data-to="sHw" class="hwtab" aria-label="Halloween">🎃</button>' : '') + [['sOff', 'ico ico-fire', 'Ofertas'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
+    const hw = hwActive(), xm = xmActive();
+    $('shopTabs').innerHTML = (xm ? `<button data-to="sXm" class="hwtab xmtab" aria-label="Navidad"><span class="xti">${treeSvg()}</span></button>` : '') + (hw ? '<button data-to="sHw" class="hwtab" aria-label="Halloween">🎃</button>' : '') + [['sOff', 'ico ico-fire', 'Ofertas'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
       .map(([id, ic, t]) => `<button data-to="${id}"><i class="${ic}"></i>${t}</button>`).join('');
-    $('shopTabs').classList.toggle('withhw', hw);
-    $('shopList').innerHTML = (hw ? hwShopHtml() : '') + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${feat}${by(['noads'])}` +
+    $('shopTabs').classList.toggle('withhw', hw || xm);
+    $('shopList').innerHTML = (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${feat}${by(['noads'])}` +
       `<div class="sechead" id="sGem"><span>Gemas · para el Pase Pro</span></div>${by(['g1', 'g2', 'g3'])}` +
       `<div class="sechead" id="sBall"><span>Potenciadores</span></div>${by(['b1', 'b2', 'b3'])}` +
       `<div class="sechead"><span>Bolas de los mundos</span></div>${WB_KEYS.map(wrow).join('')}` +
@@ -2841,6 +2875,7 @@
     $('shopTabs').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { Audio.click(); goTab(b.dataset.to); }));
     $('shopTabs').querySelector('button').classList.add('on');
     $('shopList').querySelectorAll('button[data-hw]').forEach(b => b.addEventListener('click', () => { Audio.init(); hwBuy(b.dataset.hw); }));
+    $('shopList').querySelectorAll('button[data-xm]').forEach(b => b.addEventListener('click', () => { Audio.init(); xmBuy(b.dataset.xm); }));
     $('shopList').querySelectorAll('button[data-wb]').forEach(b => b.addEventListener('click', () => {
       const k = b.dataset.wb, cost = wbCoins(k);
       if (save.coins < cost) { toast('No tienes monedas suficientes'); return; }
@@ -2854,7 +2889,7 @@
       openShop();
     }));
     setCoins(); $('shop').classList.add('on');
-    if (focus) goTab({ gems: 'sGem', coins: 'sCoin', balls: 'sBall', hw: 'sHw' }[focus] || 'sOff');
+    if (focus) goTab({ gems: 'sGem', coins: 'sCoin', balls: 'sBall', hw: 'sHw', xm: 'sXm' }[focus] || 'sOff');
   }
 
   // ---------------- pase de temporada ----------------
@@ -2869,6 +2904,7 @@
     royal: { name: 'Cañón Real', css: '#ffc83d', color: 0xffc83d, metal: 0.9, rough: 0.2 },
     ice: { name: 'Cañón de Hielo', css: '#9fe6ff', color: 0x9fe6ff, metal: 0.1, rough: 0.05 },
     rainbow: { name: 'Cañón Arcoíris', css: 'conic-gradient(#ff4f6d,#ffd23f,#5fd45a,#3d9bff,#a66bff,#ff4f6d)', color: 0xffffff, metal: 0.2, rough: 0.25, map: true },
+    candycane: { name: 'Cañón Bastón', css: 'repeating-linear-gradient(135deg,#fff 0 8px,#e8203a 8px 16px)', color: 0xffffff, metal: 0.1, rough: 0.3, map: 'cane', glow: 0x2a0008 },
     pumpkin: { name: 'Cañón Calabaza', css: 'linear-gradient(180deg,#ffb347,#ff7a12 55%,#a83a00)', color: 0xff7a1a, metal: 0.2, rough: 0.4, glow: 0x4a1400 },
     fire: { name: 'Cañón de Fuego', css: 'linear-gradient(180deg,#ffe066,#ff6a1a 50%,#8a1010)', color: 0xffffff, metal: 0.25, rough: 0.3, map: 'fire', glow: 0x7a1c00 },
   };
@@ -3049,7 +3085,7 @@
   // cartel de la portada con las bonificaciones activas
   function liveUi() {
     const el = $('liveBoost'); if (!el) return;
-    const bs = window.Live ? window.Live.boosts().filter(b => BOOST_TXT[b.kind] && (b.kind !== 'candy' || hwActive())) : [];
+    const bs = window.Live ? window.Live.boosts().filter(b => BOOST_TXT[b.kind] && (b.kind !== 'candy' || hwActive() || xmActive())) : [];
     el.hidden = !bs.length;
     el.innerHTML = bs.map(b => `<span>${BOOST_IC[b.kind]} x${Math.min(5, +b.mult)} ${escH(lt(BOOST_TXT[b.kind]))}${b.end ? ' · ⏳ ' + leftTxt(+b.end - Date.now()) : ''}</span>`).join('');
   }
@@ -3260,6 +3296,168 @@
       if (Math.random() < 0.5) r.rainbow = 1; if (Math.random() < 0.25) r.golden = 1;
       grant(r); persist(); setCoins(); $('shop').classList.remove('on');
       openChestFX('epic', r, () => openShop('hw'));
+      return;
+    }
+    const got = it.grant(); persist(); setCoins(); Audio.coin(); vibe(20);
+    toast('¡Conseguido!' + (got && got.length ? ' ' + got.join(', ') : ''));
+    const sc = $('shopList').scrollTop; openShop(); $('shopList').scrollTop = sc;
+  }
+
+  // ---------------- evento de Navidad ----------------
+  // Del 1 de diciembre al 6 de enero a las 23:59 (hora de España) salvo que el panel diga otra cosa (config en directo «xm»):
+  // mundo de 50 niveles en el pueblo nevado, regalos con caramelos y bastones, tienda de Navidad y el trineo de Papá Noel.
+  const XM_START = Date.UTC(2026, 10, 30, 23, 0, 0), XM_END = Date.UTC(2027, 0, 6, 22, 59, 59);
+  const XML = Levels.XM || [];
+  const xmCfg = () => (window.Live && window.Live.cfg.xm) || null;
+  function xmStart() { const c = xmCfg(); return c && c.start != null ? +c.start : XM_START; }
+  function xmEnd() { const c = xmCfg(); return c && c.end ? +c.end : XM_END; }
+  function xmActive() {
+    if (!XML.length) return false;
+    if (TEST_MODE && save.xmForce) return true;
+    const c = xmCfg(), t = Date.now();
+    if (c && c.on === false) return false;
+    return t >= xmStart() && t < xmEnd();
+  }
+  function xmState() { if (!save.xm) save.xm = { unlocked: 1 }; return save.xm; }
+  function addXCandy(n) { save.xcandy = (save.xcandy || 0) + n; persist(); xmCandyChip(); document.querySelectorAll('.xcandyTxt').forEach(el => { el.textContent = save.xcandy; }); }
+  function xmLeft() {
+    const ms = Math.max(0, xmEnd() - Date.now()), d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
+    return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`;
+  }
+  // icono del evento: árbol de Navidad con estrella, bolas y nieve en las ramas
+  let treeN = 0;
+  function treeSvg() {
+    const a = 'xt' + (++treeN), s = 'xs' + treeN;
+    return `<svg viewBox="0 0 100 100" class="xi"><defs><linearGradient id="${a}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8af08a"/><stop offset=".55" stop-color="#2fb04e"/><stop offset="1" stop-color="#16743a"/></linearGradient>
+      <radialGradient id="${s}" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fff8c0"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#e89a00"/></radialGradient></defs>
+      <rect x="43" y="78" width="14" height="14" rx="3" fill="#8a4a22" stroke="#2a1006" stroke-width="3"/>
+      <path d="M50 58 L84 84 Q86 87 82 87 L18 87 Q14 87 16 84Z" fill="url(#${a})" stroke="#0b3a1c" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M50 38 L76 64 Q78 67 74 67 L26 67 Q22 67 24 64Z" fill="url(#${a})" stroke="#0b3a1c" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M50 18 L68 42 Q70 45 66 45 L34 45 Q30 45 32 42Z" fill="url(#${a})" stroke="#0b3a1c" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M22 84 Q36 78 50 82 Q64 78 80 84 M28 64 Q40 59 50 62 Q60 59 72 64 M35 42 Q44 38 50 40 Q57 38 65 42" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+      <circle cx="38" cy="76" r="4.5" fill="#ff3a4a" stroke="#4a0010" stroke-width="2"/><circle cx="62" cy="74" r="4.5" fill="#3ab4ff" stroke="#062a5a" stroke-width="2"/>
+      <circle cx="44" cy="56" r="4" fill="#ffd23f" stroke="#5a3a00" stroke-width="2"/><circle cx="58" cy="52" r="4" fill="#ff3a4a" stroke="#4a0010" stroke-width="2"/><circle cx="50" cy="33" r="3.5" fill="#3ab4ff" stroke="#062a5a" stroke-width="2"/>
+      <path d="M50 2 L54.5 11 L64 12 L57 18.5 L59 28 L50 23 L41 28 L43 18.5 L36 12 L45.5 11Z" fill="url(#${s})" stroke="#5a3a00" stroke-width="2.8" stroke-linejoin="round"/></svg>`;
+  }
+  // moneda del evento: bastón de caramelo
+  const CANE_SVG = `<svg viewBox="0 0 40 40" class="xc"><path d="M14 36 L14 14 Q14 4 22 4 Q30 4 30 12 L30 15 L25 15 L25 12 Q25 9 22 9 Q19 9 19 14 L19 36Z" fill="#fff"/>
+    <path d="M14 30 L19 27 L19 31 L14 34Z M14 22 L19 19 L19 23 L14 26Z M14 14.5 L19 12 L19 15.5 L14 18Z M18 7 L23 4.4 L25 8.6 L20.5 10Z M26 5.6 L30 10 L25.5 11.5 L24.8 9.5Z" fill="#e8203a"/>
+    <path d="M14 36 L14 14 Q14 4 22 4 Q30 4 30 12 L30 15 L25 15 L25 12 Q25 9 22 9 Q19 9 19 14 L19 36Z" fill="none" stroke="#4a0010" stroke-width="2.4" stroke-linejoin="round"/></svg>`;
+  // árbol de la portada y botón «Navidad» de la fila del mapa
+  function xmUi() {
+    const on = xmActive();
+    const tp = $('xmTree'); if (tp) { tp.hidden = !on; tp.classList.toggle('below', on && hwActive()); if (on && !tp.__svg) { tp.__svg = 1; tp.querySelector('.xtw').innerHTML = treeSvg(); } }
+    const nb = $('navXm'); if (nb) { nb.hidden = !on; if (on && !nb.__svg) { nb.__svg = 1; nb.querySelector('.xtw').innerHTML = treeSvg(); } }
+    document.querySelectorAll('.xmcdTxt').forEach(el => { el.textContent = xmLeft(); });
+    document.querySelectorAll('.xcandyTxt').forEach(el => { el.textContent = save.xcandy || 0; });
+    document.querySelectorAll('.xcane:not([data-ok])').forEach(el => { el.dataset.ok = 1; el.innerHTML = CANE_SVG; });
+  }
+  setInterval(() => { if (document.hidden) return; const was = $('xmTree') && !$('xmTree').hidden; xmUi(); if (was !== xmActive() && G.mode === 'title') goTitle(); }, 30000);
+  function xmCandyChip() {
+    const el = $('xcandyChip'); if (!el) return;
+    const show = G.mode === 'play' && xmActive() && G.level && G.level.xm;
+    el.hidden = !show; if (show) el.querySelector('b').textContent = save.xcandy || 0;
+  }
+  // regalo roto: el caramelo o el bastón vuela hasta el contador de arriba (lo avisa christmas.js)
+  function xmCollect(n, x, y, z) {
+    addXCandy(n); G.xcandyRun = (G.xcandyRun || 0) + n;
+    floatText(x, y + 0.6, z, '+' + n + ' 🎁', '#ffffff', 24, true);
+    try {
+      const v = new THREE.Vector3(x, y, z).project(camera), chip = $('xcandyChip');
+      if (chip && !chip.hidden) {
+        const cr = chip.getBoundingClientRect(), sx = (v.x * 0.5 + 0.5) * innerWidth, sy = (-v.y * 0.5 + 0.5) * innerHeight;
+        const el = document.createElement('span'); el.className = 'candyfly xfly'; el.innerHTML = CANE_SVG; el.style.left = (sx - 14) + 'px'; el.style.top = (sy - 14) + 'px';
+        document.body.appendChild(el); void el.offsetWidth;
+        el.style.transform = `translate(${cr.left + 6 - sx}px,${cr.top + 2 - sy}px) scale(.7)`;
+        setTimeout(() => { el.remove(); chip.classList.remove('bump'); void chip.offsetWidth; chip.classList.add('bump'); }, 650);
+      }
+    } catch (e) { /* sin animación */ }
+    spawnSprite(x, y, z, 0xffffff, 1.6, 1.2, 0.35, { add: true, alpha: 1 });
+    Audio.coin(); if (Audio.bells) Audio.bells(); vibe(15);
+  }
+  // mapa del mundo de Navidad: calendario de Adviento (cada zona es una casa y los niveles, sus ventanas)
+  function goXm() {
+    if (!xmActive()) { toast('El evento de Navidad no está activo'); G.inXm = false; goMap(); return; }
+    if (window.Bosses) window.Bosses.stop();
+    refundGolden(); $('btnFinish').hidden = true;
+    G.inXm = true; G.inHw = false; G.xmWorld = false; G.hwWorld = false; G.mode = 'map'; G.paused = false; $('hud').classList.remove('on');
+    const h = xmState();
+    loadDemo(XML[Math.min(h.unlocked, XML.length) - 1].id);
+    Audio.setStyle('xmas');
+    renderXm(); setCoins(); xmUi(); show('xmmap');
+    const cur = document.querySelector('#xmList .xwin.cur'); if (cur) cur.scrollIntoView({ block: 'center' });
+  }
+  function xmBack() { if (G.xmFrom === 'title') goTitle(); else { G.inXm = false; goMap(); } }
+  const XM_BOSS_ICO = ['💂', '🎁', '🧊', '💂', '🎁'];
+  const XM_HOUSE = ['red', 'cream', 'blue', 'green', 'purple'];
+  // calle nevada entre dos casas del calendario (solo decoración)
+  function xmStreet(z) {
+    const pine = (x, s) => `<g transform="translate(${x} ${54 - 30 * s}) scale(${s})"><path d="M0 30 L12 8 L24 30Z M2 20 L12 0 L22 20Z" fill="#1f6a44"/><path d="M5 20 L12 6 L19 20 M3 30 L12 14 L21 30" fill="none" stroke="#fff" stroke-width="2" opacity=".85"/><rect x="10" y="30" width="4" height="5" fill="#5a3a1a"/></g>`;
+    const lamp = x => `<g transform="translate(${x} 10)"><rect x="3" y="10" width="3" height="34" fill="#1a1820"/><rect x="0" y="2" width="9" height="10" rx="2" fill="#ffd890"/><path d="M-1 3 L4.5 -3 L10 3Z" fill="#1a1820"/><circle cx="4.5" cy="7" r="10" fill="#ffd890" opacity=".18"/><circle cx="4.5" cy="24" r="4" fill="none" stroke="#1f8a4a" stroke-width="2.5"/></g>`;
+    const man = x => `<g transform="translate(${x} 22)"><circle cx="9" cy="24" r="9" fill="#fff"/><circle cx="9" cy="10" r="6.5" fill="#fff"/><rect x="4" y="0" width="10" height="5" fill="#1a1820"/><rect x="2" y="4" width="14" height="2" fill="#1a1820"/><circle cx="7" cy="9" r="1" fill="#1a1820"/><circle cx="11" cy="9" r="1" fill="#1a1820"/><path d="M9 11 L14 12 L9 12.5Z" fill="#ff8a1a"/><rect x="3" y="15" width="12" height="3" rx="1.5" fill="#d8203a"/></g>`;
+    const gift = (x, c) => `<g transform="translate(${x} 40)"><rect width="14" height="12" rx="2" fill="${c}"/><rect x="6" width="2.5" height="12" fill="#fff"/><rect y="5" width="14" height="2.5" fill="#fff"/><circle cx="5" cy="-1" r="2.5" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="9.5" cy="-1" r="2.5" fill="none" stroke="#fff" stroke-width="1.5"/></g>`;
+    const sets = [
+      pine(4, 1.1) + lamp(52) + man(150) + gift(178, '#3a9aff') + gift(193, '#ffc83d') + lamp(250) + pine(300, 0.9) + pine(326, 1.2),
+      pine(8, 1.2) + pine(36, 0.8) + gift(90, '#d8203a') + lamp(140) + pine(200, 1) + man(262) + lamp(320),
+      lamp(20) + pine(70, 1.2) + pine(96, 0.9) + gift(170, '#2fb04e') + gift(186, '#a66bff') + man(230) + lamp(300) + pine(332, 1),
+      pine(10, 0.9) + man(50) + lamp(110) + gift(160, '#ffc83d') + pine(210, 1.25) + pine(238, 0.85) + lamp(300),
+    ];
+    return `<div class="xstreet"><svg viewBox="0 0 360 60" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><path d="M0 52 Q90 44 180 50 T360 50 L360 60 L0 60Z" fill="#fff" opacity=".92"/>${sets[z % 4]}</svg></div>`;
+  }
+  function renderXm() {
+    const hp = document.querySelector('#xmmap .xmhead .xtw'); if (hp && !hp.__svg) { hp.__svg = 1; hp.innerHTML = treeSvg(); }
+    const h = xmState(), all = TEST_MODE && save.testAll, got = XML.filter(l => (save.stars[l.id] || 0) > 0).length;
+    $('xmProg').textContent = got; $('xmBar').style.width = (100 * got / XML.length) + '%';
+    let html = '';
+    for (let z = 0; z < 5; z++) {
+      const zl = XML.filter(l => l.zone === z), open = all || zl[0].pos <= h.unlocked;
+      html += `<div class="xhouse ${XM_HOUSE[z]} ${open ? '' : 'lk'}"><div class="xroof"></div><div class="xsnowr"></div><div class="xchim"></div><div class="xlights"></div>` +
+        `<div class="xsign">${open ? '' : '🔒 '}${zl[0].zoneName}<small>${z * 10 + 1}-${z * 10 + 10}</small></div><div class="xgrid">`;
+      for (const l of zl) {
+        const st = save.stars[l.id] || 0, un = all || l.pos <= h.unlocked, cur = l.pos === h.unlocked && !st;
+        const stars = st ? '<span class="s">' + '★'.repeat(st) + '☆'.repeat(3 - st) + '</span>' : '';
+        if (l.boss) html += `<button class="xwin door ${un ? '' : 'lk'} ${cur ? 'cur' : ''}" data-id="${l.id}"><span class="wr"></span><b>${un ? XM_BOSS_ICO[z] : '🔒'}</b><span>JEFE</span>${stars}</button>`;
+        else html += `<button class="xwin ${un ? '' : 'lk'} ${cur ? 'cur' : ''} ${l.hard ? 'hard' : ''}" data-id="${l.id}"><span>${un ? l.pos : '🔒'}</span>${stars}</button>`;
+      }
+      html += '</div><div class="xground"></div></div>' + (z < 4 ? xmStreet(z) : '');
+    }
+    $('xmList').innerHTML = html;
+    const lt = document.querySelector('#xmmap .xlights.top');
+    if (lt && !lt.childNodes.length) { let h = '<path d="M0 6 Q50 18 100 6 T200 6 T300 6 T400 6" fill="none" stroke="#1a3a2a" stroke-width="2"/>'; for (let i = 0; i < 20; i++) { const x = 10 + i * 20, y = 6 + 6 * Math.abs(Math.sin((x / 100) * Math.PI)); h += `<circle class="xb" cx="${x}" cy="${y.toFixed(1)}" r="4.5" fill="${['#ff3a4a', '#3aff7a', '#ffd23a', '#3ab4ff', '#ff7af0'][i % 5]}"/>`; } lt.innerHTML = h; }
+    $('xmList').querySelectorAll('.xwin').forEach(b => b.addEventListener('click', () => {
+      Audio.click();
+      const L = byId(+b.dataset.id);
+      if (b.classList.contains('lk')) { toast(L.boss ? 'Supera los niveles de la zona para llegar al jefe' : 'Supera el nivel anterior para abrir este'); return; }
+      openPre(L.id);
+    }));
+  }
+  // tienda de Navidad: se paga con caramelos navideños
+  const XM_SHOP = [
+    { id: 'xskin', ic: '🍭', name: 'Cañón Bastón', desc: 'Cañón exclusivo de Navidad, con rayas de bastón de caramelo', price: 400, tag: 'EXCLUSIVO', owned: () => save.skins.owned.includes('candycane'), grant: () => grant({ skin: 'candycane' }) },
+    { id: 'xchest', ic: '🎁', name: 'Regalo sorpresa', desc: 'Monedas, bolas y gemas al azar', price: 250, chest: true },
+    { id: 'xav', ic: '🎅', name: 'Avatares de Navidad', desc: 'Papá Noel, reno, muñeco de nieve, árbol, regalo y cascanueces para tu perfil', price: 80, owned: () => !!save.xmAvatars, grant: () => { save.xmAvatars = true; return ['avatares de Navidad']; } },
+    { id: 'xgold', ic: '✨', name: 'Bola dorada', desc: 'Atraviesa la estructura de lado a lado', price: 220, grant: () => grant({ golden: 1 }) },
+    { id: 'xbomb', ic: '💣', name: 'Pack de 3 bombas', desc: 'Para cualquier nivel', price: 120, grant: () => grant({ bomb: 3 }) },
+    { id: 'xrain', ic: '🌈', name: '2 bolas arcoíris', desc: 'Toman el color del primer bloque que tocan', price: 140, grant: () => grant({ rainbow: 2 }) },
+    { id: 'xgems', ic: '💎', name: '10 gemas', desc: 'Para el Pase Pro', price: 300, grant: () => grant({ gems: 10 }) },
+    { id: 'xcoins', ic: '🪙', name: '500 monedas', desc: '', price: 90, grant: () => grant({ coins: 500 }) },
+  ];
+  function xmShopHtml() {
+    const row = it => { const own = it.owned && it.owned();
+      return `<div class="hwitem xmitem"><span class="ic">${it.ic}</span><div><b>${it.name}${it.tag ? `<span class="tag2">${it.tag}</span>` : ''}</b>${it.desc ? `<small>${it.desc}</small>` : ''}</div>` +
+        (own ? '<span class="hwown">✔</span>' : `<button class="hwbuy xmbuy" data-xm="${it.id}"><span class="xcane"></span>${it.price}</button>`) + '</div>'; };
+    setTimeout(xmUi, 0);
+    return `<div class="hwshoptop xmshoptop" id="sXm"><span class="xti">${treeSvg()}</span><div><b>Tienda de Navidad</b><small><span>Hasta el 6 de enero</span> · <span class="xmcdTxt">${xmLeft()}</span> · <span>se paga con caramelos navideños</span></small></div><span class="xmcandy"><span class="xcane"></span><span class="xcandyTxt">${save.xcandy || 0}</span></span></div>` + XM_SHOP.map(row).join('');
+  }
+  function xmBuy(id) {
+    const it = XM_SHOP.find(x => x.id === id); if (!it) return;
+    if ((save.xcandy || 0) < it.price) { toast(`Te faltan ${it.price - (save.xcandy || 0)} caramelos navideños. Los consigues rompiendo regalos`); return; }
+    save.xcandy -= it.price;
+    if (it.chest) {
+      const r = { coins: 250 + Math.floor(Math.random() * 6) * 100, bomb: 1 + (Math.random() < 0.5 ? 1 : 0), gems: 3 + Math.floor(Math.random() * 6) };
+      if (Math.random() < 0.5) r.rainbow = 1; if (Math.random() < 0.25) r.golden = 1;
+      grant(r); persist(); setCoins(); $('shop').classList.remove('on');
+      openChestFX('epic', r, () => openShop('xm'));
       return;
     }
     const got = it.grant(); persist(); setCoins(); Audio.coin(); vibe(20);
@@ -3766,7 +3964,7 @@
     const k = (save.skins && save.skins.equip) || 'classic', sk = SKINS[k] || SKINS.classic;
     if (k !== 'classic' && !stats().skin) { stats().skin = 1; persist(); }
     cannonMat.color.set(sk.color); cannonMat.metalness = sk.metal; cannonMat.roughness = sk.rough;
-    cannonMat.map = sk.map === 'fire' ? fireTex : sk.map ? rainbowTex : null;
+    cannonMat.map = sk.map === 'fire' ? fireTex : sk.map === 'cane' ? (window.Christmas ? window.Christmas.caneTex : null) : sk.map ? rainbowTex : null;
     cannonMat.emissive.set(sk.glow || 0x000000); cannonMat.needsUpdate = true;
   }
 
@@ -3774,11 +3972,15 @@
   const on = (id, fn) => $(id).addEventListener('click', () => { Audio.init(); Audio.click(); fn(); });
   on('hwPump', () => { G.hwFrom = 'title'; goHw(); });
   on('navHw', () => { G.hwFrom = 'map'; goHw(); });
-  on('navWorlds', () => { G.inHw = false; if (!$('map').classList.contains('on')) goMap(); const cur = document.querySelector('#mapList .lv.cur'); if (cur) cur.scrollIntoView({ block: 'center', behavior: 'smooth' }); });
+  on('navWorlds', () => { G.inHw = false; G.inXm = false; if (!$('map').classList.contains('on')) goMap(); const cur = document.querySelector('#mapList .lv.cur'); if (cur) cur.scrollIntoView({ block: 'center', behavior: 'smooth' }); });
   on('navClub', () => toast('Los clubes llegan muy pronto: expedición semanal, jefe colosal y liga del fin de semana', 3200));
   on('hwBack', hwBack);
+  on('xmTree', () => { G.xmFrom = 'title'; goXm(); });
+  on('navXm', () => { G.xmFrom = 'map'; goXm(); });
+  on('xmBack', xmBack);
+  on('xmShop', () => openShop('xm'));
   on('hwShop', () => openShop('hw'));
-  on('btnPlay', () => { G.inHw = false; goMap(); if (save.unlocked === 1 && !save.stars[1]) openPre(1); else maybeAutoDaily(); });
+  on('btnPlay', () => { G.inHw = false; G.inXm = false; goMap(); if (save.unlocked === 1 && !save.stars[1]) openPre(1); else maybeAutoDaily(); });
   on('btnDaily', () => openDaily(null));
   on('dX', () => { if (!$('dX').hidden) closeDaily(G.mode === 'title'); });   // la X cierra y te deja donde estabas
   on('btnDailyT', () => openDaily(() => { if (G.mode === 'title') goMap(); }));
@@ -3817,7 +4019,7 @@
   // configuración en directo: ventana de avisos y código regalo
   on('lbX', liveClose);
   on('sCode', openRedeem);
-  if (window.Live) window.Live.on(() => { liveUi(); hwUi(); setTimeout(liveCheck, 300); if (G.mode === 'title' && G.titleReady && G.hwWorld !== (hwActive() && !!window.Halloween)) goTitle(); });
+  if (window.Live) window.Live.on(() => { liveUi(); hwUi(); xmUi(); setTimeout(liveCheck, 300); if (G.mode === 'title' && G.titleReady && (G.hwWorld !== (hwActive() && !!window.Halloween) || G.xmWorld !== (!G.hwWorld && xmActive() && !!window.Christmas))) goTitle(); });
   setInterval(() => { if (document.hidden) return; liveUi(); liveCheck(); }, 5000);
   on('sReset', () => {
     const b = $('sReset');
@@ -3859,6 +4061,7 @@
     goMap();
     maybeAutoDaily(() => {
       if (L.hw) { if (L.pos < 50 && hwActive()) openPre(L.id + 1); return; }
+      if (L.xm) { if (L.pos < 50 && xmActive()) openPre(L.id + 1); return; }
       if (G.newBonus) { openPre(G.newBonus); return; }
       const n = L.bonus ? Math.min(save.unlocked, LEVELS.length) : L.id + 1;
       if (n <= LEVELS.length) openPre(n);
@@ -4005,6 +4208,7 @@
     seaNormal.offset.set(G.t * 0.004, G.t * 0.006);
     if (BIOMES[biome].update) BIOMES[biome].update(dt);
     if (window.Halloween) window.Halloween.tick(G, dt);
+    if (window.Christmas) window.Christmas.tick(G, dt);
     Weather.update(dt);
     // cámara: en menús gira despacio alrededor; jugando, fija tras el cañón con temblor
     if (G.mode === 'play') {
@@ -4017,6 +4221,9 @@
       updateCannon(dt);
     } else if (G.mode === 'title' && G.hwWorld && window.Halloween) {
       window.Halloween.titleCam(camera, G.t);
+      cannonG.visible = false;
+    } else if (G.mode === 'title' && G.xmWorld && window.Christmas) {
+      window.Christmas.titleCam(camera, G.t);
       cannonG.visible = false;
     } else if (G.mode === 'title') {
       // portada: la cámara se balancea un poco delante de la estructura (la bola llega desde delante)
@@ -4039,7 +4246,7 @@
   }
 
   // los jefes (bosses.js) usan estas piezas del juego
-  window.RRGame = { cubiFrames, openShop, goMap, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, hwState, addCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
+  window.RRGame = { cubiFrames, openShop, goMap, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
     stats, plState, starsTotal, countLv, LEVELS, myCode, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,

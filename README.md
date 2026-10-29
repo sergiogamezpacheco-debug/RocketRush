@@ -421,3 +421,22 @@ Puesta en marcha (una vez):
 
 Pruebas: `tools/liveflow.py` (el juego con la configuración en directo), `tools/adminflow.py` (el panel contra un
 Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del panel con un administrador de prueba.
+
+## Evento de Navidad (del 1 de diciembre al 6 de enero a las 23:59, se cambia desde el panel)
+
+- **Mundo de 50 niveles** (ids 30001-30050, `Levels.XM`) en 5 zonas: Plaza del pueblo, Mercadillo navideño, Bosque de los
+  abetos, Lago helado y Taller de Papá Noel. Afinados con `EV=xm node tools/hwtune.js` (gid `xm1…xm50` en `src/gentune.js`)
+  y comprobados con `EV=xm node tools/hwcheck.js`.
+- **Paisaje** (`src/christmas.js`): pueblo nevado de noche con árbol gigante, casas con luces en la ladera, torre del reloj,
+  luna y nieve cayendo; plataforma de hielo con borde y postes de bastón de caramelo.
+- **Trineo de Papá Noel con 4 renos** en lugar del pájaro (y cruzando la portada con cascabeles). Música navideña propia.
+- **Regalos**: algunos bloques se envuelven (papel de su color con copos y lazo blanco). El del bastón da 2 caramelos
+  navideños y el del caramelo de menta, 1. En los jefes se envuelven todos los bloques de colores.
+- **Jefes** (mismo combate, aspecto navideño): Cascanueces Mayor (gólem), Caja Sorpresa (faraón: payaso de muelle que sale
+  de un regalo gigante), Capitán Escarcha (barco rompehielos), General Cascanueces y Gran Caja Sorpresa.
+- **Mapa calendario de Adviento**: cada zona es una casa nevada con ventanas numeradas y la puerta del jefe; calles con
+  farolas, abetos y muñecos de nieve entre las casas; luna, trineo, nieve y pueblo al fondo.
+- **Icono**: árbol de Navidad con cuenta atrás en la portada y botón «Navidad» en el mapa. Moneda: bastones (caramelos navideños).
+- **Tienda de Navidad**: Cañón Bastón, regalo sorpresa, avatares de Navidad, bola dorada, bombas, arcoíris, gemas y monedas.
+- **Panel**: tarjeta «🎄 Navidad» en Eventos (encender, «Empezar ya», +7 días, fechas originales).
+- Prueba: `tools/xmflow.py`.

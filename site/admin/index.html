@@ -149,6 +149,7 @@ const FB = { key: 'AIzaSyC9Rbs2qrzJaSugbHCjOTpuH_QQZKw8DNc', pid: 'rocket-rush-7
 const ROOT = `projects/${FB.pid}/databases/(default)/documents`, FS = 'https://firestore.googleapis.com/v1/' + ROOT;
 const IDT = 'https://identitytoolkit.googleapis.com/v1', STS = 'https://securetoken.googleapis.com/v1';
 const HW_DEFAULT_END = Date.UTC(2026, 10, 1, 22, 59, 59);   // la fecha que trae el juego
+const XM_DEFAULT_START = Date.UTC(2026, 10, 30, 23, 0, 0), XM_DEFAULT_END = Date.UTC(2027, 0, 6, 22, 59, 59);   // Navidad: 1 dic – 6 ene
 const $ = id => document.getElementById(id);
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { /* nada */ } } };
@@ -304,6 +305,8 @@ function nowItems() {
   const out = [], t = Date.now(), d = draft, live = o => o && (!o.start || t >= o.start) && (!o.end || t < o.end);
   const hw = d.hw || {}, hwOn = hw.on !== false && (!hw.start || t >= hw.start) && t < (hw.end || HW_DEFAULT_END);
   out.push(hwOn ? `🎃 Halloween · quedan ${left((hw.end || HW_DEFAULT_END) - t)}` : '🎃 Halloween apagado');
+  const xm = d.xm || {}, xs = xm.start != null ? xm.start : XM_DEFAULT_START, xe = xm.end || XM_DEFAULT_END, xmOn = xm.on !== false && t >= xs && t < xe;
+  out.push(xmOn ? `🎄 Navidad · quedan ${left(xe - t)}` : xm.on !== false && t < xs ? `🎄 Navidad empieza en ${left(xs - t)}` : '🎄 Navidad apagada');
   for (const b of d.boosts || []) if (live(b)) out.push(`${(KIND[b.kind] || ['🔥'])[0]} x${b.mult} ${(KIND[b.kind] || ['', b.kind])[1].toLowerCase()}`);
   for (const g of d.gifts || []) if (live(g)) out.push('🎁 ' + (g.title || 'Regalo'));
   for (const n of d.news || []) if (live(n)) out.push('📣 ' + (n.title || 'Aviso'));
@@ -333,6 +336,7 @@ function renderHome() {
 // ---- eventos ----
 function renderEvents() {
   const hw = Object.assign({ on: true, start: 0, end: HW_DEFAULT_END }, draft.hw || {});
+  const xm = Object.assign({ on: true, start: XM_DEFAULT_START, end: XM_DEFAULT_END }, draft.xm || {});
   const s = sec('Eventos', `
     <div class="card" id="hwCard"><h3>🎃 Halloween <span class="grow"></span>${pill(Object.assign({}, hw, { end: hw.end || HW_DEFAULT_END }))}</h3>
       <p class="hint">El mundo de 50 niveles, los caramelos y su tienda ya están en el juego: aquí decides cuándo se ven.</p>
@@ -340,12 +344,18 @@ function renderEvents() {
       <div class="grid two"><label class="fld"><span>Empieza</span><input type="datetime-local" name="start" value="${toInput(hw.start)}"></label>
         <label class="fld"><span>Termina</span><input type="datetime-local" name="end" value="${toInput(hw.end || HW_DEFAULT_END)}"></label></div>
       <div class="row"><button class="btn sm" data-x="hwExt">+7 días</button><button class="btn sm" data-x="hwDef">Fecha original (1 nov 23:59)</button></div></div>
+    <div class="card" id="xmCard"><h3>🎄 Navidad <span class="grow"></span>${pill(xm)}</h3>
+      <p class="hint">El pueblo nevado de 50 niveles, los regalos con caramelos y bastones, los jefes (Cascanueces, Caja Sorpresa y Capitán Escarcha) y su tienda ya están en el juego: aquí decides cuándo se ven.</p>
+      <label class="chk"><input type="checkbox" name="on" ${xm.on !== false ? 'checked' : ''}> Evento encendido</label>
+      <div class="grid two"><label class="fld"><span>Empieza</span><input type="datetime-local" name="start" value="${toInput(xm.start)}"></label>
+        <label class="fld"><span>Termina</span><input type="datetime-local" name="end" value="${toInput(xm.end)}"></label></div>
+      <div class="row"><button class="btn sm" data-x="xmNow">Empezar ya</button><button class="btn sm" data-x="xmExt">+7 días</button><button class="btn sm" data-x="xmDef">Fechas originales (1 dic – 6 ene)</button></div></div>
     <div class="card"><h3>🔥 Bonificaciones <span class="grow"></span><span class="pill off">${(draft.boosts || []).length}</span></h3>
       <p class="hint">Multiplican lo que se gana al superar un nivel. En la portada sale un cartel con la cuenta atrás.</p>
       <div id="bList"></div></div>
     <div class="card" id="bForm"><h3>Nueva bonificación</h3>
       <div class="presets"><button class="btn sm" data-x="pWeekend">Fin de semana x2 monedas</button><button class="btn sm" data-x="pDay">24 h x2 experiencia</button></div>
-      <div class="grid three"><label class="fld"><span>Qué</span><select name="kind"><option value="coins">🪙 Monedas</option><option value="xp">⭐ Experiencia</option><option value="candy">🍬 Caramelos (Halloween)</option></select></label>
+      <div class="grid three"><label class="fld"><span>Qué</span><select name="kind"><option value="coins">🪙 Monedas</option><option value="xp">⭐ Experiencia</option><option value="candy">🍬 Caramelos (eventos)</option></select></label>
         <label class="fld"><span>Multiplicador</span><select name="mult"><option>2</option><option>3</option></select></label>
         <label class="fld"><span>Nombre (solo para ti)</span><input name="title" placeholder="Fin de semana x2"></label></div>
       <div class="grid two"><label class="fld"><span>Empieza</span><input type="datetime-local" name="start"></label><label class="fld"><span>Termina</span><input type="datetime-local" name="end"></label></div>
@@ -353,6 +363,9 @@ function renderEvents() {
   const hc = s.querySelector('#hwCard');
   const hwSave = () => { draft.hw = { on: val(hc, 'on'), start: fromInput(val(hc, 'start')), end: fromInput(val(hc, 'end')) || HW_DEFAULT_END }; touch(); };
   hc.addEventListener('change', () => { hwSave(); render(); });
+  const xc = s.querySelector('#xmCard');
+  const xmSave = () => { draft.xm = { on: val(xc, 'on'), start: fromInput(val(xc, 'start')), end: fromInput(val(xc, 'end')) || XM_DEFAULT_END }; touch(); };
+  xc.addEventListener('change', () => { xmSave(); render(); });
   const bl = s.querySelector('#bList');
   bl.innerHTML = (draft.boosts || []).map((b, i) => `<div class="item"><div class="ic">${(KIND[b.kind] || ['🔥'])[0]}</div><div class="bd"><b>x${b.mult} ${esc((KIND[b.kind] || ['', b.kind])[1].toLowerCase())}${b.title ? ' · ' + esc(b.title) : ''} ${pill(b)}</b><small>${esc(when(b))}</small></div>
     <div class="ac"><button class="btn sm bad" data-del="${i}">Quitar</button></div></div>`).join('') || '<div class="empty">No hay ninguna.</div>';
@@ -361,6 +374,9 @@ function renderEvents() {
   s.addEventListener('click', e => {
     const x = e.target.closest('[data-x]'); if (!x) return;
     const set = (n, v) => { bf.querySelector(`[name="${n}"]`).value = v; };
+    if (x.dataset.x === 'xmNow') { xc.querySelector('[name=start]').value = toInput(Date.now() - 60000); xc.querySelector('[name=on]').checked = true; xmSave(); render(); }
+    if (x.dataset.x === 'xmExt') { xc.querySelector('[name=end]').value = toInput(Math.max(Date.now(), fromInput(val(xc, 'end')) || XM_DEFAULT_END) + 7 * 864e5); xmSave(); render(); }
+    if (x.dataset.x === 'xmDef') { xc.querySelector('[name=start]').value = toInput(XM_DEFAULT_START); xc.querySelector('[name=end]').value = toInput(XM_DEFAULT_END); xmSave(); render(); }
     if (x.dataset.x === 'hwExt') { hc.querySelector('[name=end]').value = toInput(Math.max(Date.now(), fromInput(val(hc, 'end')) || HW_DEFAULT_END) + 7 * 864e5); hwSave(); render(); }
     if (x.dataset.x === 'hwDef') { hc.querySelector('[name=end]').value = toInput(HW_DEFAULT_END); hc.querySelector('[name=start]').value = ''; hwSave(); render(); }
     if (x.dataset.x === 'pWeekend') { const st = nextAt(5, 18); set('kind', 'coins'); set('mult', '2'); set('title', 'Fin de semana x2'); set('start', toInput(st)); set('end', toInput(st + 54 * 36e5)); }

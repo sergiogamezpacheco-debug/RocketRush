@@ -1206,7 +1206,7 @@
     }
     // objeto que cruza el cielo (mundos sin mar): vuela por encima de la estructura, a la vista, con 2 bolas a bordo
     spawnCarrier(biome) {
-      if (!C.CARRIERS[biome]) biome = { candy: 'desert', crystal: 'snow', temple: 'jungle', forest: 'jungle', fair: 'desert', neon: 'space' }[biome];
+      if (!C.CARRIERS[biome]) biome = { candy: 'desert', crystal: 'snow', temple: 'jungle', forest: 'jungle', fair: 'desert', neon: 'space', xmas: 'snow' }[biome];
       const K = C.CARRIERS[biome]; if (!K) return;
       const dir = this.rand() < 0.5 ? 1 : -1, z = K.z - this.rand() * K.zr;
       const cam = referenceCam(this.level), sil = this.silhouette();

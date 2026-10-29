@@ -84,10 +84,13 @@ with sync_playwright() as pw:
     # eventos: fin de semana x2 + Halloween 7 días más
     pg.click('nav [data-tab=events]'); pg.click('[data-x=pWeekend]'); pg.click('[data-x=bAdd]'); pg.wait_for_timeout(200)
     pg.click('[data-x=hwExt]'); pg.wait_for_timeout(200)
+    pg.click('[data-x=xmNow]'); pg.wait_for_timeout(200)
+    print('tarjeta de Navidad:', pg.text_content('#xmCard h3').strip())
     print('barra de guardar visible:', pg.is_visible('#savebar'), '· aún sin guardar en el servidor:', cfg())
     pg.screenshot(path=OUT + 'adm_events.png', full_page=True)
     pg.click('#save'); pg.wait_for_timeout(500)
     c = cfg(); print('guardado:', [(x['kind'], x['mult']) for x in c['boosts']], '· Halloween hasta', time.strftime('%d/%m %H:%M', time.localtime(c['hw']['end'] / 1000)), '· barra oculta:', not pg.is_visible('#savebar'))
+    print('Navidad:', c['xm']['on'], 'desde', time.strftime('%d/%m %H:%M', time.localtime(c['xm']['start'] / 1000)), 'hasta', time.strftime('%d/%m %H:%M', time.localtime(c['xm']['end'] / 1000)))
     # avisos: regalo con traducción
     pg.click('nav [data-tab=msgs]')
     f = '#gForm '
