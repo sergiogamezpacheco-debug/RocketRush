@@ -141,7 +141,11 @@ with sync_playwright() as p:
         check(ev(A, "() => !document.getElementById('socDotT').hidden && document.getElementById('socDotT').textContent") == '1', 'aviso de solicitud en la portada de Ana')
         A.click('#btnSocT'); idle(A)
         A.screenshot(path=OUT + 'soc_solicitud.png')
-        A.click('.scard.inc [data-act=ok]'); idle(A)
+        # el botón puede volver a pintarse justo al tocarlo (llega la lista de amigos): si no ha hecho nada, se toca otra vez
+        for _ in range(3):
+            A.click('.scard.inc [data-act=ok]'); idle(A)
+            try: A.wait_for_function("() => Social._fr.list.length === 1", timeout=6000); break
+            except Exception: pass
         fa = ev(A, "() => Social._fr.list.map(x=>x.u.name)")
         check(len(fa) == 1 and fa[0].startswith('Beto') and len(ev(A, "() => RRGame.save.friends")) == 1, 'Ana acepta: amigos ' + str(fa) + ' · cuenta para la misión')
         A.screenshot(path=OUT + 'soc_amigos.png')
@@ -182,7 +186,10 @@ with sync_playwright() as p:
         print('en inglés:', ev(A, "() => document.querySelector('.shead').textContent + ' | ' + document.querySelector('.scard .sname').textContent + ' | ' + document.querySelector('.scard small').textContent"))
         A.screenshot(path=OUT + 'soc_en.png')
         # quitar amigo (dos toques)
-        A.click('.scard [data-act=del]'); A.click('.scard [data-act=del]'); idle(A)
+        for _ in range(3):
+            A.click('.scard [data-act=del]'); A.click('.scard [data-act=del]'); idle(A)
+            try: A.wait_for_function("() => Social._fr.list.length === 0", timeout=6000); break
+            except Exception: pass
         check(ev(A, "() => Social._fr.list.length") == 0, 'quitar amigo')
     finally:
         if LIVE:   # limpieza: se borran perfil, código y cuenta de los dos jugadores de prueba
