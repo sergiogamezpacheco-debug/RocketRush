@@ -22,8 +22,8 @@ try:
     # nombres reservados por jugadores de prueba («… (prueba)», «zzprueba …»)
     j = call(B + '/names?pageSize=300') or {}
     for d in j.get('documents', []):
-        nm = urllib.parse.unquote(d['name'].split('/')[-1])
-        if '(prueba)' in nm or nm.startswith('zzprueba'): call('https://firestore.googleapis.com/v1/' + d['name'], method='DELETE'); n += 1
+        nm = d['name'].split('/')[-1]
+        if '(prueba)' in nm or nm.startswith('zzprueba'): call('https://firestore.googleapis.com/v1/' + urllib.parse.quote(d['name'], safe='/()'), method='DELETE'); n += 1
     print(f'restos de pruebas borrados: {len(users)} jugadores, {n} documentos')
-except urllib.error.HTTPError as e:
-    print('no se pudieron borrar los restos de pruebas:', e.code, e.read().decode()[:200])
+except (urllib.error.HTTPError, Exception) as e:
+    print('no se pudieron borrar los restos de pruebas:', getattr(e, 'code', ''), (e.read().decode()[:200] if hasattr(e, 'read') else str(e)[:200]))
