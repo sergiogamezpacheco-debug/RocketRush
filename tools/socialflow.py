@@ -197,6 +197,7 @@ with sync_playwright() as p:
                 try: print('limpieza:', pg.evaluate("""async () => { const a = JSON.parse(localStorage.getItem('rocketrush.auth')), H = { Authorization: 'Bearer ' + a.id };
                   const D = 'https://firestore.googleapis.com/v1/projects/rocket-rush-7297c/databases/' + (window.RR_FS_DB || '(default)') + '/documents/';
                   for (const x of [...Social._fr.list, ...Social._fr.inc, ...Social._fr.out]) await fetch(D + 'friendships/' + x.f._id, { method: 'DELETE', headers: H });
+                  if (RRGame.save.nameLc) await fetch(D + 'names/' + encodeURIComponent(RRGame.save.nameLc), { method: 'DELETE', headers: H });
                   const s = [(await fetch(D + 'codes/' + RRGame.codeCore(), { method: 'DELETE', headers: H })).status, (await fetch(D + 'users/' + a.uid, { method: 'DELETE', headers: H })).status];
                   s.push((await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=AIzaSyC9Rbs2qrzJaSugbHCjOTpuH_QQZKw8DNc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: a.id }) })).status);
                   return s.join(' '); }"""))
