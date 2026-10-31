@@ -5,7 +5,7 @@ name: Probar Firebase
 on:
   push:
     branches: [main]
-    paths: ['src/social.js', 'src/live.js', 'firebase/**', 'tools/firebase_live.mjs', 'tools/socialflow.py', '.github/workflows/firebase-test.yml']
+    paths: ['src/social.js', 'src/live.js', 'firebase/**', 'tools/firebase_live.mjs', 'tools/socialflow.py', 'tools/clean_test_users.py', '.github/workflows/firebase-test.yml']
   workflow_dispatch:
     inputs:
       db:
