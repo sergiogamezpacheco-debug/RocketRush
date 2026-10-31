@@ -1022,11 +1022,40 @@
   ALL.push(...XM);
   const byId = id => ALL.find(l => l.id === id);
 
+  // ---- clubes: niveles de la semana sacados de los del juego (ya probados y afinados), con id propio ----
+  // Expedición 40001-40050 (10 por día de lunes a viernes, cada día un poco más difícil), liga 41001-41010 (difíciles)
+  // y jefe colosal 42001. Todos los miembros de todos los clubes juegan los mismos esa semana (semilla = id de la semana).
+  const CLUB_BOSS = { golem: 'Coloso de Piedra', pyramid: 'Faraón Colosal', ship: 'Galeón Colosal' };
+  function clubLevels(kind, key) {
+    for (let i = ALL.length - 1; i >= 0; i--) if (ALL[i].club === kind) ALL.splice(i, 1);
+    let h = 2166136261; for (const c of kind + ':' + key) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+    let a = h >>> 0;
+    const rnd = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const pick = (pool, n) => { const p = pool.slice(), out = []; while (out.length < n && p.length) out.push(p.splice(Math.floor(rnd() * p.length), 1)[0]); return out; };
+    const plain = LEVELS.filter(l => !l.boss && !l.bonus);
+    const clone = (b, o) => Object.assign({}, b, { world: b.world, weather: null }, o);
+    let out = [];
+    if (kind === 'ex') {
+      const R = [[20, 120], [80, 240], [160, 360], [260, 520], [360, 720]];
+      R.forEach(([lo, hi], d) => pick(plain.filter(l => l.id >= lo && l.id <= hi), 10).sort((x, y) => x.id - y.id)
+        .forEach((b, i) => out.push(clone(b, { id: 40001 + d * 10 + i, club: 'ex', pos: d * 10 + i + 1, day: d, src: b.id }))));
+    } else if (kind === 'lg') {
+      pick(plain.filter(l => l.hard && l.id >= 100 && l.id <= 800), 10).sort((x, y) => x.id - y.id)
+        .forEach((b, i) => out.push(clone(b, { id: 41001 + i, club: 'lg', pos: i + 1, src: b.id })));
+    } else if (kind === 'boss') {
+      const b = pick(LEVELS.filter(l => l.boss && l.id >= 30), 1)[0];
+      const nm = CLUB_BOSS[b.boss] || 'Coloso';
+      out.push(clone(b, { id: 42001, club: 'boss', pos: 1, name: nm, bossName: nm, bossD: 1, src: b.id, goal: 'Jefe colosal: todo el club contra él. Cada ataque le quita vida.' }));
+    }
+    ALL.push(...out);
+    return out;
+  }
+
   // para el afinador: cambia bolas y objetivo de un nivel
   function retune(l, nb, target) {
     if (l.bonus) { l.target = target; l.balls = balancedBalls(l, nb); l.nb = l.balls.length; return; } l.nb = nb; l.target = target; l.balls = l.balls0 && l.balls0.length >= nb ? l.balls0.slice(0, nb) : (l.balls0 || '') + autoBalls(l, nb - (l.balls0 || '').length); }
 
-  const Levels = { HARD, MEDIUM, GEN_BIOMES, VARIANTS, LEVELS, BONUS, WORLDS, ALL, HW, HW_ZONES, XM, XM_ZONES, byId, grid, box3, plank, pillar, retune, worldInfo, CLASSIC, FRESH, DEBUT };
+  const Levels = { club: clubLevels, HARD, MEDIUM, GEN_BIOMES, VARIANTS, LEVELS, BONUS, WORLDS, ALL, HW, HW_ZONES, XM, XM_ZONES, byId, grid, box3, plank, pillar, retune, worldInfo, CLASSIC, FRESH, DEBUT };
   if (typeof module !== 'undefined' && module.exports) module.exports = Levels;
   else root.Levels = Levels;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

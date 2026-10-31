@@ -776,6 +776,49 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 @media (prefers-reduced-motion:reduce){.crays,.chint,.cbox.idle{animation:none}}
 
 /* ---- social: amigos, clasificaciones y perfil ---- */
+#club{justify-content:flex-start;padding-top:max(14px,var(--sat,env(safe-area-inset-top)));background:linear-gradient(180deg,#24305c,#3a2f8a)}
+.clubhead{width:100%;max-width:520px;padding:10px 12px 8px}
+.klhrow{display:flex;align-items:center;gap:10px;text-align:left}.klhrow small{display:block;font-size:12.5px;font-weight:800;color:var(--lav)}
+.klname{display:block;font-size:21px;font-weight:900;line-height:1.15}.klbig{font-size:44px}
+.kltabs{margin:8px 0 0}.kltabs button{font-size:13px;padding:7px 11px}
+#clubList{text-align:left;color:#fff}
+.kltoday{font-size:10px;padding:2px 7px;border-radius:6px;background:#ffd23f;color:#2a1d5c;margin-left:6px}
+.klcard{margin:0 4px 10px;border-radius:18px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.18);padding:12px}
+.klcard .sm,#clubList .sm{font-size:12.5px;color:#d9d0ff;font-weight:700;line-height:1.4}
+.klttl{font-weight:900;font-size:16px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.klcard .row{display:flex;align-items:center;gap:8px}.klright{margin-left:auto}.klmid{text-align:center;justify-content:center}.klgap{gap:8px;margin-top:8px}
+.kltag{margin-left:auto;font-size:11px;font-weight:900;padding:3px 8px;border-radius:999px;background:#ff5a7a;color:#fff;white-space:nowrap}.kltag.lg{background:#8a5cff}
+.klbar{height:14px;border-radius:999px;background:rgba(0,0,0,.35);overflow:hidden;border:2px solid rgba(255,255,255,.2);margin:6px 0 4px}.klbar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#5fe08a,#37c46b)}
+.klbar.red{height:18px}.klbar.red i{background:linear-gradient(90deg,#ff8a5c,#e8203a)}
+.klmem{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.1);font-size:14px;font-weight:800;cursor:pointer}
+.klmem:last-child{border-bottom:0}.klmem.me{background:rgba(255,210,63,.14);border-radius:10px}
+.klmem .btn{width:auto;padding:6px 10px;font-size:13px}
+.klav{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.klnm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.klrole{font-size:10px;padding:2px 6px;border-radius:6px;background:#ffd23f;color:#2a1d5c;font-weight:900;flex:none}.klrole.of{background:#9fd8ff}
+.klpts{margin-left:auto;font-weight:900;color:#ffe680;white-space:nowrap}
+.klact{display:flex;gap:6px;flex-wrap:wrap;padding:6px 4px 8px}.klact .btn{flex:1;width:auto;font-size:13px;padding:7px 6px}
+.klbtns{margin:0 4px 10px}
+.klgrid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;margin-top:6px}
+.kllv{aspect-ratio:1;border-radius:9px;background:#5a4a9a;border:2px solid #2a1d5c;color:#fff;font:inherit;font-size:11.5px;font-weight:900;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;cursor:pointer;line-height:1}
+.kllv i{font-style:normal;font-size:6.5px;color:#fff6b0;letter-spacing:-.5px;margin-top:1px}
+.kllv.d{background:linear-gradient(180deg,#5fe08a,#22914b)}.kllv.c{background:linear-gradient(180deg,#ffe27a,#e09a12);color:#2a1d5c;outline:3px solid #fff;animation:hwbob 1.6s ease-in-out infinite}.kllv.l{opacity:.45;cursor:default}
+.klday{padding:9px 12px}
+.klboss{display:flex;justify-content:center;margin:4px 0;filter:drop-shadow(0 6px 12px rgba(0,0,0,.35))}
+.klstat{justify-content:center!important;gap:26px!important;margin:8px 0;text-align:center}.klstat b{font-size:21px;display:block}.klstat small{font-size:12px;color:#d9d0ff;font-weight:800}
+.klrank{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:12px;margin:4px 0;background:rgba(0,0,0,.2);font-weight:800;font-size:14px}.klrank.me{background:rgba(255,210,63,.25);outline:2px solid #ffd23f}
+.klrank .kln{width:22px;text-align:center;font-weight:900;color:#ffe680;flex:none}
+.klshield{flex:none}
+.klinput{display:block;width:100%;margin:4px 0 8px;font:inherit;font-weight:800;font-size:16px;color:var(--ink);background:#fff8ec;border:3px solid var(--panel-edge);border-radius:12px;padding:8px 10px;text-transform:none}
+.klsearch .klinput{margin:0}.klsearch .btn{width:auto;flex:none}
+.klpick{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:4px 0 8px}.klpick button{font-size:22px;height:40px;border-radius:12px;border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);cursor:pointer}
+.klpick button.on{outline:3px solid #ffd23f;background:rgba(255,210,63,.25)}.klpick.col button{height:30px;border:3px solid #2a1d5c}
+.klprev{margin:4px 0 10px}.klprev .btn{flex:1;font-size:14px}
+.klfound{display:flex;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px solid rgba(255,255,255,.1)}.klfound:last-child{border-bottom:0}
+.klfi{flex:1;min-width:0}.klfi b{display:block;font-size:15px}.klfi small{display:block;font-size:11.5px;color:#d9d0ff;font-weight:700}.klfi .kldesc{font-weight:600;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.klfound .btn{width:auto;flex:none;padding:7px 12px;font-size:14px}
+.klerr{margin:0 4px 10px;padding:8px 12px;border-radius:12px;background:rgba(255,95,109,.25);border:2px solid #ff5f6d;font-weight:800;font-size:13px}
+.klprize{background:linear-gradient(135deg,rgba(255,210,63,.3),rgba(255,255,255,.08));border-color:#ffd23f}.klprize .btn{margin-top:8px}
 #social{justify-content:flex-start;padding-top:max(14px,var(--sat,env(safe-area-inset-top)));background:linear-gradient(180deg,#24305c,#3a2f8a)}
 .sochead{width:100%;max-width:520px;padding:6px 10px 8px}
 .sochead .stabs{margin:2px 0 0}
@@ -1181,6 +1224,16 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
     <div class="socnet" id="socNet"></div>
   </div>
   <div class="mapscroll" id="socList"></div>
+</div>
+
+<div class="screen" id="club">
+  <div class="topbar">
+    <button class="iconbtn" id="clubBack" aria-label="Volver">&#8592;</button>
+    <span class="wallet"><span class="coins"><i class="coin"></i><span class="coinTxt">0</span></span><span class="coins"><i class="gem"></i><span class="gemTxt">0</span></span></span>
+    <button class="iconbtn" id="clubSync" aria-label="Actualizar">&#8635;</button>
+  </div>
+  <div class="passhead clubhead" id="clubHead"></div>
+  <div class="mapscroll" id="clubList"></div>
 </div>
 
 <div class="screen dim" id="win">

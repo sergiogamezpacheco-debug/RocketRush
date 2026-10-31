@@ -2352,7 +2352,7 @@
   }
 
   // ---------------- pantallas ----------------
-  const screens = ['title', 'map', 'hwmap', 'xmmap', 'pass', 'missions', 'social', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard', 'privacy'];
+  const screens = ['title', 'map', 'hwmap', 'xmmap', 'pass', 'missions', 'social', 'club', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard', 'privacy'];
   function show(id) { for (const s of screens) $(s).classList.toggle('on', s === id); }
   function hideAll() { for (const s of screens) $(s).classList.remove('on'); }
   // mensaje sobre la bandeja de bolas (no tapa el cielo ni la estructura)
@@ -2564,7 +2564,7 @@
     const L = byId(id); if (!L) return;
     G.preId = id; preSel = {};
     if (G.mode !== 'play') loadDemo(id);
-    $('preTitle').textContent = L.xm ? (L.boss ? 'Jefe de Navidad' : 'Navidad · ' + L.pos) : L.hw ? (L.boss ? 'Jefe de Halloween' : 'Halloween · ' + L.pos) : L.bonus ? 'Nivel extra ' + L.world : L.boss ? 'Jefe · nivel ' + id : 'Nivel ' + id;
+    $('preTitle').textContent = L.club ? ({ ex: 'Club · Expedición ' + L.pos, lg: 'Club · Liga ' + L.pos, boss: 'Club · Jefe colosal' })[L.club] : L.xm ? (L.boss ? 'Jefe de Navidad' : 'Navidad · ' + L.pos) : L.hw ? (L.boss ? 'Jefe de Halloween' : 'Halloween · ' + L.pos) : L.bonus ? 'Nivel extra ' + L.world : L.boss ? 'Jefe · nivel ' + id : 'Nivel ' + id;
     $('preTitle').classList.toggle('gold', !!L.bonus);
     $('preReward').hidden = !L.bonus;
     const replay = L.bonus && save.bonusDone && save.bonusDone[L.id];
@@ -2661,10 +2661,11 @@
     G.lastSlow = false; G.combo = 0; hintUntil = 0;
     setWeatherChip(L);
     G.shotBase = null; stats().plays = (stats().plays || 0) + 1; persist();
+    G.clubLoseDone = false; if (L.club && window.Club) window.Club.onStart(L);
     G.casi = 0; G.firstShot = false; G.swapped = false; G.winShown = false; G.winAt = 0; G.extraUsed = false; shownScore = 0; lastTray = '';
     $('btnFinish').hidden = true; G.cannonKind = null;
     G.aimTarget.set(0, 1.5, 0);
-    $('hudLevel').textContent = L.xm ? 'NAVIDAD ' + L.pos : L.hw ? 'HALLOWEEN ' + L.pos : L.bonus ? 'EXTRA ' + L.world : 'NIVEL ' + id;
+    $('hudLevel').textContent = L.club ? ({ ex: 'EXPEDICIÓN ' + L.pos, lg: 'LIGA ' + L.pos, boss: 'JEFE COLOSAL' })[L.club] : L.xm ? 'NAVIDAD ' + L.pos : L.hw ? 'HALLOWEEN ' + L.pos : L.bonus ? 'EXTRA ' + L.world : 'NIVEL ' + id;
     Audio.setStyle(L.hw ? 'spooky' : L.xm ? 'xmas' : 'normal'); G.hwWorld = false; G.xmWorld = false;
     G.candyRun = 0; G.xcandyRun = 0; hwCandyChip(); xmCandyChip();
     $('meterTarget').style.left = (L.target * 100) + '%';
@@ -2682,11 +2683,11 @@
     G.saveBefore = JSON.parse(JSON.stringify(save));   // por si el jugador sigue jugando con +3 bolas
     const stars = L.boss ? (G.bossStars || 1) : sim.stars();
     $('winRibbon').textContent = L.boss ? '¡JEFE DERROTADO!' : '¡DEMOLIDO!';
-    const prevStars = save.stars[L.id] || 0;
-    G.mystery = !L.bonus && !L.boss && !L.hw && !L.xm && !prevStars && L.id % 5 === 0;
-    save.stars[L.id] = Math.max(prevStars, stars);
-    save.best[L.id] = Math.max(save.best[L.id] || 0, sim.score);
-    if (!L.bonus && !L.hw && !L.xm && L.id >= save.unlocked) save.unlocked = Math.min(L.id + 1, LEVELS.length + 1);
+    const cp = L.club && window.Club ? window.Club._P() : null;
+    const prevStars = cp ? ((L.club === 'ex' ? cp.ex : L.club === 'lg' ? cp.lgS : {})[L.pos] || 0) : (save.stars[L.id] || 0);
+    G.mystery = !L.bonus && !L.boss && !L.hw && !L.xm && !L.club && !prevStars && L.id % 5 === 0;
+    if (!L.club) { save.stars[L.id] = Math.max(prevStars, stars); save.best[L.id] = Math.max(save.best[L.id] || 0, sim.score); }
+    if (!L.bonus && !L.hw && !L.xm && !L.club && L.id >= save.unlocked) save.unlocked = Math.min(L.id + 1, LEVELS.length + 1);
     if (L.hw) { const h = hwState(); h.unlocked = Math.max(h.unlocked, L.pos + 1); }
     if (L.xm) { const h = xmState(); h.unlocked = Math.max(h.unlocked, L.pos + 1); }
     let coins = (20 + stars * 10) * (L.hard ? 2 : L.boss ? 3 : 1), gifts = L.boss ? ' · cofre de oro' : '';
@@ -2705,6 +2706,7 @@
     // caramelos por superar un nivel de Halloween (los del jefe, más)
     if (L.hw && hwActive()) { const c = Math.round((L.boss ? 25 : 3 + stars * 2) * liveMult('candy')); addCandy(c); gifts += ' · +' + c + ' caramelos'; }
     if (L.xm && xmActive()) { const c = Math.round((L.boss ? 25 : 3 + stars * 2) * liveMult('candy')); addXCandy(c); gifts += ' · +' + c + ' caramelos navideños'; }
+    if (L.club && window.Club) { const t = window.Club.onEnd(L, { win: true, stars }); if (t) setTimeout(() => toast(t, 2600), 1500); }
     // bonificación temporal del panel (x2 monedas…)
     const cm = liveMult('coins'); if (cm > 1) { coins = Math.round(coins * cm); gifts += ` · x${cm} evento`; }
     G.pendingCoins = coins; save.coins += coins;
@@ -2740,7 +2742,7 @@
     $('winDouble').hidden = can3;
     $('winBalls').hidden = !can3 || G.extraUsed;
     $('winRetry').hidden = stars >= 3;
-    $('winNext').textContent = L.xm ? (L.pos < 50 ? 'SIGUIENTE' : 'NAVIDAD') : L.hw ? (L.pos < 50 ? 'SIGUIENTE' : 'HALLOWEEN') : G.newBonus ? '¡NIVEL EXTRA!' : (L.bonus || L.id < LEVELS.length) ? 'SIGUIENTE' : 'NIVELES';
+    $('winNext').textContent = L.club ? (window.Club && window.Club.next(L) ? 'SIGUIENTE' : 'CLUB') : L.xm ? (L.pos < 50 ? 'SIGUIENTE' : 'NAVIDAD') : L.hw ? (L.pos < 50 ? 'SIGUIENTE' : 'HALLOWEEN') : G.newBonus ? '¡NIVEL EXTRA!' : (L.bonus || L.id < LEVELS.length) ? 'SIGUIENTE' : 'NIVELES';
     if (G.newBonus) setTimeout(() => toast('¡Nivel extra desbloqueado! 3 estrellas en todo el mundo ' + L.world), 1300);
     if (L.bonus && stars >= 3) setTimeout(() => toast('¡Bola dorada! Úsala cuando quieras con el botón dorado durante una partida', 3200), 1300);
     const sw = $('winStars');
@@ -2754,6 +2756,7 @@
   const HONEYMOON = Levels.HARD[0] - 1;   // antes del primer nivel difícil, perder regala bolas
   function showLose() {
     const sim = G.sim, L = G.level;
+    if (L.club === 'boss' && window.Club && !G.clubLoseDone) { G.clubLoseDone = true; const t = window.Club.onEnd(L, { win: false }); if (t) setTimeout(() => toast(t, 2600), 600); }
     const p = Math.round(sim.progress() * 100), tgt = Math.round(sim.target * 100);
     $('loseTxt').textContent = tgt - p <= 10 ? '¡Te ha faltado muy poco!' : '¡Casi lo tiras!';
     $('loseRes').textContent = `Has derribado el ${p}% de ${tgt}%`;
@@ -4032,7 +4035,7 @@
   on('hwPump', () => { G.hwFrom = 'title'; goHw(); });
   on('navHw', () => { G.hwFrom = 'map'; goHw(); });
   on('navWorlds', () => { G.inHw = false; G.inXm = false; if (!$('map').classList.contains('on')) goMap(); const cur = document.querySelector('#mapList .lv.cur'); if (cur) cur.scrollIntoView({ block: 'center', behavior: 'smooth' }); });
-  on('navClub', () => toast('Los clubes llegan muy pronto: expedición semanal, jefe colosal y liga del fin de semana', 3200));
+  on('navClub', () => { if (window.Club) window.Club.open(); });
   on('hwBack', hwBack);
   on('xmTree', () => { G.xmFrom = 'title'; goXm(); });
   on('navXm', () => { G.xmFrom = 'map'; goXm(); });
@@ -4202,6 +4205,7 @@
     const L = G.level;
     goMap();
     maybeAutoDaily(() => {
+      if (L.club) { const n = window.Club && window.Club.next(L); if (window.Club) window.Club.back(L); if (n) openPre(n); return; }
       if (L.hw) { if (L.pos < 50 && hwActive()) openPre(L.id + 1); return; }
       if (L.xm) { if (L.pos < 50 && xmActive()) openPre(L.id + 1); return; }
       if (G.newBonus) { openPre(G.newBonus); return; }
@@ -4209,7 +4213,7 @@
       if (n <= LEVELS.length) openPre(n);
     });
   })));
-  on('winMap', afterMystery(() => maybeInterstitial(() => { goMap(); maybeAutoDaily(); })));
+  on('winMap', afterMystery(() => maybeInterstitial(() => { if (G.level && G.level.club && window.Club) { window.Club.back(G.level); return; } goMap(); maybeAutoDaily(); })));
   $('btnGold').addEventListener('pointerdown', e => {
     e.stopPropagation(); Audio.init();
     const sim = G.sim;
@@ -4233,7 +4237,7 @@
   on('loseGift', () => { if (G.giftWorld) { save.casiFree = save.casiFree || {}; save.casiFree[G.giftWorld] = true; persist(); } continueWithBalls(); });
   on('loseStarter', () => { const it = SHOP.find(x => x.id === 'starter'); if (iapBuy(it)) showLose(); });
   on('loseRetry', () => { save.streak = 0; stats().winRun = 0; persist(); hideAll(); G.mode = 'pre'; openPre(G.level.id); });
-  on('loseMap', () => { save.streak = 0; stats().winRun = 0; persist(); goMap(); });
+  on('loseMap', () => { save.streak = 0; stats().winRun = 0; persist(); if (G.level && G.level.club && window.Club) { window.Club.back(G.level); return; } goMap(); });
   on('ncOk', () => { Audio.click(); closeNewCard(); });
   on('btnFinish', () => { if (G.mode === 'play' && G.sim && G.sim.finish()) handleEvents(); });
   on('btnPause', () => { if (G.mode !== 'play') return; G.paused = true; refreshToggles(); show('pause'); });
@@ -4394,7 +4398,7 @@
   window.RRGame = { cubiFrames, openShop, goMap, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
-    stats, plState, starsTotal, countLv, LEVELS, myCode, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,
+    stats, plState, starsTotal, countLv, LEVELS, myCode, openPre: id => openPre(id), codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,
     addBlockView: d => blockView(d), weatherChip: w => setWeatherChip({ weather: w }), weatherFx: w => { Weather.set(w); const el = $('wxChip'); if (!w) el.hidden = true; },
     // el jefe ha caído: el nivel se gana con las bolas que quedaban
     bossWin(left) { const sim = G.sim; if (!sim || G.mode !== 'play') return; sim.queue = Array.from({ length: left }, () => 'heavy'); sim.goalReached = true; sim.finish(); G.winAt = G.t - 1; } };

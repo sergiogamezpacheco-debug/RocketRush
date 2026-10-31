@@ -348,7 +348,7 @@ Todo el evento se apaga solo al acabar el plazo: `HW_END` en `src/game3d.js`. Pa
   - Arriba a la derecha, una calabaza con la cuenta atrás que abre el mundo de Halloween.
 - **Mapa:** bajo la barra de misiones hay una fila con tres botones.
   - **Mundos** te lleva al nivel en curso.
-  - **Club** dice que llega pronto.
+  - **Club** abre la pantalla de clubes (ver «Clubes»).
   - **Halloween** muestra la calabaza y el tiempo que queda.
 - **Mundo de Halloween** (`Levels.HW`, ids 20001-20050):
   - 50 niveles en 5 zonas: Calle de las calabazas, Cementerio maldito, Mansión encantada, Bosque de las brujas y Castillo del vampiro.
@@ -440,3 +440,46 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
 - **Tienda de Navidad**: Cañón Bastón, regalo sorpresa, avatares de Navidad, bola dorada, bombas, arcoíris, gemas y monedas.
 - **Panel**: tarjeta «🎄 Navidad» en Eventos (encender, «Empezar ya», +7 días, fechas originales).
 - Prueba: `tools/xmflow.py`.
+
+## Clubes (diseño A: cabecera con pestañas Club · Expedición · Jefe · Liga)
+
+- **Pantalla** (`src/club.js`, botón «Club» del mapa). Sin club: pestañas **Buscar** (clubes abiertos o por nombre) y
+  **Crear** (nombre único, descripción, escudo con 12 iconos y 12 colores, abierto o con solicitud; cuesta 500 monedas).
+- **Club**: resumen de la semana, miembros (hasta 30) con su aportación, solicitudes (líder y oficiales aceptan o rechazan),
+  nombrar o quitar oficiales, expulsar, ceder el liderazgo, ajustes, invitar amigos y salir (si sale el líder, el
+  liderazgo pasa solo al oficial que más ha aportado; si es el último, el club se borra).
+- **Expedición semanal**: 50 niveles, 10 nuevos cada día de lunes a viernes (se juegan en orden dentro del día y hasta el
+  domingo). Las estrellas de todos llenan el cofre del club (madera, oro o cristal según 40 estrellas por miembro) y cada
+  estrella propia vale 15 monedas.
+- **Jefe colosal**: toda la semana, 3 ataques al día por miembro (el ataque se gasta al empezar). Vida: 60.000 por miembro.
+  Cada ataque quita hasta 8.000 según la vida que le quites, más 4.000-7.000 si lo derribas.
+- **Liga del fin de semana** (de viernes a lunes): 10 niveles difíciles; gana el club con más estrellas entre todos.
+  Premios: 1.º cofre de cristal, 2.º y 3.º de oro, el resto de madera (si has jugado).
+- **Premios**: se recogen al abrir el club la semana siguiente (tarjeta «Premios de la semana pasada»).
+- **Reloj**: la semana empieza el lunes a las 00:00 en hora de España de invierno (UTC+1) para todos.
+- **Niveles** (`Levels.club(tipo, semana)` en `src/levels3d.js`): sacados de los del juego (ya afinados) con una semilla por
+  semana; expedición ids 40001-40050 (cada día un poco más difícil), liga 41001-41010, jefe 42001.
+- **Servidor** (`Social.club` en `src/social.js`, reglas en `firebase/firestore.rules`): `clubs/{id}`, `clubs/{id}/members/{uid}`,
+  `clubs/{id}/requests/{uid}` y `clubnames/{nombre}`. Entrar, salir y expulsar van en un lote que cambia a la vez la ficha
+  y el contador (las reglas no dejan pasar de 30 ni inventar miembros). Probado contra el Firebase real en
+  `tools/firebase_live.mjs`; la pantalla, con un Firestore de mentira en `tools/clubflow.py` (`tools/fakefs.py`).
+
+## Preparación para Google Play
+
+- **Android 16 (API 36)**, AGP 8.11 y Gradle 8.13: `MainActivity` con borde a borde, barras ocultas, márgenes de la muesca
+  al juego (`--sat/--sar/--sab/--sal`) y gesto atrás predictivo.
+- **Compras** (`Billing.java`, Play Billing 8): precios de Play en la moneda del jugador, entrega, confirmación o consumo y
+  restaurar (quitar anuncios y pack de inicio). Productos: g1, g2, g3, c1, c2, starter (una vez) y noads (una vez).
+- **Anuncios** (`Ads.java`): AdMob con el formulario de consentimiento de Google (UMP). Con premio e intersticial reales;
+  sin personalizar a menores de 16 y para todos los públicos a menores de 13. Los identificadores reales van en
+  GitHub › Settings › Secrets and variables › Actions › **Variables**: `ADMOB_APP_ID`, `ADMOB_REWARDED`, `ADMOB_INTERSTITIAL`
+  (sin ellos se usan los de prueba de Google).
+- **Edad**: la primera vez se pregunta el año de nacimiento (solo se guarda en el móvil). Menores de 13: sin funciones en línea.
+- **Ajustes › Privacidad y ayuda**: política, términos, opciones de privacidad de anuncios, funciones en línea sí/no,
+  borrar la cuenta en línea (perfil, código, amistades, club y cuenta de Firebase), soporte por correo y créditos.
+  En Ajustes también: menos destellos y gráficos en ahorro.
+- **Web**: `/privacidad`, `/terminos` y `/borrar-cuenta` (y `/en/…`), generadas con `python3 tools/legal_pages.py`.
+- **Paquete para Play**: Actions › «Crear clave de subida» (una vez; necesita los secretos `GH_ADMIN_TOKEN` y
+  `KEY_BACKUP_PASS`) y después Actions › «Versión para Google Play (AAB)», que deja el `.aab` firmado sin modo prueba.
+- Prueba: `tools/storeflow.py`.
+

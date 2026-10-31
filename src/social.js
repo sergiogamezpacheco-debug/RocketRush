@@ -603,7 +603,7 @@
       const raw = await call(`${FS}/clubs/${cid}`).catch(e => { if (e.status === 404) throw new ClubErr('GONE'); throw e; });
       const c = docOf(raw);
       if (c.count >= 30) throw new ClubErr('FULL');
-      if ((c.minLv || 0) > (X.stats().lv || 1)) throw new ClubErr('MIN_LV');
+      if ((c.minLv || 0) > (X.plState().lv || 1)) throw new ClubErr('MIN_LV');
       if (!c.open) {
         const st = X.starsTotal ? X.starsTotal() : 0;
         await setDoc(`clubs/${cid}/requests/${me}`, { name: myName(), avatar: prof().avatar || '🚀', lv: Math.max(0, st | 0), at: new Date() }, { merge: false });
