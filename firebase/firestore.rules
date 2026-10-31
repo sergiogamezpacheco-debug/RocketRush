@@ -73,7 +73,120 @@ service cloud.firestore {
         && (resource.data.get('end', 0) == 0 || request.time.toMillis() < resource.data.end));
     }
 
-    // Todo lo demás (clubes, mundo semanal, liga): solo desde las funciones del servidor, por ahora cerrado
+    // ---------------- Clubes ----------------
+    // clubs/{cid}: datos del club · clubs/{cid}/members/{uid}: cada miembro y su progreso de la semana
+    // clubs/{cid}/requests/{uid}: solicitudes para entrar en clubes con solicitud · clubnames/{nombre en minúsculas}: nombre único
+    // Entrar, salir y expulsar se hacen en un lote (commit) que cambia a la vez el miembro y «count» (+1 / -1) y deja en
+    // «last» el uid afectado: así las reglas comprueban que el contador cuadra y que no pasa de 30.
+    function clubP(c) { return /databases/$(database)/documents/clubs/$(c); }
+    function memP(c, u) { return /databases/$(database)/documents/clubs/$(c)/members/$(u); }
+    function reqP(c, u) { return /databases/$(database)/documents/clubs/$(c)/requests/$(u); }
+    function nameP(n) { return /databases/$(database)/documents/clubnames/$(n); }
+    function myRole(c) { return get(memP(c, request.auth.uid)).data.role; }
+    function isMember(c) { return signedIn() && exists(memP(c, request.auth.uid)); }
+    function isStaff(c) { return isMember(c) && myRole(c) in ['leader', 'officer']; }
+    function okStr(v, a, b) { return v is string && v.size() >= a && v.size() <= b; }
+    function okInt(v, a, b) { return v is int && v >= a && v <= b; }
+    function okSettings(d) {
+      return okStr(d.desc, 0, 80) && d.open is bool && okInt(d.minLv, 0, 5000) && okStr(d.lang, 0, 5) && okStr(d.country, 0, 3)
+        && d.badge is map && d.badge.keys().hasOnly(['ico', 'c']) && okStr(d.badge.ico, 1, 8) && okInt(d.badge.c, 0, 11);
+    }
+    function okName(d) { return okStr(d.name, 3, 20) && d.nameLc == d.name.lower(); }
+    function okLg(d) { return d.lg is map && d.lg.keys().hasOnly(['id', 's']) && okStr(d.lg.id, 0, 12) && okInt(d.lg.s, 0, 30 * 30); }
+    function cnt(c) { return get(clubP(c)).data.count; }
+    function cntAfter(c) { return getAfter(clubP(c)).data.count; }
+
+    match /clubnames/{n} {
+      allow get: if signedIn();
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['cid'])
+        && getAfter(clubP(request.resource.data.cid)).data.nameLc == n
+        && getAfter(clubP(request.resource.data.cid)).data.leader == request.auth.uid;
+      allow delete: if isAdmin() || (signedIn() && get(clubP(resource.data.cid)).data.leader == request.auth.uid
+        && (!existsAfter(clubP(resource.data.cid)) || getAfter(clubP(resource.data.cid)).data.nameLc != n));
+    }
+
+    match /clubs/{cid} {
+      allow read: if signedIn();
+      // crear: el líder es quien lo crea, empieza con 1 miembro (él) y reserva el nombre en el mismo lote
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'nameLc', 'desc', 'open', 'minLv', 'lang', 'country', 'badge', 'leader', 'count', 'last', 'lg', 'createdAt'])
+        && okName(request.resource.data) && okSettings(request.resource.data) && okLg(request.resource.data)
+        && request.resource.data.leader == request.auth.uid && request.resource.data.count == 1 && request.resource.data.last == request.auth.uid
+        && getAfter(memP(cid, request.auth.uid)).data.role == 'leader'
+        && getAfter(nameP(request.resource.data.nameLc)).data.cid == cid;
+      // ajustes: líder y oficiales
+      allow update: if isStaff(cid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['desc', 'open', 'minLv', 'lang', 'country', 'badge'])
+        && okSettings(request.resource.data);
+      // nombre nuevo (solo el líder, con su reserva) y ceder el liderazgo (el nuevo líder ya es «leader» en su ficha)
+      allow update: if isMember(cid) && myRole(cid) == 'leader'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'nameLc', 'leader'])
+        && okName(request.resource.data)
+        && (request.resource.data.nameLc == resource.data.nameLc || getAfter(nameP(request.resource.data.nameLc)).data.cid == cid)
+        && (request.resource.data.leader == resource.data.leader || getAfter(memP(cid, request.resource.data.leader)).data.role == 'leader');
+      // entrar / salir / expulsar: el contador cambia en 1 y el miembro «last» aparece o desaparece en el mismo lote
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count', 'last'])
+        && ((request.resource.data.count == resource.data.count + 1 && request.resource.data.count <= 30
+              && !exists(memP(cid, request.resource.data.last)) && existsAfter(memP(cid, request.resource.data.last)))
+          || (request.resource.data.count == resource.data.count - 1 && request.resource.data.count >= 1
+              && exists(memP(cid, request.resource.data.last)) && !existsAfter(memP(cid, request.resource.data.last))));
+      // puntos de la liga del club (los suman los miembros al jugar)
+      allow update: if isMember(cid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lg']) && okLg(request.resource.data)
+        && request.resource.data.lg.s <= resource.data.count * 30;
+      // borrar: el líder cuando es el último que queda (su ficha se borra en el mismo lote) · o el panel
+      allow delete: if isAdmin() || (isMember(cid) && myRole(cid) == 'leader' && resource.data.count == 1
+        && !existsAfter(memP(cid, request.auth.uid)));
+
+      match /members/{uid} {
+        function okMember(d) {
+          return d.keys().hasOnly(['name', 'avatar', 'role', 'joinedAt', 'wk', 'ex', 'exN', 'dmg', 'atk', 'atkN', 'lg', 'lgS'])
+            && okStr(d.name, 1, 20) && okStr(d.avatar, 1, 16) && d.role in ['leader', 'officer', 'member']
+            && okStr(d.wk, 0, 12) && okInt(d.ex, 0, 150) && okInt(d.exN, 0, 50) && okInt(d.dmg, 0, 5000000)
+            && okStr(d.atk, 0, 12) && okInt(d.atkN, 0, 6) && okStr(d.lg, 0, 12) && okInt(d.lgS, 0, 30);
+        }
+        allow read: if signedIn();
+        // el creador del club, como líder
+        allow create: if uid == request.auth.uid && okMember(request.resource.data) && request.resource.data.role == 'leader'
+          && !exists(clubP(cid)) && getAfter(clubP(cid)).data.leader == uid;
+        // entrar: en un club abierto uno mismo, o un oficial acepta una solicitud (que se borra en el mismo lote)
+        allow create: if signedIn() && okMember(request.resource.data) && request.resource.data.role == 'member'
+          && cnt(cid) < 30 && cntAfter(cid) == cnt(cid) + 1 && getAfter(clubP(cid)).data.last == uid
+          && ((uid == request.auth.uid && get(clubP(cid)).data.open == true)
+            || (isStaff(cid) && exists(reqP(cid, uid)) && !existsAfter(reqP(cid, uid))));
+        // su propio progreso, nombre y avatar
+        allow update: if uid == request.auth.uid && okMember(request.resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'avatar', 'wk', 'ex', 'exN', 'dmg', 'atk', 'atkN', 'lg', 'lgS']);
+        // el líder nombra o quita oficiales y cede el liderazgo (a la vez pone club.leader al nuevo y se queda de oficial)
+        allow update: if isMember(cid) && myRole(cid) == 'leader' && uid != request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+          && (request.resource.data.role in ['officer', 'member']
+            || (request.resource.data.role == 'leader' && getAfter(clubP(cid)).data.leader == uid
+                && getAfter(memP(cid, request.auth.uid)).data.role == 'officer'));
+        allow update: if uid == request.auth.uid && resource.data.role == 'leader'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']) && request.resource.data.role == 'officer'
+          && getAfter(clubP(cid)).data.leader != uid;
+        // salir (el líder antes cede el liderazgo, salvo que sea el último y se borre el club) o expulsar
+        allow delete: if signedIn() && (
+            (uid == request.auth.uid && resource.data.role != 'leader' && cntAfter(cid) == cnt(cid) - 1 && getAfter(clubP(cid)).data.last == uid)
+          || (uid == request.auth.uid && resource.data.role == 'leader' && !existsAfter(clubP(cid)))
+          || (uid != request.auth.uid && isStaff(cid) && resource.data.role != 'leader'
+              && (resource.data.role == 'member' || myRole(cid) == 'leader')
+              && cntAfter(cid) == cnt(cid) - 1 && getAfter(clubP(cid)).data.last == uid)
+          || isAdmin());
+      }
+      match /requests/{uid} {
+        allow get: if signedIn() && (uid == request.auth.uid || isStaff(cid));
+        allow list: if isStaff(cid);
+        allow create: if uid == request.auth.uid && get(clubP(cid)).data.open == false
+          && request.resource.data.keys().hasOnly(['name', 'avatar', 'lv', 'at'])
+          && okStr(request.resource.data.name, 1, 20) && okStr(request.resource.data.avatar, 1, 16) && okInt(request.resource.data.lv, 0, 100000);
+        allow delete: if signedIn() && (uid == request.auth.uid || isStaff(cid) || isAdmin());
+      }
+    }
+
+    // Todo lo demás: cerrado
     match /{document=**} {
       allow read, write: if false;
     }

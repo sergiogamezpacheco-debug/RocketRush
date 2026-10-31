@@ -120,6 +120,70 @@ else {
   for (const g of [gcode, gold]) { r = await del(`giftcodes/${g}`, C.tok); ok(r.s === 200, 'el administrador borra un código'); }
 }
 
+// ---------------- clubes ----------------
+const commit = (writes, tok) => req(`${FS}:commit`, { method: 'POST', body: JSON.stringify({ writes }) }, tok);
+const W = (p, data, mask, pre) => Object.assign({ update: { name: `${ROOT}/${p}`, fields: enc(data).mapValue.fields } }, mask ? { updateMask: { fieldPaths: Object.keys(data) } } : {}, pre ? { currentDocument: pre } : {});
+const WD = (p, pre) => Object.assign({ delete: `${ROOT}/${p}` }, pre ? { currentDocument: pre } : {});
+const mem = (name, role) => ({ name, avatar: '🦊', role, joinedAt: new Date(), wk: '', ex: 0, exN: 0, dmg: 0, atk: '', atkN: 0, lg: '', lgS: 0 });
+const D = await signUp();
+const cid = 'zzt' + A.uid.slice(0, 8).toLowerCase().replace(/[^a-z0-9]/g, 'x'), cname = 'Club Prueba ' + cid.slice(3, 9), clc = cname.toLowerCase();
+const club = (o = {}) => Object.assign({ name: cname, nameLc: clc, desc: 'prueba', open: true, minLv: 0, lang: 'es', country: 'ZZ', badge: { ico: '🚀', c: 1 }, leader: A.uid, count: 1, last: A.uid, lg: { id: '', s: 0 }, createdAt: new Date() }, o);
+const cget = async () => { const x = await get(`clubs/${cid}`, A.tok); return { c: x.j.fields ? +x.j.fields.count.integerValue : -1, ut: x.j.updateTime }; };
+r = await commit([W(`clubs/${cid}`, club({ count: 5 }), 0, { exists: false }), W(`clubs/${cid}/members/${A.uid}`, mem('A', 'leader'), 0, { exists: false }), W(`clubnames/${clc}`, { cid }, 0, { exists: false })], A.tok);
+ok(r.s === 403, 'un club no puede nacer con miembros de más');
+r = await commit([W(`clubs/${cid}`, club({ leader: B.uid }), 0, { exists: false }), W(`clubs/${cid}/members/${A.uid}`, mem('A', 'leader'), 0, { exists: false }), W(`clubnames/${clc}`, { cid }, 0, { exists: false })], A.tok);
+ok(r.s === 403, 'no se crea un club a nombre de otro líder');
+r = await commit([W(`clubs/${cid}`, club(), 0, { exists: false }), W(`clubs/${cid}/members/${A.uid}`, mem('A', 'leader'), 0, { exists: false }), W(`clubnames/${clc}`, { cid }, 0, { exists: false })], A.tok);
+ok(r.s === 200, 'crear un club (club + líder + nombre en un lote)' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+r = await commit([W(`clubs/${cid}x`, club({ leader: D.uid, last: D.uid }), 0, { exists: false }), W(`clubs/${cid}x/members/${D.uid}`, mem('D', 'leader'), 0, { exists: false }), W(`clubnames/${clc}`, { cid: cid + 'x' }, 0, { exists: false })], D.tok);
+ok(r.s !== 200, 'no puede haber dos clubes con el mismo nombre');
+r = await query({ from: [{ collectionId: 'clubs' }], where: { compositeFilter: { op: 'AND', filters: [eq('open', true), { fieldFilter: { field: { fieldPath: 'count' }, op: 'LESS_THAN', value: enc(30) } }] } }, orderBy: [{ field: { fieldPath: 'count' }, direction: 'DESCENDING' }], limit: 30 }, B.tok);
+ok(r.s === 200, 'buscar clubes abiertos' + (r.s !== 200 ? ' → ' + (/index/i.test(errOf(r)) ? 'falta el índice (o aún se está creando)' : errOf(r)) : ''), true);
+let cs = await cget();
+r = await commit([W(`clubs/${cid}/members/${B.uid}`, mem('B', 'officer'), 0, { exists: false }), W(`clubs/${cid}`, { count: cs.c + 1, last: B.uid }, 1, { updateTime: cs.ut })], B.tok);
+ok(r.s === 403, 'nadie entra ya como oficial');
+r = await commit([W(`clubs/${cid}`, { count: cs.c + 1, last: B.uid }, 1, { updateTime: cs.ut })], B.tok);
+ok(r.s === 403, 'el contador no sube sin miembro nuevo');
+r = await commit([W(`clubs/${cid}/members/${B.uid}`, mem('B', 'member'), 0, { exists: false }), W(`clubs/${cid}`, { count: cs.c + 1, last: B.uid }, 1, { updateTime: cs.ut })], B.tok);
+ok(r.s === 200, 'entrar en un club abierto' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+cs = await cget(); ok(cs.c === 2, 'el club tiene 2 miembros');
+r = await patch(`clubs/${cid}/members/${B.uid}`, { wk: '2026-W44', ex: 21, exN: 9, dmg: 12000, atk: '2026-W44-2', atkN: 2, lg: '', lgS: 0 }, B.tok); ok(r.s === 200, 'subir mi progreso de la semana' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+r = await patch(`clubs/${cid}/members/${B.uid}`, { ex: 999 }, B.tok); ok(r.s === 403, 'rechaza estrellas imposibles');
+r = await patch(`clubs/${cid}/members/${B.uid}`, { role: 'leader' }, B.tok); ok(r.s === 403, 'un miembro no se asciende a sí mismo');
+r = await patch(`clubs/${cid}/members/${A.uid}`, { dmg: 5 }, B.tok); ok(r.s === 403, 'nadie cambia el progreso de otro');
+r = await patch(`clubs/${cid}`, { desc: 'hackeado' }, B.tok); ok(r.s === 403, 'un miembro no cambia los ajustes del club');
+r = await patch(`clubs/${cid}`, { lg: { id: '2026-W44', s: 25 } }, B.tok); ok(r.s === 200, 'sumar puntos de liga del club' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+r = await patch(`clubs/${cid}`, { lg: { id: '2026-W44', s: 500 } }, B.tok); ok(r.s === 403, 'rechaza puntos de liga imposibles');
+r = await query({ from: [{ collectionId: 'clubs' }], where: eq('lg.id', '2026-W44'), orderBy: [{ field: { fieldPath: 'lg.s' }, direction: 'DESCENDING' }], limit: 50 }, B.tok);
+ok(r.s === 200, 'clasificación de la liga de clubes' + (r.s !== 200 ? ' → ' + (/index/i.test(errOf(r)) ? 'falta el índice (o aún se está creando)' : errOf(r)) : ''), true);
+r = await patch(`clubs/${cid}/members/${B.uid}`, { role: 'officer' }, A.tok); ok(r.s === 200, 'el líder nombra oficial' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+r = await patch(`clubs/${cid}`, { open: false, desc: 'con solicitud' }, B.tok); ok(r.s === 200, 'un oficial cambia los ajustes' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+cs = await cget();
+r = await commit([W(`clubs/${cid}/members/${D.uid}`, mem('D', 'member'), 0, { exists: false }), W(`clubs/${cid}`, { count: cs.c + 1, last: D.uid }, 1, { updateTime: cs.ut })], D.tok);
+ok(r.s === 403, 'en un club con solicitud no se entra directamente');
+r = await patch(`clubs/${cid}/requests/${D.uid}`, { name: 'D', avatar: '🐸', lv: 12, at: new Date() }, D.tok); ok(r.s === 200, 'pedir entrar' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+r = await req(`${FS}/clubs/${cid}/requests`, {}, D.tok); ok(r.s === 403, 'un jugador no ve las solicitudes de otros');
+r = await req(`${FS}/clubs/${cid}/requests`, {}, B.tok); ok(r.s === 200 && (r.j.documents || []).length === 1, 'un oficial ve las solicitudes');
+cs = await cget();
+r = await commit([W(`clubs/${cid}/members/${D.uid}`, mem('D', 'member'), 0, { exists: false }), WD(`clubs/${cid}/requests/${D.uid}`, { exists: true }), W(`clubs/${cid}`, { count: cs.c + 1, last: D.uid }, 1, { updateTime: cs.ut })], B.tok);
+ok(r.s === 200, 'un oficial acepta la solicitud' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+cs = await cget(); ok(cs.c === 3, 'el club tiene 3 miembros');
+r = await commit([WD(`clubs/${cid}/members/${A.uid}`, { exists: true }), W(`clubs/${cid}`, { count: cs.c - 1, last: A.uid }, 1, { updateTime: cs.ut })], B.tok);
+ok(r.s === 403, 'un oficial no puede expulsar al líder');
+r = await commit([WD(`clubs/${cid}/members/${D.uid}`, { exists: true }), W(`clubs/${cid}`, { count: cs.c - 1, last: D.uid }, 1, { updateTime: cs.ut })], B.tok);
+ok(r.s === 200, 'un oficial expulsa a un miembro' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+r = await commit([W(`clubs/${cid}/members/${B.uid}`, { role: 'leader' }, 1), W(`clubs/${cid}/members/${A.uid}`, { role: 'officer' }, 1), W(`clubs/${cid}`, { leader: B.uid }, 1)], A.tok);
+ok(r.s === 200, 'el líder cede el liderazgo' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+cs = await cget();
+r = await commit([WD(`clubs/${cid}/members/${A.uid}`, { exists: true }), W(`clubs/${cid}`, { count: cs.c - 1, last: A.uid }, 1, { updateTime: cs.ut })], A.tok);
+ok(r.s === 200, 'salir del club' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+r = await commit([WD(`clubs/${cid}/members/${B.uid}`), WD(`clubs/${cid}`), WD(`clubnames/${clc}`)], B.tok);
+ok(r.s === 200, 'el último en salir borra el club' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+r = await get(`clubs/${cid}`, A.tok); ok(r.s === 404, 'el club ya no existe');
+for (const p of [`clubs/${cid}/members/${A.uid}`, `clubs/${cid}/members/${B.uid}`, `clubs/${cid}/members/${D.uid}`, `clubs/${cid}/requests/${D.uid}`, `clubs/${cid}`, `clubnames/${clc}`, `clubs/${cid}x/members/${D.uid}`, `clubs/${cid}x`])
+  if (SA) await del(p, SA);
+{ const d = await req(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${KEY}`, { method: 'POST', body: JSON.stringify({ idToken: D.tok }) }); ok(d.s === 200, 'borrar el jugador de prueba D'); }
+
 // limpieza: no queda nada de la prueba
 r = await del(`friendships/${pair}`, B.tok); ok(r.s === 200, 'quitar amigo');
 for (const [u, c] of [[A, codeA], [B, codeB]]) {

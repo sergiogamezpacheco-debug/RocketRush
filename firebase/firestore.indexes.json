@@ -223,6 +223,34 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "clubs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "open",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "count",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "clubs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "lg.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lg.s",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

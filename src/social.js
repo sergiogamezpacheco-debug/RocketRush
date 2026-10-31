@@ -500,6 +500,7 @@
   async function wipeServer() {
     {
       await token();
+      if (myClubId()) { try { await clubLeave(); } catch (e) { if (e.code !== 'GONE' && e.code !== 'KICKED') throw e; } }
       const me = auth.uid, q = k => runQuery({ from: [{ collectionId: 'friendships' }], where: ffilter(k, 'EQUAL', me), limit: 300 });
       const [A, B] = await Promise.all([q('a'), q('b')]);
       for (const f of new Map(A.concat(B).map(x => [x._id, x])).values()) { try { await delDoc(`friendships/${f._id}`); } catch (e) { if (e.status !== 404) throw e; } }
@@ -510,5 +511,199 @@
     }
   }
 
-  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
+  // ---------------- clubes ----------------
+  // Reloj del club: hora de España en invierno (UTC+1) para todos, así la semana cambia a la vez en todo el mundo.
+  // Semana = lunes a domingo. Expedición: 10 niveles nuevos cada día de lunes a viernes (se pueden jugar hasta el domingo).
+  // Jefe colosal: toda la semana, 3 ataques al día. Liga: de viernes a lunes (su id es la semana del viernes).
+  const CLOCK = 3600e3;
+  function clubTime(t) {
+    const d = new Date((t || Date.now()) + CLOCK);
+    const day = (d.getUTCDay() + 6) % 7;                                   // 0 = lunes
+    const mon = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day);
+    const th = new Date(mon + 3 * 864e5), y = th.getUTCFullYear();
+    const wn = 1 + Math.floor((th - Date.UTC(y, 0, 1)) / 864e5 / 7);
+    const wk = y + '-W' + String(wn).padStart(2, '0');
+    const prev = day === 0 ? clubTime((t || Date.now()) - 864e5).wk : null;
+    return { day, wk, dayId: wk + '-' + day, weekEnd: mon + 7 * 864e5 - CLOCK, dayEnd: mon + (day + 1) * 864e5 - CLOCK,
+      lg: day >= 4 ? wk : prev, lgEnd: day >= 4 ? mon + 8 * 864e5 - CLOCK : day === 0 ? mon + 864e5 - CLOCK : 0, lgStart: mon + 4 * 864e5 - CLOCK };
+  }
+  class ClubErr extends Error { constructor(c) { super(c); this.code = c; } }
+  const docName = p => `${ROOT}/${p}`;
+  const wUpdate = (p, data, mask, pre) => {
+    const w = { update: { name: docName(p), fields: enc(data).mapValue.fields } };
+    if (mask) w.updateMask = { fieldPaths: mask === true ? Object.keys(data) : mask };
+    if (pre) w.currentDocument = pre;
+    return w;
+  };
+  const wDelete = (p, pre) => Object.assign({ delete: docName(p) }, pre ? { currentDocument: pre } : {});
+  async function commit(writes) { return call(`${FS}:commit`, { method: 'POST', body: JSON.stringify({ writes }) }); }
+  const CL = { cid: null, club: null, members: [], reqs: [], at: 0, loaded: false };
+  const myClubId = () => (X.save.club && X.save.club.cid) || null;
+  const memberBase = () => ({ name: myName(), avatar: prof().avatar || '🚀', wk: '', ex: 0, exN: 0, dmg: 0, atk: '', atkN: 0, lg: '', lgS: 0 });
+  // una ficha de miembro con los datos de esta semana (los de semanas pasadas cuentan como 0)
+  function fresh(m) {
+    const ct = clubTime(), o = Object.assign({}, m);
+    if (o.wk !== ct.wk) { o.ex = 0; o.exN = 0; o.dmg = 0; }
+    if (o.atk !== ct.dayId) o.atkN = 0;
+    if (o.lg !== ct.lg) o.lgS = 0;
+    return o;
+  }
+  async function clubLoad(force) {
+    const cid = myClubId();
+    if (!cid) { Object.assign(CL, { cid: null, club: null, members: [], reqs: [], loaded: true, at: Date.now() }); return CL; }
+    if (!force && CL.cid === cid && Date.now() - CL.at < 60e3) return CL;
+    await token();
+    const club = await getDoc(`clubs/${cid}`);
+    const me = club && await getDoc(`clubs/${cid}/members/${auth.uid}`);
+    if (!club || !me) {                                                  // el club ya no existe o te han expulsado
+      const was = club ? club.name : null;
+      X.save.club = null; X.persist(); Object.assign(CL, { cid: null, club: null, members: [], reqs: [], loaded: true, at: Date.now() });
+      throw new ClubErr(was ? 'KICKED' : 'GONE');
+    }
+    const j = await call(`${FS}/clubs/${cid}/members?pageSize=40`);
+    const members = (j.documents || []).map(docOf).map(fresh);
+    let reqs = [];
+    if (me.role !== 'member') { try { const r = await call(`${FS}/clubs/${cid}/requests?pageSize=50`); reqs = (r.documents || []).map(docOf); } catch (e) { reqs = []; } }
+    Object.assign(CL, { cid, club, members, reqs, me: fresh(me), loaded: true, at: Date.now() });
+    X.save.club = { cid, name: club.name, role: me.role }; X.persist();
+    return CL;
+  }
+  const clubPayload = o => ({ desc: (o.desc || '').slice(0, 80), open: !!o.open, minLv: Math.max(0, Math.min(5000, o.minLv | 0)), lang: (o.lang || (window.I18N ? I18N.lang : 'es')).slice(0, 5), country: (o.country || prof().country || '').slice(0, 3), badge: { ico: o.badge && o.badge.ico || '🚀', c: Math.max(0, Math.min(11, (o.badge && o.badge.c) | 0)) } });
+  const cleanClubName = t => (t || '').replace(/[\u0000-\u001f<>\/]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20);
+  async function clubCreate(o) {
+    const name = cleanClubName(o.name);
+    if (name.length < 3) throw new ClubErr('NAME_SHORT');
+    if (myClubId()) throw new ClubErr('IN_CLUB');
+    await token();
+    const me = auth.uid, cid = Array.from({ length: 12 }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join(''), lc = name.toLowerCase();
+    if (lc.includes('/') || lc === '.' || lc === '..') throw new ClubErr('NAME_BAD');
+    const club = Object.assign({ name, nameLc: lc, leader: me, count: 1, last: me, lg: { id: '', s: 0 }, createdAt: new Date() }, clubPayload(o));
+    try {
+      await commit([
+        wUpdate(`clubs/${cid}`, club, null, { exists: false }),
+        wUpdate(`clubs/${cid}/members/${me}`, Object.assign(memberBase(), { role: 'leader', joinedAt: new Date() }), null, { exists: false }),
+        wUpdate(`clubnames/${lc}`, { cid }, null, { exists: false }),
+      ]);
+    } catch (e) { if (e.status === 409 || e.status === 400 || /ALREADY_EXISTS|FAILED_PRECONDITION/.test(e.code + e.message)) throw new ClubErr('NAME_TAKEN'); throw e; }
+    X.save.club = { cid, name, role: 'leader' }; X.persist(); CL.at = 0;
+    return clubLoad(true);
+  }
+  async function clubSearch(text) {
+    const q = (text || '').trim().toLowerCase();
+    const sq = q
+      ? { from: [{ collectionId: 'clubs' }], where: andF([ffilter('nameLc', 'GREATER_THAN_OR_EQUAL', q), ffilter('nameLc', 'LESS_THAN', q + '\uf8ff')]), orderBy: [{ field: fld('nameLc') }], limit: 30 }
+      : { from: [{ collectionId: 'clubs' }], where: andF([ffilter('open', 'EQUAL', true), ffilter('count', 'LESS_THAN', 30)]), orderBy: [{ field: fld('count'), direction: 'DESCENDING' }], limit: 30 };
+    return runQuery(sq);
+  }
+  async function clubJoin(cid) {
+    if (myClubId()) throw new ClubErr('IN_CLUB');
+    await token();
+    const me = auth.uid;
+    for (let i = 0; i < 4; i++) {
+      const raw = await call(`${FS}/clubs/${cid}`).catch(e => { if (e.status === 404) throw new ClubErr('GONE'); throw e; });
+      const c = docOf(raw);
+      if (c.count >= 30) throw new ClubErr('FULL');
+      if ((c.minLv || 0) > (X.stats().lv || 1)) throw new ClubErr('MIN_LV');
+      if (!c.open) {
+        const st = X.starsTotal ? X.starsTotal() : 0;
+        await setDoc(`clubs/${cid}/requests/${me}`, { name: myName(), avatar: prof().avatar || '🚀', lv: Math.max(0, st | 0), at: new Date() }, { merge: false });
+        X.save.clubReq = { cid, name: c.name, at: Date.now() }; X.persist();
+        return 'REQUESTED';
+      }
+      try {
+        await commit([
+          wUpdate(`clubs/${cid}/members/${me}`, Object.assign(memberBase(), { role: 'member', joinedAt: new Date() }), null, { exists: false }),
+          wUpdate(`clubs/${cid}`, { count: c.count + 1, last: me }, true, { updateTime: raw.updateTime }),
+        ]);
+        X.save.club = { cid, name: c.name, role: 'member' }; X.save.clubReq = null; X.persist(); CL.at = 0;
+        return clubLoad(true);
+      } catch (e) { if (e.status === 400 || e.status === 409 || /PRECONDITION|ABORTED/.test(e.code + e.message)) continue; throw e; }
+    }
+    throw new ClubErr('BUSY');
+  }
+  // quitar a alguien (uno mismo al salir, o expulsar): ficha fuera y contador -1 en el mismo lote
+  async function removeMember(uid) {
+    const cid = myClubId();
+    for (let i = 0; i < 4; i++) {
+      const raw = await call(`${FS}/clubs/${cid}`);
+      const c = docOf(raw);
+      try {
+        await commit([wDelete(`clubs/${cid}/members/${uid}`, { exists: true }), wUpdate(`clubs/${cid}`, { count: c.count - 1, last: uid }, true, { updateTime: raw.updateTime })]);
+        return;
+      } catch (e) { if (e.status === 400 || e.status === 409 || /PRECONDITION|ABORTED/.test(e.code + e.message)) continue; throw e; }
+    }
+    throw new ClubErr('BUSY');
+  }
+  async function clubTransfer(uid) {
+    const cid = myClubId(); await token();
+    await commit([
+      wUpdate(`clubs/${cid}/members/${uid}`, { role: 'leader' }, true),
+      wUpdate(`clubs/${cid}/members/${auth.uid}`, { role: 'officer' }, true),
+      wUpdate(`clubs/${cid}`, { leader: uid }, true),
+    ]);
+    CL.at = 0; return clubLoad(true);
+  }
+  async function clubLeave() {
+    const cid = myClubId(); if (!cid) return;
+    await clubLoad(true);
+    const me = auth.uid, role = CL.me.role;
+    if (role === 'leader') {
+      const others = CL.members.filter(m => m._id !== me);
+      if (others.length) {
+        // el liderazgo pasa al oficial (o miembro) que más ha aportado esta semana
+        const next = others.slice().sort((a, b) => ((b.role === 'officer') - (a.role === 'officer')) || (b.ex + b.dmg / 1000) - (a.ex + a.dmg / 1000))[0];
+        await clubTransfer(next._id);
+        await removeMember(me);
+      } else {
+        const ws = CL.reqs.map(r => wDelete(`clubs/${cid}/requests/${r._id}`));
+        ws.push(wDelete(`clubs/${cid}/members/${me}`), wDelete(`clubs/${cid}`), wDelete(`clubnames/${CL.club.nameLc}`));
+        await commit(ws);
+      }
+    } else await removeMember(me);
+    X.save.club = null; X.persist(); Object.assign(CL, { cid: null, club: null, members: [], reqs: [], at: 0 });
+  }
+  async function clubKick(uid) { await removeMember(uid); CL.at = 0; return clubLoad(true); }
+  async function clubRole(uid, role) { await setDoc(`clubs/${myClubId()}/members/${uid}`, { role }); CL.at = 0; return clubLoad(true); }
+  async function clubAccept(uid) {
+    const cid = myClubId(), r = CL.reqs.find(x => x._id === uid); if (!r) throw new ClubErr('GONE');
+    for (let i = 0; i < 4; i++) {
+      const raw = await call(`${FS}/clubs/${cid}`), c = docOf(raw);
+      if (c.count >= 30) throw new ClubErr('FULL');
+      try {
+        await commit([
+          wUpdate(`clubs/${cid}/members/${uid}`, { name: r.name, avatar: r.avatar, role: 'member', joinedAt: new Date(), wk: '', ex: 0, exN: 0, dmg: 0, atk: '', atkN: 0, lg: '', lgS: 0 }, null, { exists: false }),
+          wDelete(`clubs/${cid}/requests/${uid}`, { exists: true }),
+          wUpdate(`clubs/${cid}`, { count: c.count + 1, last: uid }, true, { updateTime: raw.updateTime }),
+        ]);
+        CL.at = 0; return clubLoad(true);
+      } catch (e) { if (e.status === 400 || e.status === 409 || /PRECONDITION|ABORTED/.test(e.code + e.message)) continue; throw e; }
+    }
+    throw new ClubErr('BUSY');
+  }
+  async function clubReject(uid) { await delDoc(`clubs/${myClubId()}/requests/${uid}`); CL.at = 0; return clubLoad(true); }
+  async function clubSettings(o) { await setDoc(`clubs/${myClubId()}`, clubPayload(o)); CL.at = 0; return clubLoad(true); }
+  // progreso propio de la semana: estrellas de la expedición, daño al jefe, ataques de hoy y estrellas de la liga
+  async function clubReport(p) {
+    const cid = myClubId(); if (!cid || offline()) return;
+    await token();
+    const ct = clubTime(), data = { name: myName(), avatar: prof().avatar || '🚀', wk: ct.wk, ex: Math.min(150, p.ex | 0), exN: Math.min(50, p.exN | 0), dmg: Math.min(5000000, p.dmg | 0), atk: ct.dayId, atkN: Math.min(6, p.atkN | 0), lg: ct.lg || '', lgS: Math.min(30, p.lgS | 0) };
+    await setDoc(`clubs/${cid}/members/${auth.uid}`, data);
+    // puntos de liga del club: la suma de lo que llevan todos (se recalcula con la lista de miembros)
+    if (ct.lg) {
+      try {
+        await clubLoad(true);
+        const s = CL.members.reduce((a, m) => a + (m._id === auth.uid ? data.lgS : (m.lgS || 0)), 0);
+        if (!CL.club.lg || CL.club.lg.id !== ct.lg || CL.club.lg.s !== s) await setDoc(`clubs/${cid}`, { lg: { id: ct.lg, s: Math.min(s, CL.club.count * 30) } });
+      } catch (e) { /* la liga se pondrá al día en la próxima partida */ }
+    }
+    CL.at = 0;
+  }
+  async function clubLeague() {
+    const ct = clubTime(); if (!ct.lg) return [];
+    return runQuery({ from: [{ collectionId: 'clubs' }], where: ffilter('lg.id', 'EQUAL', ct.lg), orderBy: [{ field: fld('lg.s'), direction: 'DESCENDING' }], limit: 50 });
+  }
+  const Club = { time: clubTime, load: clubLoad, create: clubCreate, search: clubSearch, join: clubJoin, leave: clubLeave, kick: clubKick, role: clubRole,
+    transfer: clubTransfer, accept: clubAccept, reject: clubReject, settings: clubSettings, report: clubReport, league: clubLeague, state: CL, get id() { return myClubId(); } };
+
+  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
 })();
