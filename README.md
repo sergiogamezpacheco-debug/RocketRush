@@ -507,3 +507,11 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   `KEY_BACKUP_PASS`) y después Actions › «Versión para Google Play (AAB)», que deja el `.aab` firmado sin modo prueba.
 - Prueba: `tools/storeflow.py`.
 
+## Huellas de las claves (públicas: van en Firebase › app Android › huellas digitales)
+
+| Clave | SHA-1 |
+| --- | --- |
+| Subida a Google Play (secreto UPLOAD_KEYSTORE_B64) | FA:76:7E:8B:47:54:15:F7:1C:7F:0D:9A:5D:DC:92:E5:B0:73:51:07 |
+| APK de prueba (`android/app/rocketrush-test.jks`) | FA:9B:81:10:3F:2E:62:AA:6A:2E:E4:26:DA:C5:B2:C5:3E:2C:DA:3C |
+| Firma de Google Play | (se ve en Play Console › Integridad de la aplicación al subir el primer paquete) |
+
