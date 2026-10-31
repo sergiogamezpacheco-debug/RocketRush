@@ -100,10 +100,15 @@ Pruebas: `node tools/mechanics.js` (reglas de los bloques nuevos y de los objeto
 - **Amigos**: cada jugador tiene un código (`RR-XXXXXXYY`, con 2 letras de control). Se añade un amigo escribiendo su código y se comparte con el botón «Compartir» (en Android abre el menú de compartir del móvil). En la versión de Google Play conviene comprobar los códigos con un servidor (por ejemplo, Firebase) para evitar trampas.
 - No hay premios por valorar el juego en Google Play: está prohibido por sus normas.
 
-## Modo prueba (quitar al publicar)
+## Modo prueba y probadores
 
-En **Ajustes → Modo prueba: desbloquear todo** se abren los 1000 niveles y los 100 niveles extra para probar el juego. El mismo botón devuelve el progreso normal sin perder estrellas. Para publicar, compila con `node tools/build.js --release`: el modo prueba queda desactivado y el botón no aparece.
-
+- En las APK de prueba (`apk.yml`) el juego lleva `TEST_MODE = true`: botón «Modo prueba: desbloquear todo» en Ajustes y
+  compras simuladas.
+- La versión para Google Play (`release.yml`, `node tools/build.js --release`) va con `TEST_MODE = false`: nadie ve el botón…
+- …salvo los **probadores**: en el panel (`/admin` › Jugadores › buscar su código RR-… › «🧪 Hacer probador») se crea
+  `testers/{uid}` y el juego, al sincronizar, enseña el botón con la nota «Eres probador». Quitarlo en el panel lo devuelve a
+  su progreso normal. Las compras de los probadores se prueban con los «testers de licencias» de Play Console (no cobran).
+- Prueba: `tools/namesflow.py dist/index.html` (y con una versión `--release`).
 ## Bolas de los mundos
 
 Cada uno de los 10 primeros mundos tiene su bola especial, con su diseño y su superpoder. Se abre al desbloquear el mundo:
@@ -311,6 +316,13 @@ Español, inglés, portugués, francés, alemán e italiano. La primera vez que 
 - El juego sigue escrito en español. `src/i18n.js` traduce todo lo que sale en pantalla (textos de la página y los que el juego va poniendo: botones, avisos, nombres de niveles y mundos, misiones, jefes, textos flotantes…) con la tabla de `src/i18n-data.js` (unos 1.100 textos): frase exacta, plantilla con trozos variables (`Nivel {x} · {x}`), textos compuestos con « · » y frases conocidas dentro de textos más largos. Lo que no está en pantalla (mensaje al compartir, aviso de la racha) se traduce con `I18N.t()`.
 - Para añadir textos nuevos: `python3 tools/i18n_extract.py` (saca los textos en español del código), `python3 tools/i18n_missing.py en` (juega en inglés y lista lo que siga en español) y `python3 tools/i18n_merge.py tabla.py` (añade las traducciones a la tabla).
 - Las pruebas fijan el español (`localStorage rocketrush.lang = es`) para que no salga la ventana de idioma.
+
+## Nombres de jugador únicos
+
+- `names/{nombre en minúsculas}` → uid. Al escribir el nombre se comprueba si está libre («✓ Disponible» / «Ese nombre ya lo
+  tiene otro jugador»); al guardar se reserva el nuevo y se libera el anterior en el mismo lote. Mínimo 3 letras y filtro de
+  palabras malsonantes (6 idiomas). Los nombres de antes se reservan solos; si ya lo tenía otro, vuelve a «Jugador XXXX».
+- Borrar la cuenta en línea libera el nombre. Las reglas no dejan coger ni liberar el nombre de otro.
 
 ## Amigos, clasificaciones y perfil (Firebase)
 El botón **Amigos** de la portada abre tres pestañas:
