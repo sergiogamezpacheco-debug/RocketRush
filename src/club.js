@@ -356,7 +356,7 @@
   }
   function back(L) { tab = L && L.club ? ({ ex: 'ex', lg: 'lg', boss: 'boss' })[L.club] : tab; open(); }
 
-  window.Club = { open, render, refresh, onStart, onEnd, next, back, levels: ensureLevels, time: () => S.time(), _P: P };
+  window.Club = { open, render, refresh, onStart, onEnd, next, back, levels: ensureLevels, time: () => S.time(), _P: P, get tab() { return tab; }, get inClub() { return !!(S.id && S.state.club && S.state.cid === S.id); } };
   const bk = $('clubBack'); if (bk) bk.addEventListener('click', () => { X.Audio.click && X.Audio.click(); X.goMap(); });
   const sy = $('clubSync'); if (sy) sy.addEventListener('click', () => { X.Audio.click && X.Audio.click(); found = null; if (!S.id) find(); else refresh(true); });
   // al abrir sin club, se busca directamente

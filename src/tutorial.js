@@ -13,7 +13,7 @@
   const dimOpen = () => !!document.querySelector('.screen.dim.on') || on('chestOpen') || on('ad') || ($('langPick') && !$('langPick').hidden);
 
   // ---------- estado guardado ----------
-  const TIP_KEYS = ['candy', 'xgift', 'shop', 'pass', 'missions', 'social', 'daily', 'hw', 'xm', 'boss'];
+  const TIP_KEYS = ['candy', 'xgift', 'shop', 'pass', 'missions', 'social', 'daily', 'hw', 'xm', 'boss', 'club', 'clubIn', 'clubEx', 'clubBoss', 'clubLg'];
   function st() {
     const s = X.save;
     if (!s.tut) {
@@ -31,6 +31,7 @@
   const visible = list => ids(list).filter(sel => { const e = document.querySelector(sel); return e && !e.hidden && e.offsetParent !== null; });
   const titleReady = () => on('title') && !dimOpen() && !on('daily');
   const mapReady = () => on('map') && !dimOpen() && !on('daily');
+  const clubReady = () => on('club') && !dimOpen() && !!window.Club;
   const playReady = () => X.G.mode === 'play' && !X.G.paused && (X.G.introT || 0) <= 0 && !dimOpen() && !on('newCard');
   // Los nuevos, al tocar ¡A DEMOLER!, van directos a la ficha del nivel 1: el mapa se explica al volver de la primera partida.
   const MAIN = [
@@ -43,6 +44,7 @@
     { when: () => playReady() && X.G.sim && X.G.sim.state === 'play', auto: 6, title: '¡Así se hace!', text: 'Derriba el porcentaje que marca la barra de arriba para superar el nivel. ¡Suerte!' },
     { when: mapReady, target: () => ['#btnMis'], title: 'Tu nivel de jugador', text: 'Al jugar ganas experiencia y subes de nivel. Toca aquí cuando quieras ver tus misiones y sus premios.' },
     { when: mapReady, target: () => ['.hwnav'], title: 'Modos de juego', text: () => !$('navXm').hidden ? 'Además de los mundos tienes el Club y los eventos, como el de Navidad, con sus propios niveles y premios.' : !$('navHw').hidden ? 'Además de los mundos tienes el Club y los eventos, como el de Halloween, con sus propios niveles y premios.' : 'Además de los mundos tienes el Club y los eventos especiales, con sus propios niveles y premios.' },
+    { when: mapReady, target: () => ['#navClub'], point: true, title: 'El Club', text: 'Únete a un club para jugar en equipo: expedición semanal, jefe colosal y liga del fin de semana, con premios para todos.' },
     { when: mapReady, target: () => ['#mapList .lv.cur'], scroll: '#mapList .lv.cur', point: true, last: true, title: 'Tu camino', text: 'Cada mundo tiene sus niveles y un jefe al final. Toca el siguiente nivel cuando quieras seguir.' },
   ];
   const PLAY0 = 5, MAP0 = 7;
@@ -70,6 +72,12 @@
     xgift: { when: () => playReady() && X.G.sim && X.G.sim.state === 'play' && X.G.xgifts && X.G.xgifts.length > 0 && X.xm && X.xm.active(), rect: () => candyRect(X.G.xgifts), point: true, title: 'Regalos de Navidad', text: 'Los bloques envueltos para regalo llevan premio: el del bastón da 2 caramelos navideños y el del caramelo de menta, 1. Rómpelos o tíralos y gástalos en la tienda de Navidad.' },
     xm: { when: () => on('xmmap') && !dimOpen(), target: () => ['#xmmap .xmhead'], title: 'Evento de Navidad', text: 'Un pueblo nevado con 50 niveles y 5 jefes: el Cascanueces, la Caja Sorpresa y el Capitán Escarcha. Rompe los regalos para conseguir caramelos navideños.' },
     hw: { when: () => on('hwmap') && !dimOpen(), target: () => ['#hwmap .hwhead'], title: 'Evento de Halloween', text: 'Un mundo especial con 50 niveles y 5 jefes. Rompe los bloques con caramelo para ganar caramelos y gástalos en la tienda de Halloween.' },
+    // clubes: un consejo al abrirlos sin club y otro la primera vez en cada pestaña de tu club
+    club: { when: () => clubReady() && !window.Club.inClub, target: () => ['#clubHead .kltabs'], title: 'Clubes', text: 'Juega en equipo con hasta 30 jugadores. Busca un club y entra, o crea el tuyo por 500 monedas.' },
+    clubIn: { when: () => clubReady() && window.Club.inClub && window.Club.tab === 'club', target: () => ['#clubHead .kltabs'], title: 'Tu club', text: 'Cada semana hay tres retos: la expedición, el jefe colosal y la liga del fin de semana. En esta pestaña ves a los miembros y lo que aporta cada uno.' },
+    clubEx: { when: () => clubReady() && window.Club.inClub && window.Club.tab === 'ex', target: () => ['#clubList .klday'], title: 'Expedición', text: 'De lunes a viernes se abren 10 niveles cada día. Tus estrellas llenan el cofre del club y cada una te da 15 monedas al acabar la semana.' },
+    clubBoss: { when: () => clubReady() && window.Club.inClub && window.Club.tab === 'boss', target: () => visible(['clubAttack']).length ? ['#clubAttack'] : ['#clubList .klbosscard'], point: true, title: 'Jefe colosal', text: 'Todo el club ataca al mismo jefe. Tienes 3 ataques al día: cuanta más vida le quites, más daño sumas para el club.' },
+    clubLg: { when: () => clubReady() && window.Club.inClub && window.Club.tab === 'lg', target: () => ['#clubHead .kltabs'], title: 'Liga del fin de semana', text: 'De viernes a lunes, 10 niveles difíciles. Gana el club que más estrellas consiga entre todos sus miembros.' },
     boss: { when: () => playReady() && X.G.level && X.G.level.boss && X.G.sim && X.G.sim.state === 'play', title: '¡Un jefe!', text: 'Los jefes tienen su barra de vida arriba. Lee lo que pide cada uno y derríbalo antes de quedarte sin bolas.' },
   };
 
