@@ -137,6 +137,18 @@ if (SA) {
   await del(`testers/${A.uid}`, SA);
 }
 
+// ---------------- denuncias ----------------
+r = await patch(`reports/${B.uid}_${A.uid}`, { by: B.uid, kind: 'player', target: A.uid, name: 'Prueba A', reason: 'name', at: new Date() }, B.tok, '&currentDocument.exists=false');
+ok(r.s === 200, 'denunciar a un jugador' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+r = await patch(`reports/${B.uid}_${A.uid}`, { by: B.uid, kind: 'player', target: A.uid, name: 'Prueba A', reason: 'cheat', at: new Date() }, B.tok, '&currentDocument.exists=false');
+ok(r.s !== 200, 'no se puede denunciar dos veces al mismo');
+r = await patch(`reports/${A.uid}_${B.uid}`, { by: A.uid, kind: 'player', target: B.uid, name: 'x', reason: 'name', at: new Date() }, B.tok); ok(r.s === 403, 'no se denuncia en nombre de otro');
+r = await patch(`reports/${B.uid}_zz`, { by: B.uid, kind: 'player', target: 'zz', name: 'x', reason: 'insulto', at: new Date() }, B.tok); ok(r.s === 403, 'rechaza motivos inventados');
+r = await get(`reports/${B.uid}_${A.uid}`, B.tok); ok(r.s === 403, 'un jugador no puede leer las denuncias');
+if (SA) { r = await query({ from: [{ collectionId: 'reports' }], limit: 5 }, SA); ok(r.s === 200, 'el panel lee las denuncias'); }
+r = await del(`reports/${B.uid}_${A.uid}`, B.tok); ok(r.s === 403, 'un jugador no puede borrar denuncias');
+if (SA) await del(`reports/${B.uid}_${A.uid}`, SA);
+
 // ---------------- clubes ----------------
 const commit = (writes, tok) => req(`${FS}:commit`, { method: 'POST', body: JSON.stringify({ writes }) }, tok);
 const W = (p, data, mask, pre) => Object.assign({ update: { name: `${ROOT}/${p}`, fields: enc(data).mapValue.fields } }, mask ? { updateMask: { fieldPaths: Object.keys(data) } } : {}, pre ? { currentDocument: pre } : {});

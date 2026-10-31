@@ -224,6 +224,9 @@ h1,h2,h3{margin:0}
 .plist{display:flex;flex-direction:column;gap:2px;margin-top:10px}
 .btn.red{background:linear-gradient(180deg,#ff6b81,#d6304a);box-shadow:0 5px 0 #8a1a2c}
 #privacy .note{margin-top:4px}
+.msheet{text-align:center}.msico{font-size:54px;margin:4px 0 2px}.msname{margin:0 0 4px;font-size:22px;overflow:hidden;text-overflow:ellipsis}
+.msbtns{display:flex;flex-direction:column;gap:2px;margin-top:6px}.msnote{min-height:18px}
+.blrow{display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid rgba(255,255,255,.12);text-align:left}.blrow b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.blrow .btn{width:auto;flex:none;padding:6px 10px;font-size:13px}
 .credits{text-align:left;font-size:13px;line-height:1.45;max-height:52vh;overflow:auto;color:#f3ecff}
 .credits b{display:block;margin-top:8px;color:#ffe680}
 .langpick .panel{width:min(90vw,380px)}
@@ -968,6 +971,7 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 .liveboost span{background:linear-gradient(170deg,#ffe27a,#ffb020);color:#4a2a00;font-weight:900;font-size:13px;border-radius:999px;padding:5px 12px;box-shadow:0 3px 0 rgba(0,0,0,.25),0 0 18px rgba(255,200,60,.6);animation:lbpulse 1.6s ease-in-out infinite}
 @keyframes lbpulse{50%{transform:scale(1.05)}}
 #liveBox{z-index:30}
+#modSheet{z-index:31}
 #liveBox .panel{position:relative;width:min(88vw,360px);text-align:center}
 #liveBox .xbtn[hidden]{display:none}
 .lbico{font-size:54px;line-height:1;margin:4px 0 6px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.2))}
@@ -1328,6 +1332,7 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
       <button class="btn gray small" id="pTerms">Términos de uso</button>
       <button class="btn gray small" id="pAds" hidden>Opciones de privacidad de anuncios</button>
       <button class="btn gray small" id="pOnline">Funciones en línea: sí</button>
+      <button class="btn gray small" id="pBlocked">Jugadores y clubes bloqueados</button>
       <button class="btn red small" id="pDelete">Borrar mi cuenta en línea</button>
       <p class="note" id="pDelNote"></p>
       <button class="btn blue small" id="pSupport">&#9993;&#65039; Contactar con soporte</button>
@@ -1337,6 +1342,7 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
     <button class="btn green" id="pBack">VOLVER</button>
   </div>
 </div>
+<div class="screen dim" id="modSheet"><div class="panel msheet"><div class="ribbon">JUGADOR</div><div class="msico"></div><h2 class="msname" translate="no"></h2><p class="sub msnote"></p><div class="msbtns"></div></div></div>
 <div class="langpick" id="ageGate" hidden><div class="panel"><div class="ribbon" id="agRib">¡HOLA!</div><p class="sub">¿En qué año naciste?</p><select id="agYear" class="agsel" aria-label="Año de nacimiento"></select><button class="btn green" id="agOk" disabled>CONTINUAR</button><p class="note">Se guarda solo en este móvil. Sirve para mostrarte el contenido y los anuncios adecuados.</p></div></div>
 <div class="langpick" id="langPick" hidden><div class="panel"><div class="ribbon">IDIOMA · LANGUAGE</div><p class="sub lpsub">Elige tu idioma · Choose your language</p><div class="langgrid" id="lpGrid"></div></div></div>
 <div class="screen dim" id="newCard"><div class="panel nc"><div class="ribbon">¡BLOQUE NUEVO!</div><div class="ncico"><img id="ncIcon" alt=""></div><h2 id="ncName"></h2><p class="sub" id="ncWhat"></p><button class="btn green" id="ncOk">¡A PROBARLO!</button></div></div>

@@ -127,6 +127,23 @@ with sync_playwright() as pw:
     print('desbloqueado (sin campo):', 'banned' not in DB['users/u1']['fields'])
     pg.click('[data-x=top]'); pg.wait_for_timeout(500)
     print('top:', [pg.locator('#pRes .item b').nth(i).text_content().strip() for i in range(pg.locator('#pRes .item').count())])
+    # probador
+    pg.click('#pRes .item >> nth=0'); pg.wait_for_timeout(500)
+    pg.click('#pcTester'); pg.wait_for_timeout(600)
+    print('probador:', [k for k in DB if k.startswith('testers/')], pg.text_content('#pcTester'))
+    # denuncias
+    S = lambda v: {'stringValue': v}
+    put('reports/a_u1', {'by': S('a'), 'kind': S('player'), 'target': S('u1'), 'name': S('Sergio'), 'reason': S('name'), 'at': {'timestampValue': '2026-10-31T10:00:00Z'}})
+    put('reports/b_u1', {'by': S('b'), 'kind': S('player'), 'target': S('u1'), 'name': S('Sergio'), 'reason': S('cheat'), 'at': {'timestampValue': '2026-10-31T11:00:00Z'}})
+    put('clubs/cz', {'name': S('Club Feo'), 'nameLc': S('club feo'), 'desc': S('fea')}); put('clubnames/club feo', {'cid': S('cz')})
+    put('reports/a_cz', {'by': S('a'), 'kind': S('club'), 'target': S('cz'), 'name': S('Club Feo'), 'reason': S('desc'), 'at': {'timestampValue': '2026-10-31T12:00:00Z'}})
+    pg.click('#nav [data-tab=reports]'); pg.wait_for_timeout(800)
+    print('denuncias:', [pg.locator('#rBox .card h3').nth(i).text_content().strip() for i in range(pg.locator('#rBox .card').count())])
+    pg.screenshot(path=OUT + 'adm_reports.png', full_page=True)
+    pg.click('#rBox [data-g] >> text=Quitar descripción'); pg.wait_for_timeout(800)
+    print('descripción quitada:', DB['clubs/cz']['fields'].get('desc'), '· quedan', [k for k in DB if k.startswith('reports/')])
+    pg.click('#rBox [data-a=dismiss]'); pg.wait_for_timeout(800)
+    print('descartadas:', [k for k in DB if k.startswith('reports/')])
     # al recargar sigue dentro (sesión guardada)
     pg.reload(); pg.wait_for_selector('#app:not([hidden])', timeout=5000); print('sesión recordada:', pg.text_content('#who'))
     print('errores', errs[:5]); b.close()

@@ -61,6 +61,7 @@ Puedes borrar tu cuenta en línea desde el juego en cualquier momento.</p></div>
 <tr><td>Progreso, monedas, ajustes y año de nacimiento</td><td>Guardar tu partida. Se quedan en tu móvil, no nos llegan.</td><td>—</td><td>Hasta que borres el progreso o desinstales el juego</td></tr>
 <tr><td>Identificador anónimo de cuenta, apodo, avatar, país (si lo eliges), idioma, código de amigo, estadísticas de juego y lista de amigos</td><td>Funciones en línea: amigos y clasificaciones. Tu apodo, avatar, país y estadísticas los ven otros jugadores.</td><td>Ejecución del servicio que pides (art. 6.1.b RGPD)</td><td>Hasta que borres tu cuenta en línea</td></tr>
 <tr><td>Identificador de publicidad del dispositivo, dirección IP, datos técnicos del móvil e interacción con los anuncios</td><td>Mostrar anuncios con Google AdMob, medirlos y evitar el fraude</td><td>Consentimiento (art. 6.1.a) para anuncios personalizados; interés legítimo (art. 6.1.f) para anuncios no personalizados y prevención del fraude</td><td>Según la política de Google</td></tr>
+<tr><td>Denuncias que hagas o recibas (identificadores anónimos, nombre denunciado y motivo)</td><td>Moderar nombres y clubes y evitar trampas</td><td>Interés legítimo (art. 6.1.f) en mantener un juego seguro</td><td>Hasta resolver la denuncia</td></tr>
 <tr><td>Comprobante de compra de Google Play (identificador del producto y del pedido)</td><td>Entregarte lo que compras y restaurar compras</td><td>Ejecución del contrato (art. 6.1.b)</td><td>Lo que exija la ley fiscal y de consumo</td></tr>
 <tr><td>Tu correo y lo que nos escribas</td><td>Responder a tus consultas de soporte</td><td>Interés legítimo (art. 6.1.f)</td><td>Hasta resolver la consulta y, como mucho, 2 años</td></tr>
 </table></div>
@@ -118,7 +119,7 @@ page('es', 'terminos', 'Términos de uso', f'''
 <p>Las compras se hacen con Google Play y se rigen también por sus condiciones. Los objetos se entregan al momento. Al tratarse de contenido digital que se entrega inmediatamente con tu consentimiento, una vez entregado no se aplica el derecho de desistimiento de 14 días, sin perjuicio de tus demás derechos como consumidor y de la <a href="https://support.google.com/googleplay/answer/2479637">política de reembolsos de Google Play</a>. Si una compra no te llega, escríbenos.</p>
 
 <h2>5. Normas de convivencia</h2>
-<p>No uses apodos ofensivos, que suplanten a otra persona o que incluyan datos personales. No hagas trampas, no modifiques el juego ni ataques sus servidores. Podemos cambiar apodos inadecuados y suspender las funciones en línea de quien incumpla estas normas.</p>
+<p>No uses apodos ofensivos, que suplanten a otra persona o que incluyan datos personales. No hagas trampas, no modifiques el juego ni ataques sus servidores. Puedes <strong>denunciar o bloquear</strong> a cualquier jugador o club tocando su nombre (en las clasificaciones, en tus amigos o en los clubes); revisamos cada denuncia y podemos cambiar apodos o nombres de club inadecuados y suspender las funciones en línea de quien incumpla estas normas.</p>
 
 <h2>6. Disponibilidad y cambios</h2>
 <p>Podemos actualizar el juego, cambiar eventos, equilibrar niveles y premios, o retirar funciones. Las funciones en línea pueden no estar disponibles en algunos momentos (por ejemplo, por mantenimiento).</p>
@@ -167,6 +168,7 @@ You can delete your online account from the game at any time.</p></div>
 <tr><td>Progress, coins, settings and year of birth</td><td>Saving your game. It stays on your phone and never reaches us.</td><td>—</td><td>Until you delete your progress or uninstall</td></tr>
 <tr><td>Anonymous account ID, nickname, avatar, country (if you choose one), language, friend code, game stats and friend list</td><td>Online features: friends and leaderboards. Other players can see your nickname, avatar, country and stats.</td><td>Performance of the service you request (Art. 6(1)(b) GDPR)</td><td>Until you delete your online account</td></tr>
 <tr><td>Device advertising ID, IP address, technical device data and ad interactions</td><td>Showing ads with Google AdMob, measuring them and preventing fraud</td><td>Consent (Art. 6(1)(a)) for personalised ads; legitimate interest (Art. 6(1)(f)) for non-personalised ads and fraud prevention</td><td>As set out in Google's policy</td></tr>
+<tr><td>Reports you make or receive (anonymous IDs, reported name and reason)</td><td>Moderating names and clubs and preventing cheating</td><td>Legitimate interest (Art. 6(1)(f)) in keeping the game safe</td><td>Until the report is resolved</td></tr>
 <tr><td>Google Play purchase receipt (product and order ID)</td><td>Delivering and restoring your purchases</td><td>Performance of contract (Art. 6(1)(b))</td><td>As required by tax and consumer law</td></tr>
 <tr><td>Your email address and your message</td><td>Answering support requests</td><td>Legitimate interest (Art. 6(1)(f))</td><td>Until resolved, and at most 2 years</td></tr>
 </table></div>
@@ -224,7 +226,7 @@ page('en', 'terminos', 'Terms of use', f'''
 <p>Purchases are made through Google Play and are also subject to its terms. Items are delivered immediately. Because this is digital content supplied immediately with your consent, the 14-day right of withdrawal no longer applies once delivered, without prejudice to your other consumer rights and the <a href="https://support.google.com/googleplay/answer/2479637">Google Play refund policy</a>. If a purchase does not arrive, contact us.</p>
 
 <h2>5. Community rules</h2>
-<p>Do not use offensive nicknames, impersonate others or include personal data in your nickname. Do not cheat, modify the game or attack its servers. We may change inappropriate nicknames and suspend online features for anyone breaking these rules.</p>
+<p>Do not use offensive nicknames, impersonate others or include personal data in your nickname. Do not cheat, modify the game or attack its servers. You can <strong>report or block</strong> any player or club by tapping their name (in the leaderboards, your friends or the clubs); we review every report and may change inappropriate nicknames or club names and suspend online features for anyone breaking these rules.</p>
 
 <h2>6. Availability and changes</h2>
 <p>We may update the game, change events, rebalance levels and rewards, or remove features. Online features may be temporarily unavailable (for example, during maintenance).</p>

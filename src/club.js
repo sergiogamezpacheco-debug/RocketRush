@@ -98,7 +98,7 @@
   function setMsg(t) { err = t || ''; const el = $('clubErr'); if (el) { el.textContent = err; el.hidden = !err; } }
   function errMsg(e) {
     const c = e && e.code;
-    return ({ NAME_TAKEN: 'Ese nombre ya lo tiene otro club', NAME_SHORT: 'El nombre necesita al menos 3 letras', NAME_BAD: 'Ese nombre no vale', IN_CLUB: 'Ya estás en un club',
+    return ({ NAME_TAKEN: 'Ese nombre ya lo tiene otro club', NAME_SHORT: 'El nombre necesita al menos 3 letras', NAME_BAD: 'Ese nombre no está permitido', DESC_BAD: 'Esa descripción no está permitida', IN_CLUB: 'Ya estás en un club',
       FULL: 'El club está lleno', MIN_LV: 'No tienes el nivel mínimo que pide el club', GONE: 'Ese club ya no existe', KICKED: 'Ya no estás en el club', BUSY: 'Hay mucho movimiento: vuelve a probar' })[c]
       || (e && e.status === -1 ? (save().kid ? 'Los clubes no están disponibles para tu edad.' : 'Las funciones en línea están desactivadas en Ajustes › Privacidad.')
         : e && e.status === 0 ? 'Sin conexión a internet.' : 'No se ha podido conectar con el servidor.');
@@ -132,6 +132,10 @@
     return `<div class="row klhrow">${shield(c.badge)}<div><b class="klname" translate="no">${esc(c.name)}</b><small><span>${c.count}/${MAX} miembros</span> · <span>${open}</span>${c.country ? ' · <span translate="no">' + esc(c.country) + '</span>' : ''}</small></div></div>` +
       `<div class="stabs kltabs">${tabs.map(([k, t]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
   }
+  // jugadores y clubes bloqueados (Ajustes › Privacidad y ayuda): no se ven su nombre ni su avatar
+  const SO = window.Social;
+  const mm = m => SO.isBlocked(m._id) ? Object.assign({}, m, { name: 'Jugador bloqueado', avatar: '🚫' }) : m;
+  const cm = c => SO.isClubBlocked(c._id) ? Object.assign({}, c, { name: 'Club bloqueado', desc: '', badge: { ico: '🚫', c: 11 } }) : c;
   const card = (h, cls) => `<div class="klcard ${cls || ''}">${h}</div>`;
   const bar = (f, cls) => `<div class="klbar ${cls || ''}"><i style="width:${Math.max(0, Math.min(100, f * 100)).toFixed(1)}%"></i></div>`;
   const roleTag = r => r === 'leader' ? '<span class="klrole">LÍDER</span>' : r === 'officer' ? '<span class="klrole of">OFICIAL</span>' : '';
@@ -163,7 +167,7 @@
     }
     const req = s.clubReq && Date.now() - s.clubReq.at < 7 * 864e5 ? card(`<div class="sm">Solicitud enviada a</div><b translate="no">${esc(s.clubReq.name)}</b><div class="sm">Cuando te acepten aparecerás dentro.</div><button class="btn gray small" id="cfReqCheck">Comprobar</button>`) : '';
     const list = found == null ? '<div class="sm klmid">Buscando clubes…</div>' : !found.length ? '<div class="sm klmid">No hay clubes con ese nombre. ¡Crea el tuyo!</div>'
-      : found.map(c => `<div class="klfound">${shield(c.badge, 40, 46)}<div class="klfi"><b translate="no">${esc(c.name)}</b><small><span translate="no">${c.count}/${MAX}</span> · <span>${c.open ? 'Abierto' : 'Con solicitud'}</span>${c.minLv ? ' · <span>nivel ' + c.minLv + '+</span>' : ''}</small>${c.desc ? `<small class="kldesc" translate="no">${esc(c.desc)}</small>` : ''}</div>` +
+      : found.map(cm).map(c => `<div class="klfound" data-club="${esc(c._id)}">${shield(c.badge, 40, 46)}<div class="klfi"><b translate="no">${esc(c.name)}</b><small><span translate="no">${c.count}/${MAX}</span> · <span>${c.open ? 'Abierto' : 'Con solicitud'}</span>${c.minLv ? ' · <span>nivel ' + c.minLv + '+</span>' : ''}</small>${c.desc ? `<small class="kldesc" translate="no">${esc(c.desc)}</small>` : ''}</div>` +
         (c.count >= MAX ? '<span class="sm">Lleno</span>' : `<button class="btn small ${c.open ? 'green' : 'blue'}" data-join="${esc(c._id)}" ${busy ? 'disabled' : ''}>${c.open ? 'Entrar' : 'Pedir'}</button>`) + '</div>').join('');
     return req + card(`<div class="row klsearch"><input id="cfQ" class="klinput" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(query)}" placeholder="Nombre del club"><button class="btn blue small" id="cfFind">Buscar</button></div>${list}`);
   }
@@ -176,12 +180,14 @@
     const week = `<span>Expedición: día ${Math.min(5, ct.day + 1)} de 5</span> · <span>Jefe: ${Math.max(0, Math.round((1 - dmg / hp) * 100))} % de vida</span> · <span>` + (ct.lg ? (rk ? 'Liga: ' + rk + '.º puesto' : 'Liga: en juego') : 'Liga: el viernes') + '</span>';
     const mems = st.members.slice().sort((a, b) => (b.ex || 0) - (a.ex || 0) || (b.dmg || 0) - (a.dmg || 0));
     const act = m => {
-      if (sel !== m._id || m._id === me._id || !staff || m.role === 'leader' || (m.role === 'officer' && !lead)) return '';
-      return `<div class="klact">${lead ? (m.role === 'officer' ? `<button class="btn gray small" data-role="member" data-u="${m._id}">Quitar oficial</button>` : `<button class="btn blue small" data-role="officer" data-u="${m._id}">Hacer oficial</button>`) : ''}` +
+      if (sel !== m._id || m._id === me._id) return '';
+      const rep = `<button class="btn gray small" data-sheet="${m._id}">🚩 Denunciar o bloquear</button>`;
+      if (!staff || m.role === 'leader' || (m.role === 'officer' && !lead)) return `<div class="klact">${rep}</div>`;
+      return `<div class="klact">${rep}${lead ? (m.role === 'officer' ? `<button class="btn gray small" data-role="member" data-u="${m._id}">Quitar oficial</button>` : `<button class="btn blue small" data-role="officer" data-u="${m._id}">Hacer oficial</button>`) : ''}` +
         (lead ? `<button class="btn gold small" data-lead="${m._id}">Hacer líder</button>` : '') + `<button class="btn red small" data-kick="${m._id}">Expulsar</button></div>`;
     };
-    const rows = mems.map(m => `<div class="klmem ${m._id === me._id ? 'me' : ''}" data-m="${m._id}"><span class="klav">${esc(m.avatar)}</span><span class="klnm" translate="no">${esc(m.name)}</span>${roleTag(m.role)}<span class="klpts">${m.ex || 0} ⭐</span></div>${act(m)}`).join('');
-    const reqs = staff && st.reqs.length ? card(`<div class="klttl">📨 Quieren entrar (${st.reqs.length})</div>` + st.reqs.map(r => `<div class="klmem"><span class="klav">${esc(r.avatar)}</span><span class="klnm" translate="no">${esc(r.name)}</span><span class="sm">${r.lv || 0} ⭐</span><button class="btn green small" data-acc="${r._id}" ${c.count >= MAX ? 'disabled' : ''}>Sí</button><button class="btn gray small" data-rej="${r._id}">No</button></div>`).join('')) : '';
+    const rows = mems.map(mm).map(m => `<div class="klmem ${m._id === me._id ? 'me' : ''}" data-m="${m._id}"><span class="klav">${esc(m.avatar)}</span><span class="klnm" translate="no">${esc(m.name)}</span>${roleTag(m.role)}<span class="klpts">${m.ex || 0} ⭐</span></div>${act(m)}`).join('');
+    const reqs = staff && st.reqs.length ? card(`<div class="klttl">📨 Quieren entrar (${st.reqs.length})</div>` + st.reqs.map(mm).map(r => `<div class="klmem"><span class="klav">${esc(r.avatar)}</span><span class="klnm" translate="no">${esc(r.name)}</span><span class="sm">${r.lv || 0} ⭐</span><button class="btn green small" data-acc="${r._id}" ${c.count >= MAX ? 'disabled' : ''}>Sí</button><button class="btn gray small" data-rej="${r._id}">No</button></div>`).join('')) : '';
     const settings = staff ? card(`<div class="klttl">⚙️ Ajustes del club</div><label class="sm">Descripción</label><input id="csDesc" class="klinput" maxlength="80" value="${esc(c.desc)}">
       <div class="row klgap"><button class="btn small ${c.open ? 'green' : 'purple'}" id="csOpen">${c.open ? 'Abierto' : 'Con solicitud'}</button><button class="btn blue small" id="csSave">Guardar</button></div>`) : '';
     return pendingCard() + card(`<div class="klttl">📣 Esta semana</div><div class="sm">${week}</div>`) +
@@ -213,7 +219,7 @@
     const B = Lv.byId(42001), hp = c.count * HP_PER;
     const dmg = st.members.reduce((a, m) => a + (m._id === st.me._id ? p.dmg : (m.dmg || 0)), 0), lifeF = Math.max(0, 1 - dmg / hp), dead = lifeF <= 0;
     const leftN = Math.max(0, ATTACKS - p.atkN);
-    const top = st.members.map(m => m._id === st.me._id ? Object.assign({}, m, { dmg: p.dmg }) : m).sort((a, b) => (b.dmg || 0) - (a.dmg || 0)).slice(0, 5)
+    const top = st.members.map(m => m._id === st.me._id ? Object.assign({}, m, { dmg: p.dmg }) : mm(m)).sort((a, b) => (b.dmg || 0) - (a.dmg || 0)).slice(0, 5)
       .map(m => `<div class="klmem"><span class="klav">${esc(m.avatar)}</span><span class="klnm" translate="no">${esc(m.name)}</span>${roleTag(m.role)}<span class="klpts">${fmt(m.dmg)} 💥</span></div>`).join('');
     return pendingCard() + card(`<div class="klttl klmid">🗿 ${esc(B ? B.bossName : 'Jefe colosal')}</div><div class="klboss">${BOSS_SVG[B && B.boss] || BOSS_SVG.golem}</div>${bar(lifeF, 'red')}
       <div class="sm klmid">Vida del club: ${fmt(Math.max(0, hp - dmg))} / ${fmt(hp)} · termina en ${left(ct.weekEnd - Date.now())}</div>
@@ -228,7 +234,7 @@
       return pendingCard() + card(`<div class="klttl">🏆 Liga del fin de semana</div><div class="sm">Empieza el viernes: falta ${left(ct.lgStart - Date.now())}. 10 niveles difíciles; gana el club con más estrellas.</div>` +
         (last && last.rank ? `<div class="sm">La última vez quedasteis ${last.rank}.º</div>` : '')) + card('<div class="sm">Premios: 1.º cofre de cristal · 2.º y 3.º cofre de oro · los demás cofre de madera (si has jugado)</div>');
     }
-    const rows = league.list.length ? league.list.slice(0, 30).map((c, i) => `<div class="klrank ${c._id === st.cid ? 'me' : ''}"><span class="kln">${i + 1}</span>${shield(c.badge, 26, 30)}<span class="klnm" translate="no">${esc(c.name)}</span><span class="klpts">${fmt(c.lg && c.lg.s)} ⭐</span></div>`).join('')
+    const rows = league.list.length ? league.list.slice(0, 30).map(cm).map((c, i) => `<div class="klrank ${c._id === st.cid ? 'me' : ''}" ${c._id === st.cid ? '' : `data-club="${esc(c._id)}"`}><span class="kln">${i + 1}</span>${shield(c.badge, 26, 30)}<span class="klnm" translate="no">${esc(c.name)}</span><span class="klpts">${fmt(c.lg && c.lg.s)} ⭐</span></div>`).join('')
       : '<div class="sm klmid">Todavía nadie ha jugado esta liga. ¡Sed los primeros!</div>';
     return pendingCard() + card(`<div class="row"><div class="klttl">🏆 Liga del fin de semana</div><span class="kltag lg">${left(ct.lgEnd - Date.now())}</span></div>
       <div class="sm">10 niveles · gana el club con más estrellas · tú llevas ${sum(p.lgS)} ⭐</div>${tiles(10, 1, p.lgS, lgOpen, 'lg')}`) + card(rows) +
@@ -280,6 +286,12 @@
     if (g('clubLeave')) g('clubLeave').addEventListener('click', () => {
       if (leaveArm < Date.now()) { leaveArm = Date.now() + 3000; render(); setTimeout(render, 3100); return; }
       leaveArm = 0; run(() => S.leave(), 'Has salido del club').then(() => { tab = 'club'; ntab = 'find'; found = null; render(); find(); });
+    });
+    on('[data-sheet]', 'click', b => { const m = S.state.members.find(x => x._id === b.dataset.sheet); if (m) SO.sheet({ kind: 'player', id: m._id, name: m.name, avatar: m.avatar, done: render }); });
+    on('[data-club]', 'click', (el, e) => {
+      if (e.target.closest('button')) return;
+      const id = el.dataset.club, c = (found || []).concat(league.list || []).find(x => x._id === id);
+      if (c) SO.sheet({ kind: 'club', id, name: c.name, avatar: (c.badge && c.badge.ico) || '🛡️', done: render });
     });
     on('[data-ex]', 'click', b => play(40000 + +b.dataset.ex));
     on('[data-lg]', 'click', b => play(41000 + +b.dataset.lg));

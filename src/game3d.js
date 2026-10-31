@@ -4128,6 +4128,19 @@
     const body = `\n\n---\nCódigo de jugador: ${myCode()}\nVersión: ${v}\nIdioma: ${window.I18N ? I18N.lang : 'es'}\n${navigator.userAgent}`;
     openUrl('mailto:' + SUPPORT + '?subject=' + encodeURIComponent('Rocket Rush · ayuda') + '&body=' + encodeURIComponent(body));
   });
+  on('pBlocked', () => {
+    $('privacy').classList.remove('on');
+    const S = window.Social; if (!S) return;
+    const draw = () => {
+      const pl = S.blocked(), cl = S.blockedClubs(), rows = Object.entries(pl).map(([id, x]) => `<div class="blrow"><span>🚫</span><b translate="no">${String(x.name || '?').replace(/[<>&]/g, '')}</b><button class="btn blue small" data-ub="${id}">Desbloquear</button></div>`)
+        .concat(Object.entries(cl).map(([id, x]) => `<div class="blrow"><span>🛡️</span><b translate="no">${String(x.name || '?').replace(/[<>&]/g, '')}</b><button class="btn blue small" data-ubc="${id}">Desbloquear</button></div>`));
+      liveBox({ rib: 'BLOQUEADOS', ico: '🚫', title: 'Jugadores y clubes bloqueados', extra: `<div class="credits">${rows.join('') || '<p class="sub">No has bloqueado a nadie. Para bloquear, toca a un jugador o un club en las clasificaciones, en tus amigos o en los clubes.</p>'}</div>`,
+        btns: [{ t: 'VOLVER', fn: () => { $('liveBox').classList.remove('on'); openPrivacy(); } }] });
+      $('liveBox').querySelectorAll('[data-ub]').forEach(b => b.addEventListener('click', () => { Audio.click(); S.unblock(b.dataset.ub); draw(); }));
+      $('liveBox').querySelectorAll('[data-ubc]').forEach(b => b.addEventListener('click', () => { Audio.click(); S.unblockClub(b.dataset.ubc); draw(); }));
+    };
+    draw();
+  });
   on('pCredits', () => {
     $('privacy').classList.remove('on');
     liveBox({ rib: 'CRÉDITOS', ico: '🚀', title: 'Rocket Rush', extra: `<div class="credits"><b>Lost Anarchy Games</b>Diseño y desarrollo: Sergio Gámez Pacheco
@@ -4171,7 +4184,7 @@
     const b = $('sReset');
     if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Toca otra vez para borrar todo'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Borrar progreso'; }, 3000); return; }
     delete b.dataset.armed; b.textContent = 'Borrar progreso';
-    const keep = { tester: save.tester, nameLc: save.nameLc, prof: save.prof, club: save.club, birthYear: save.birthYear, kid: save.kid, noOnline: save.noOnline, lang: save.lang, calm: save.calm, lowGfx: save.lowGfx, adsRemoved: save.adsRemoved, iapDone: save.iapDone, pid: save.pid, codeUid: save.codeUid, profUid: save.profUid };
+    const keep = { blocked: save.blocked, blockedClubs: save.blockedClubs, tester: save.tester, nameLc: save.nameLc, prof: save.prof, club: save.club, birthYear: save.birthYear, kid: save.kid, noOnline: save.noOnline, lang: save.lang, calm: save.calm, lowGfx: save.lowGfx, adsRemoved: save.adsRemoved, iapDone: save.iapDone, pid: save.pid, codeUid: save.codeUid, profUid: save.profUid };
     save = Object.assign(DEFAULT_SAVE(), keep); persist(); setCoins(); toast('Progreso borrado');
   });
   on('preBack', () => { $('pre').classList.remove('on'); if (G.mode !== 'map') goMap(); });

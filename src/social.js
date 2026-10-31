@@ -254,6 +254,7 @@
       const d = await getDoc(`codes/${c}`);
       if (!d) return { err: 'No hay ningún jugador con ese código. Puede que aún no haya abierto el juego con internet.' };
       const me = auth.uid, o = d.uid;
+      if (isBlocked(o)) return { err: 'Has bloqueado a este jugador. Desbloquéalo en Ajustes › Privacidad y ayuda.' };
       if (o === me) return { err: 'Ese es tu propio código.' };
       const a = me < o ? me : o, b = me < o ? o : me, pair = a + '_' + b;
       const f = await getDoc(`friendships/${pair}`);
@@ -351,7 +352,7 @@
     const btns = kind === 'inc' ? `<button class="btn small green" data-act="ok" data-p="${esc(pair)}">Aceptar</button><button class="sx" data-act="no" data-p="${esc(pair)}" aria-label="Rechazar">✕</button>`
       : kind === 'out' ? `<button class="sx" data-act="no" data-p="${esc(pair)}" aria-label="Cancelar">✕</button>`
         : `<button class="sx${sureP === pair ? ' sure' : ''}" data-act="del" data-p="${esc(pair)}" aria-label="Quitar amigo">${sureP === pair ? '¿Quitar?' : '✕'}</button>`;
-    return `<div class="scard ${kind}">${avatar(u)}<div class="sbody"><div class="srow">${nameOf(u)}</div>
+    return `<div class="scard ${kind}" data-u="${esc(u._id)}">${avatar(u)}<div class="sbody"><div class="srow">${nameOf(u)}</div>
       <small>${kind === 'inc' ? 'Quiere ser tu amigo' : kind === 'out' ? 'Esperando respuesta' : `Nivel ${fmt(s.level)} · ⭐ ${fmt(s.stars)}`}</small>
       ${kind === 'ok' ? statChips(s) : ''}</div><div class="sbtns">${btns}</div></div>`;
   }
@@ -360,7 +361,8 @@
       <div class="addfriend"><input id="socCode" placeholder="Código de un amigo" maxlength="14" autocomplete="off"><button class="btn small green" id="socAdd">Añadir</button></div>
       ${msg ? `<div class="smsg ${msg.err ? 'bad' : 'good'}">${esc(msg.err || msg.ok)}</div>` : ''}</div>`;
     if (!FR.loaded) return h + `<div class="sempty">${loadErr ? esc(loadErr) : busy ? 'Cargando amigos…' : 'Conéctate a internet para ver a tus amigos.'}</div>`;
-    if (FR.inc.length) h += '<div class="shead">Solicitudes</div>' + FR.inc.map(x => friendCard(x, 'inc')).join('');
+    const inc = FR.inc.filter(x => !isBlocked(x.u._id));
+    if (inc.length) h += '<div class="shead">Solicitudes</div>' + inc.map(x => friendCard(x, 'inc')).join('');
     h += `<div class="shead">Amigos <span>${FR.list.length}</span></div>`;
     h += FR.list.length ? FR.list.slice().sort((a, b) => ((b.u.stats || {}).level || 0) - ((a.u.stats || {}).level || 0)).map(x => friendCard(x, 'ok')).join('')
       : '<div class="sempty">Aún no tienes amigos. Comparte tu código y jugad juntos.</div>';
@@ -378,7 +380,8 @@
     h += c.rows.map((u, i) => {
       const v = (u.stats || {})[metric] || 0;
       if (v !== prev) { r = i + 1; prev = v; }
-      return `<div class="lbrow ${u._id === (auth && auth.uid) || u.me ? 'me' : ''}"><span class="lbpos">${r <= 3 ? ['🥇', '🥈', '🥉'][r - 1] : r}</span>${avatar(u)}<div class="lbname">${nameOf(u)}</div><b class="lbval"><i>${m.icon}</i>${fmt(v)}</b></div>`;
+      const me = u._id === (auth && auth.uid) || u.me, mu = mask(u);
+      return `<div class="lbrow ${me ? 'me' : ''}" ${me ? '' : `data-u="${esc(u._id)}"`}><span class="lbpos">${r <= 3 ? ['🥇', '🥈', '🥉'][r - 1] : r}</span>${avatar(mu)}<div class="lbname">${nameOf(mu)}</div><b class="lbval"><i>${m.icon}</i>${fmt(v)}</b></div>`;
     }).join('');
     if (c.rank) { const me = meDoc(); h += `<div class="lbsep">···</div><div class="lbrow me"><span class="lbpos">${fmt(c.rank)}</span>${avatar(me)}<div class="lbname">${nameOf(me)}</div><b class="lbval"><i>${m.icon}</i>${fmt(c.mine)}</b></div>`; }
     return h;
@@ -424,6 +427,15 @@
       if (b.dataset.act === 'del' && sureP !== b.dataset.p) { sureP = b.dataset.p; render(); return; }
       sureP = null;
       b.disabled = true; act(b.dataset.act, b.dataset.p);
+    }));
+    // tocar a otro jugador: ficha con denunciar y bloquear
+    list.querySelectorAll('[data-u]').forEach(r => r.addEventListener('click', ev => {
+      if (ev.target.closest('button')) return;
+      const id = r.dataset.u; let u = null;
+      for (const c of Object.values(BOARD)) { u = (c.rows || []).find(x => x._id === id); if (u) break; }
+      if (!u) { const x = FR.list.concat(FR.inc, FR.out).find(x => other(x.f) === id); u = x && x.u; }
+      if (!u) return;
+      X.Audio.click && X.Audio.click(); sheet({ kind: 'player', id, name: u.name, avatar: u.avatar });
     }));
     list.querySelectorAll('[data-sc]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); scope = b.dataset.sc; refresh(); }));
     list.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); metric = b.dataset.m; refresh(); }));
@@ -632,6 +644,8 @@
   async function clubCreate(o) {
     const name = cleanClubName(o.name);
     if (name.length < 3) throw new ClubErr('NAME_SHORT');
+    if (badName(name)) throw new ClubErr('NAME_BAD');
+    if (o.desc && badName(o.desc)) throw new ClubErr('DESC_BAD');
     if (myClubId()) throw new ClubErr('IN_CLUB');
     await token();
     const me = auth.uid, cid = Array.from({ length: 12 }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join(''), lc = name.toLowerCase();
@@ -740,7 +754,8 @@
     throw new ClubErr('BUSY');
   }
   async function clubReject(uid) { await delDoc(`clubs/${myClubId()}/requests/${uid}`); CL.at = 0; return clubLoad(true); }
-  async function clubSettings(o) { await setDoc(`clubs/${myClubId()}`, clubPayload(o)); CL.at = 0; return clubLoad(true); }
+  async function clubSettings(o) {
+    if (o.desc && badName(o.desc)) throw new ClubErr('DESC_BAD'); await setDoc(`clubs/${myClubId()}`, clubPayload(o)); CL.at = 0; return clubLoad(true); }
   // progreso propio de la semana: estrellas de la expedición, daño al jefe, ataques de hoy y estrellas de la liga
   async function clubReport(p) {
     const cid = myClubId(); if (!cid || offline()) return;
@@ -764,5 +779,67 @@
   const Club = { time: clubTime, load: clubLoad, create: clubCreate, search: clubSearch, join: clubJoin, leave: clubLeave, kick: clubKick, role: clubRole,
     transfer: clubTransfer, accept: clubAccept, reject: clubReject, settings: clubSettings, report: clubReport, league: clubLeague, state: CL, get id() { return myClubId(); } };
 
-  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, checkTester: () => token().then(checkTester), get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
+  // ---------------- denunciar y bloquear ----------------
+  // Bloquear se guarda en el móvil: su nombre y su avatar ya no se ven (ni en clasificaciones ni en clubes), sus solicitudes
+  // de amistad se descartan y, si era tu amigo, deja de serlo. Denunciar manda el caso al panel (reports/{tú}_{él}).
+  const blocked = () => X.save.blocked || (X.save.blocked = {});
+  const blockedClubs = () => X.save.blockedClubs || (X.save.blockedClubs = {});
+  const isBlocked = uid => !!(uid && blocked()[uid]);
+  const isClubBlocked = cid => !!(cid && blockedClubs()[cid]);
+  const mask = u => isBlocked(u && u._id) ? Object.assign({}, u, { name: T('Jugador bloqueado'), avatar: '🚫', country: '' }) : u;
+  async function report(kind, target, name, reason) {
+    await token();
+    try {
+      await setDoc(`reports/${auth.uid}_${target}`, { by: auth.uid, kind, target, name: String(name || '').slice(0, 40), reason, at: new Date() }, { merge: false, mustNotExist: true });
+      return 'OK';
+    } catch (e) { if (e.status === 400 || e.status === 409 || /ALREADY|PRECONDITION/.test(e.code + e.message)) return 'DONE'; throw e; }
+  }
+  async function block(uid, name) {
+    blocked()[uid] = { name: String(name || '').slice(0, 20), at: Date.now() }; X.persist();
+    // si era amigo o había solicitud, se quita
+    const all = FR.list.concat(FR.inc, FR.out).filter(x => other(x.f) === uid);
+    for (const x of all) { try { await delDoc(`friendships/${x.f._id}`); } catch (e) { /* ya no estaba */ } }
+    if (all.length) { FR.at = 0; try { await loadFriends(); } catch (e) { /* sin conexión */ } }
+  }
+  function unblock(uid) { delete blocked()[uid]; X.persist(); }
+  function blockClub(cid, name) { blockedClubs()[cid] = { name: String(name || '').slice(0, 20), at: Date.now() }; X.persist(); }
+  function unblockClub(cid) { delete blockedClubs()[cid]; X.persist(); }
+  // ficha con «Denunciar» y «Bloquear» (toca a un jugador o a un club de otro)
+  function sheet(o) {
+    const el = $('modSheet'); if (!el) return;
+    const club = o.kind === 'club', id = o.id;
+    let bl = club ? isClubBlocked(id) : isBlocked(id);
+    const reasons = club ? [['name', 'Nombre ofensivo'], ['desc', 'Descripción ofensiva'], ['other', 'Otro motivo']] : [['name', 'Nombre ofensivo'], ['cheat', 'Hace trampas'], ['other', 'Otro motivo']];
+    let step = 'main';
+    const draw = (note) => {
+      el.querySelector('.ribbon').textContent = club ? 'CLUB' : T('JUGADOR');
+      el.querySelector('.msico').textContent = bl ? '🚫' : (o.avatar || (club ? '🛡️' : '🙂'));
+      el.querySelector('.msname').textContent = bl ? (club ? T('Club bloqueado') : T('Jugador bloqueado')) : o.name || '?';
+      el.querySelector('.msnote').textContent = note || '';
+      el.querySelector('.msbtns').innerHTML = step === 'main'
+        ? `<button class="btn red small" data-ms="rep">🚩 ${T('Denunciar')}</button><button class="btn ${bl ? 'blue' : 'gray'} small" data-ms="blk">${bl ? '✅ ' + T('Desbloquear') : '🚫 ' + T('Bloquear')}</button><button class="btn green" data-ms="x">${T('Cerrar')}</button>`
+        : reasons.map(([k, t]) => `<button class="btn gray small" data-r="${k}">${T(t)}</button>`).join('') + `<button class="btn green" data-ms="back">${T('Volver')}</button>`;
+      el.querySelectorAll('[data-ms],[data-r]').forEach(b => b.addEventListener('click', async () => {
+        X.Audio.click && X.Audio.click();
+        const a = b.dataset.ms, r = b.dataset.r;
+        if (a === 'x') { el.classList.remove('on'); if (o.done) o.done(); return; }
+        if (a === 'back') { step = 'main'; draw(); return; }
+        if (a === 'rep') { step = 'rep'; draw(T('¿Por qué lo denuncias?')); return; }
+        if (a === 'blk') {
+          if (club) { bl ? unblockClub(id) : blockClub(id, o.name); } else if (bl) unblock(id); else await block(id, o.name);
+          const was = bl; bl = !bl; step = 'main'; draw(was ? T('Desbloqueado') : club ? T('Club bloqueado: ya no verás su nombre ni su descripción.') : T('Bloqueado: ya no verás su nombre ni su avatar, y no podrá ser tu amigo.'));
+          render(); if (window.Club) window.Club.render();
+          return;
+        }
+        if (r) {
+          b.disabled = true;
+          try { const res = await report(club ? 'club' : 'player', id, o.name, r); step = 'main'; draw(res === 'DONE' ? T('Ya lo habías denunciado. Lo revisaremos.') : T('Gracias. Lo revisaremos lo antes posible.')); }
+          catch (e) { draw(T(errText(e))); }
+        }
+      }));
+    };
+    draw(); el.classList.add('on');
+  }
+
+  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, sheet, isBlocked, isClubBlocked, blocked, blockedClubs, unblock, unblockClub, badName: n => badName(n), checkTester: () => token().then(checkTester), get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
 })();

@@ -324,6 +324,18 @@ Español, inglés, portugués, francés, alemán e italiano. La primera vez que 
   palabras malsonantes (6 idiomas). Los nombres de antes se reservan solos; si ya lo tenía otro, vuelve a «Jugador XXXX».
 - Borrar la cuenta en línea libera el nombre. Las reglas no dejan coger ni liberar el nombre de otro.
 
+## Denunciar y bloquear (contenido de los jugadores)
+
+- Tocar a otro jugador (clasificaciones, amigos, miembros del club con «🚩 Denunciar o bloquear») o a un club (buscador y
+  liga) abre una ficha con **Denunciar** (nombre ofensivo, trampas o descripción, otro motivo) y **Bloquear**.
+- Denunciar crea `reports/{tú}_{él}` (una por denunciante y denunciado; solo las lee el panel). El panel tiene la pestaña
+  **🚩 Denuncias**: agrupadas por denunciado, con «Ver jugador» (cambiar nombre, poner a cero, bloquear, borrar) o, para
+  clubes, cambiar nombre, quitar descripción o borrar el club; y «Descartar».
+- Bloquear se guarda en el móvil: su nombre y avatar pasan a «Jugador bloqueado»/«Club bloqueado», sus solicitudes de
+  amistad no se ven y, si era amigo, deja de serlo. Lista para desbloquear en Ajustes › Privacidad y ayuda.
+- Los nombres de club y las descripciones pasan el mismo filtro de palabras que los nombres de jugador.
+- Prueba: `tools/reportflow.py` (y `tools/adminflow.py` para el panel).
+
 ## Amigos, clasificaciones y perfil (Firebase)
 El botón **Amigos** de la portada abre tres pestañas:
 - **Amigos**: tu código de amigo (el mismo `RR-` de siempre), compartirlo y añadir el de otro. Añadir envía una **solicitud**; cuando el otro la acepta, aparecéis en la lista del otro con nivel, estrellas, racha diaria, victorias seguidas, mejor tiro, victorias (con % de partidas ganadas) y jefes derrotados. La portada avisa con un número cuando tienes solicitudes. La misión «Añade amigos» cuenta los amigos que han aceptado.

@@ -86,6 +86,17 @@ service cloud.firestore {
       allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
     }
 
+    // Denuncias de jugadores y clubes (nombre o descripción ofensivos, trampas…): una por denunciante y denunciado.
+    // Solo las lee y borra el panel.
+    match /reports/{id} {
+      allow create: if signedIn() && id == request.auth.uid + '_' + request.resource.data.target
+        && request.resource.data.keys().hasOnly(['by', 'kind', 'target', 'name', 'reason', 'at'])
+        && request.resource.data.by == request.auth.uid && request.resource.data.kind in ['player', 'club']
+        && okStr(request.resource.data.target, 1, 64) && okStr(request.resource.data.name, 0, 40)
+        && request.resource.data.reason in ['name', 'cheat', 'desc', 'other'];
+      allow read, delete: if isAdmin();
+    }
+
     // ---------------- Clubes ----------------
     // clubs/{cid}: datos del club · clubs/{cid}/members/{uid}: cada miembro y su progreso de la semana
     // clubs/{cid}/requests/{uid}: solicitudes para entrar en clubes con solicitud · clubnames/{nombre en minúsculas}: nombre único
@@ -114,6 +125,7 @@ service cloud.firestore {
       allow create: if signedIn() && request.resource.data.keys().hasOnly(['cid'])
         && getAfter(clubP(request.resource.data.cid)).data.nameLc == n
         && getAfter(clubP(request.resource.data.cid)).data.leader == request.auth.uid;
+      allow create, update: if isAdmin();
       allow delete: if isAdmin() || (signedIn() && get(clubP(resource.data.cid)).data.leader == request.auth.uid
         && (!existsAfter(clubP(resource.data.cid)) || getAfter(clubP(resource.data.cid)).data.nameLc != n));
     }
@@ -144,6 +156,8 @@ service cloud.firestore {
               && !exists(memP(cid, request.resource.data.last)) && existsAfter(memP(cid, request.resource.data.last)))
           || (request.resource.data.count == resource.data.count - 1 && request.resource.data.count >= 1
               && exists(memP(cid, request.resource.data.last)) && !existsAfter(memP(cid, request.resource.data.last))));
+      // el panel puede corregir el nombre o la descripción
+      allow update: if isAdmin();
       // puntos de la liga del club (los suman los miembros al jugar)
       allow update: if isMember(cid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lg']) && okLg(request.resource.data)
