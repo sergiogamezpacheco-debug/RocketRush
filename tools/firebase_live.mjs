@@ -120,6 +120,23 @@ else {
   for (const g of [gcode, gold]) { r = await del(`giftcodes/${g}`, C.tok); ok(r.s === 200, 'el administrador borra un código'); }
 }
 
+// ---------------- nombres únicos y probadores ----------------
+const nm = 'zzprueba ' + A.uid.slice(0, 6).toLowerCase();
+r = await patch(`names/${encodeURIComponent(nm)}`, { uid: A.uid }, A.tok, '&currentDocument.exists=false'); ok(r.s === 200, 'reservar un nombre' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+r = await patch(`names/${encodeURIComponent(nm)}`, { uid: B.uid }, B.tok, '&currentDocument.exists=false'); ok(r.s !== 200, 'nadie más puede coger un nombre reservado');
+r = await patch(`names/${encodeURIComponent(nm + 'x')}`, { uid: A.uid }, B.tok); ok(r.s === 403, 'no se reserva un nombre a nombre de otro');
+r = await get(`names/${encodeURIComponent(nm)}`, B.tok); ok(r.s === 200 && r.j.fields.uid.stringValue === A.uid, 'comprobar si un nombre está libre');
+r = await del(`names/${encodeURIComponent(nm)}`, B.tok); ok(r.s === 403, 'nadie libera el nombre de otro');
+r = await del(`names/${encodeURIComponent(nm)}`, A.tok); ok(r.s === 200, 'liberar mi nombre');
+r = await get(`testers/${A.uid}`, A.tok); ok(r.s === 404, 'un jugador mira si es probador (no lo es)' + (r.s !== 404 ? ' → ' + r.s : ''));
+r = await get(`testers/${A.uid}`, B.tok); ok(r.s === 403, 'nadie mira si otro es probador');
+r = await patch(`testers/${A.uid}`, { name: 'yo' }, A.tok); ok(r.s === 403, 'nadie se hace probador a sí mismo');
+if (SA) {
+  r = await patch(`testers/${A.uid}`, { name: 'Prueba A', at: new Date() }, SA); ok(r.s === 200, 'el panel marca un probador');
+  r = await get(`testers/${A.uid}`, A.tok); ok(r.s === 200, 'el probador lo ve');
+  await del(`testers/${A.uid}`, SA);
+}
+
 // ---------------- clubes ----------------
 const commit = (writes, tok) => req(`${FS}:commit`, { method: 'POST', body: JSON.stringify({ writes }) }, tok);
 const W = (p, data, mask, pre) => Object.assign({ update: { name: `${ROOT}/${p}`, fields: enc(data).mapValue.fields } }, mask ? { updateMask: { fieldPaths: Object.keys(data) } } : {}, pre ? { currentDocument: pre } : {});

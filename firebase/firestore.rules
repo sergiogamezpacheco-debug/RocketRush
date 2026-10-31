@@ -73,6 +73,19 @@ service cloud.firestore {
         && (resource.data.get('end', 0) == 0 || request.time.toMillis() < resource.data.end));
     }
 
+    // Probadores: con un documento testers/{uid} (lo pone el panel) el juego publicado muestra el modo prueba
+    match /testers/{uid} {
+      allow get: if isMe(uid) || isAdmin();
+      allow list, write: if isAdmin();
+    }
+    // Nombres de jugador únicos: names/{nombre en minúsculas} → uid. Nadie puede quitarle el nombre a otro.
+    match /names/{n} {
+      allow get: if signedIn();
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
+        && n.size() >= 3 && n.size() <= 20;
+      allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
     // ---------------- Clubes ----------------
     // clubs/{cid}: datos del club · clubs/{cid}/members/{uid}: cada miembro y su progreso de la semana
     // clubs/{cid}/requests/{uid}: solicitudes para entrar en clubes con solicitud · clubnames/{nombre en minúsculas}: nombre único

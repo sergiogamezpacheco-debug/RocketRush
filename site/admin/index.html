@@ -497,11 +497,14 @@ function playerCard(u) {
     <div class="stats">${Object.keys(STAT_N).filter(k => k in s).map(k => `<div><span>${STAT_N[k]}</span><b>${(+s[k] || 0).toLocaleString('es-ES')}</b></div>`).join('')}</div>
     <div class="row"><button class="btn sm" data-p="rename">Cambiar nombre</button><button class="btn sm" data-p="zero">Poner a cero</button>
       ${u.banned ? '<button class="btn sm ok" data-p="unban">Desbloquear</button>' : '<button class="btn sm bad" data-p="ban">Bloquear</button>'}<button class="btn sm bad" data-p="del">Borrar perfil</button></div>
+    <div class="row"><button class="btn sm" data-p="tester" id="pcTester">🧪 Probador: …</button></div>
+    <p class="hint">Un probador ve en el juego publicado el botón «Modo prueba» de Ajustes (desbloquear todos los niveles). Le aparece al sincronizar (en menos de media hora o al volver a abrir el juego).</p>
     <p class="hint">Bloquear quita al jugador de las clasificaciones (estadísticas a cero) y ya no puede volver a subir su perfil. Borrar el perfil no le impide crearlo de nuevo.</p></div>`;
 }
 function bindPlayers(root) { if (!root) return; root.addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b) showPlayer(players[b.dataset.open]); }); }
 function showPlayer(u) {
   go('players'); const box = $('pBox'); box.innerHTML = playerCard(u); box.scrollIntoView({ behavior: 'smooth' });
+  fs.get('testers/' + u._id).then(t => { const b = $('pcTester'); if (b) b.textContent = t ? '🧪 Probador: sí (quitar)' : '🧪 Hacer probador'; }).catch(() => { const b = $('pcTester'); if (b) b.textContent = '🧪 Hacer probador'; });
   box.querySelector('#pc').addEventListener('click', async e => {
     const a = e.target.closest('[data-p]'); if (!a) return;
     const p = 'users/' + u._id, zero = () => { const z = {}; for (const k in u.stats || {}) z[k] = 0; return z; };
@@ -510,6 +513,12 @@ function showPlayer(u) {
       if (a.dataset.p === 'zero') { if (!confirm('¿Poner todas sus estadísticas a cero? (sale de lo alto de las clasificaciones)')) return; u = Object.assign(u, await fs.patch(p, { stats: zero() })); toast('Estadísticas a cero'); }
       if (a.dataset.p === 'ban') { if (!confirm(`¿Bloquear a ${u.name}? Sus estadísticas se ponen a cero y ya no podrá subir su perfil.`)) return; u = Object.assign(u, await fs.patch(p, { banned: true, stats: zero() })); toast('Jugador bloqueado'); }
       if (a.dataset.p === 'unban') { await fs.unset(p, ['banned']); delete u.banned; toast('Desbloqueado: su perfil se volverá a subir la próxima vez que juegue'); }
+      if (a.dataset.p === 'tester') {
+        const t = await fs.get('testers/' + u._id).catch(() => null);
+        if (t) { await fs.del('testers/' + u._id); toast('Ya no es probador'); }
+        else { await fs.patch('testers/' + u._id, { name: u.name || '', at: new Date() }); toast('Ahora es probador'); }
+        showPlayer(u); return;
+      }
       if (a.dataset.p === 'del') { if (!confirm(`¿Borrar el perfil de ${u.name}? (también su código de amigo)`)) return; await fs.del(p); const core = normCode(u.code || ''); if (core) await fs.del('codes/' + core).catch(() => {}); $('pBox').innerHTML = '<div class="card empty">Perfil borrado.</div>'; toast('Perfil borrado'); return; }
       showPlayer(u);
     } catch (er) { toast('No se pudo: ' + er.message, true); }

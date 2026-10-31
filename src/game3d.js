@@ -13,6 +13,8 @@
   // Permite desbloquear todos los niveles (y los niveles extra) desde Ajustes para probar el juego.
   // QUITAR AL PUBLICAR: compila con `node tools/build.js --release` y esto queda en false (sin botón).
   const TEST_MODE = true;
+  // probador: el juego publicado (sin TEST_MODE) muestra el modo prueba si el panel ha marcado a este jugador (testers/{uid})
+  const testOn = () => TEST_MODE || !!save.tester;
 
   // ---------------- guardado ----------------
   const SAVE_KEY = 'chromacrash3d.v1';
@@ -2492,7 +2494,7 @@
   // nivel extra del mundo w: se abre con 3 estrellas en todos sus niveles
   function worldStars3(w) { return LEVELS.filter(l => l.world === w && (save.stars[l.id] || 0) >= 3).length; }
   const worldSize = w => (WORLDS[w - 1] ? WORLDS[w - 1].size : 10);
-  function bonusOpen(w) { return (TEST_MODE && save.testAll) || worldStars3(w) >= worldSize(w); }
+  function bonusOpen(w) { return (testOn() && save.testAll) || worldStars3(w) >= worldSize(w); }
   const STAR_STEP = 30, STAR_TIERS = ['wood', 'silver', 'gold', 'crystal'];
   function totalStars() { let n = 0; for (const k in save.stars) if (+k < 10001) n += save.stars[k] || 0; return n; }
   function starChestInfo() { const got = save.starChests || 0, have = totalStars() - got * STAR_STEP; return { got, have: Math.max(0, have), ready: have >= STAR_STEP, tier: STAR_TIERS[got % STAR_TIERS.length] }; }
@@ -2836,10 +2838,10 @@
     if (W.biome === 'sea') return 'w' + (1 + Math.min(4, Math.floor((w - 1) / 3) % 5));
     return BIOME_BALL[W.biome] || FRESH_BALL[W.biome] || 'w1';
   }
-  const wbOpen = k => (TEST_MODE && save.testAll) || worldsOpen() >= WBALLS[k].world;
+  const wbOpen = k => (testOn() && save.testAll) || worldsOpen() >= WBALLS[k].world;
   function wbLevel(k) {
     let lv = 1;
-    const open = (TEST_MODE && save.testAll) ? 100 : worldsOpen();
+    const open = (testOn() && save.testAll) ? 100 : worldsOpen();
     for (let w = 11; w <= open; w++) if (worldBallOf(w) === k) lv++;
     return Math.min(10, lv);
   }
@@ -3238,7 +3240,7 @@
   function hwEnd() { const h = hwCfg(); return h && h.end ? +h.end : HW_END; }
   function hwActive() {
     if (!HWL.length) return false;
-    if (TEST_MODE && save.hwForce) return true;
+    if (testOn() && save.hwForce) return true;
     const h = hwCfg(), t = Date.now();
     if (h && h.on === false) return false;
     if (h && h.start && t < +h.start) return false;
@@ -3310,7 +3312,7 @@
   const HW_BOSS_ICO = ['🏴‍☠️', '🧟', '🧌', '👻', '🧛'];
   function renderHw() {
     const hp = document.querySelector('#hwmap .hwhead .pkw'); if (hp && !hp.__svg) { hp.__svg = 1; hp.innerHTML = pumpSvg(); }
-    const h = hwState(), all = TEST_MODE && save.testAll, got = HWL.filter(l => (save.stars[l.id] || 0) > 0).length;
+    const h = hwState(), all = testOn() && save.testAll, got = HWL.filter(l => (save.stars[l.id] || 0) > 0).length;
     $('hwProg').textContent = got; $('hwBar').style.width = (100 * got / HWL.length) + '%';
     let html = '';
     for (let z = 0; z < 5; z++) {
@@ -3375,7 +3377,7 @@
   function xmEnd() { const c = xmCfg(); return c && c.end ? +c.end : XM_END; }
   function xmActive() {
     if (!XML.length) return false;
-    if (TEST_MODE && save.xmForce) return true;
+    if (testOn() && save.xmForce) return true;
     const c = xmCfg(), t = Date.now();
     if (c && c.on === false) return false;
     return t >= xmStart() && t < xmEnd();
@@ -3468,7 +3470,7 @@
   }
   function renderXm() {
     const hp = document.querySelector('#xmmap .xmhead .xtw'); if (hp && !hp.__svg) { hp.__svg = 1; hp.innerHTML = treeSvg(); }
-    const h = xmState(), all = TEST_MODE && save.testAll, got = XML.filter(l => (save.stars[l.id] || 0) > 0).length;
+    const h = xmState(), all = testOn() && save.testAll, got = XML.filter(l => (save.stars[l.id] || 0) > 0).length;
     $('xmProg').textContent = got; $('xmBar').style.width = (100 * got / XML.length) + '%';
     let html = '';
     for (let z = 0; z < 5; z++) {
@@ -4169,7 +4171,7 @@
     const b = $('sReset');
     if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Toca otra vez para borrar todo'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Borrar progreso'; }, 3000); return; }
     delete b.dataset.armed; b.textContent = 'Borrar progreso';
-    const keep = { birthYear: save.birthYear, kid: save.kid, noOnline: save.noOnline, lang: save.lang, calm: save.calm, lowGfx: save.lowGfx, adsRemoved: save.adsRemoved, iapDone: save.iapDone, pid: save.pid, codeUid: save.codeUid, profUid: save.profUid };
+    const keep = { tester: save.tester, nameLc: save.nameLc, prof: save.prof, club: save.club, birthYear: save.birthYear, kid: save.kid, noOnline: save.noOnline, lang: save.lang, calm: save.calm, lowGfx: save.lowGfx, adsRemoved: save.adsRemoved, iapDone: save.iapDone, pid: save.pid, codeUid: save.codeUid, profUid: save.profUid };
     save = Object.assign(DEFAULT_SAVE(), keep); persist(); setCoins(); toast('Progreso borrado');
   });
   on('preBack', () => { $('pre').classList.remove('on'); if (G.mode !== 'map') goMap(); });
@@ -4249,15 +4251,24 @@
   on('pVibe', () => toggle('vibe')); on('sVibe', () => toggle('vibe'));
   on('pMusic', () => toggle('music')); on('sMusic', () => toggle('music'));
   function refreshTest() {
-    if (!TEST_MODE) return;
-    $('sTest').hidden = false; $('sTestNote').hidden = false;
+    $('sTest').hidden = !testOn(); $('sTestNote').hidden = !testOn();
+    if (!testOn()) return;
+    $('sTestNote').textContent = TEST_MODE ? 'Solo para probar. Se quita al publicar el juego.' : 'Eres probador (activado desde el panel). Nadie más ve este botón.';
     $('sTest').textContent = save.testAll ? 'Modo prueba: volver a mi progreso' : 'Modo prueba: desbloquear todo';
   }
   function toggleTest() {
-    if (!TEST_MODE) return;
+    if (!testOn()) return;
     if (!save.testAll) { save.testPrev = save.unlocked; save.testAll = true; save.unlocked = LEVELS.length; toast('Modo prueba: los ' + LEVELS.length + ' niveles y todos los niveles extra están abiertos', 3000); }
     else { save.testAll = false; save.unlocked = Math.max(1, Math.min(save.testPrev || 1, LEVELS.length)); delete save.testPrev; toast('Has vuelto a tu progreso normal'); }
     persist(); refreshTest(); if (G.mode === 'map') renderMap();
+  }
+  // lo llama social.js al comprobar en el servidor si este jugador es probador
+  function setTester(v) {
+    v = !!v; if (!!save.tester === v) return;
+    save.tester = v;
+    if (!v && !TEST_MODE && save.testAll) { save.testAll = false; save.unlocked = Math.max(1, Math.min(save.testPrev || 1, LEVELS.length)); delete save.testPrev; save.hwForce = false; save.xmForce = false; }
+    persist(); refreshTest(); if (G.mode === 'map') renderMap();
+    if (v) toast('Modo probador activado: lo tienes en Ajustes', 3000);
   }
   function refreshToggles() {
     refreshTest();
@@ -4398,7 +4409,7 @@
   window.RRGame = { cubiFrames, openShop, goMap, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
-    stats, plState, starsTotal, countLv, LEVELS, myCode, openPre: id => openPre(id), codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,
+    stats, plState, starsTotal, countLv, LEVELS, myCode, openPre: id => openPre(id), setTester, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,
     addBlockView: d => blockView(d), weatherChip: w => setWeatherChip({ weather: w }), weatherFx: w => { Weather.set(w); const el = $('wxChip'); if (!w) el.hidden = true; },
     // el jefe ha caído: el nivel se gana con las bolas que quedaban
     bossWin(left) { const sim = G.sim; if (!sim || G.mode !== 'play') return; sim.queue = Array.from({ length: left }, () => 'heavy'); sim.goalReached = true; sim.finish(); G.winAt = G.t - 1; } };

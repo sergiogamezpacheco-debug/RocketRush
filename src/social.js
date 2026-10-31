@@ -143,7 +143,46 @@
     return s.prof;
   }
   const myName = () => prof().name || (T('Jugador') + ' ' + X.codeCore().slice(0, 4));
-  const cleanName = t => (t || '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+  const cleanName = t => (t || '').replace(/[\u0000-\u001f<>\/\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+  // ---------------- nombre único ----------------
+  // names/{nombre en minúsculas} → uid. Al guardar se reserva el nuevo y se libera el anterior en el mismo lote.
+  let nameT = 0;
+  const nameKey = n => n.toLowerCase().normalize('NFKC').replace(/\s+/g, ' ').trim();
+  const BAD = ['puta', 'puto', 'mierda', 'gilipolla', 'cabron', 'maricon', 'polla', 'coño', 'conyo', 'zorra', 'follar', 'nazi', 'hitler', 'fuck', 'shit', 'bitch', 'cunt', 'dick', 'pussy', 'nigg', 'fag', 'whore', 'slut', 'rape', 'porn', 'sex', 'caralho', 'porra', 'merda', 'buceta', 'putain', 'merde', 'salope', 'connard', 'encule', 'scheisse', 'scheiße', 'hure', 'fotze', 'wichser', 'cazzo', 'stronzo', 'troia', 'vaffanculo', 'admin', 'moderador', 'rocketrush', 'rocket rush'];
+  const badName = n => { const k = nameKey(n).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's').replace(/[^a-zñß ]/g, ''); return BAD.some(w => k.includes(w) || k.replace(/ /g, '').includes(w.replace(/ /g, ''))); };
+  function nameErr(e) {
+    const c = e && (e.code || e);
+    return ({ SHORT: 'El nombre necesita al menos 3 letras', BAD: 'Ese nombre no está permitido', TAKEN: 'Ese nombre ya lo tiene otro jugador' })[c]
+      || (e && e.status === -1 ? 'Para cambiar el nombre hacen falta las funciones en línea.' : e && e.status === 0 ? 'Sin conexión: no se puede comprobar el nombre.' : 'No se ha podido comprobar el nombre.');
+  }
+  class NameErr extends Error { constructor(c) { super(c); this.code = c; } }
+  async function nameFree(n) {
+    if (n.length < 3) throw new NameErr('SHORT');
+    if (badName(n)) throw new NameErr('BAD');
+    const k = nameKey(n);
+    if (X.save.nameLc === k && auth) return 'MINE';
+    await token();
+    const d = await getDoc(`names/${encodeURIComponent(k)}`);
+    if (!d) return true;
+    if (d.uid === auth.uid) return 'MINE';
+    throw new NameErr('TAKEN');
+  }
+  async function saveName(n) {
+    const r = await nameFree(n), k = nameKey(n), old = X.save.nameLc;
+    if (r !== 'MINE') {
+      const ws = [{ update: { name: `${ROOT}/names/${k}`, fields: enc({ uid: auth.uid }).mapValue.fields }, currentDocument: { exists: false } }];
+      if (old && old !== k) ws.push({ delete: `${ROOT}/names/${old}` });
+      try { await call(`${FS}:commit`, { method: 'POST', body: JSON.stringify({ writes: ws }) }); }
+      catch (e) { if (e.status === 400 || e.status === 409 || /PRECONDITION|ALREADY/.test(e.code + e.message)) throw new NameErr('TAKEN'); throw e; }
+    }
+    prof().name = n; X.save.nameLc = k; X.persist();
+    await push(true);
+  }
+  // ¿es probador? (el panel crea testers/{uid}); se mira al sincronizar y se recuerda en el móvil
+  async function checkTester() {
+    try { const d = await getDoc(`testers/${auth.uid}`); if (X.setTester) X.setTester(!!d); }
+    catch (e) { if (e.status === 403 && X.setTester) X.setTester(false); }
+  }
   // estadísticas que se ven en el perfil, en los amigos y en las clasificaciones
   function myStats() {
     const s = X.save, st = X.stats(), d = s.daily || {};
@@ -349,7 +388,7 @@
     const opts = COUNTRIES.map(cc => [cc, countryName(cc)]).sort((a, b) => a[1].localeCompare(b[1])).map(([cc, n]) => `<option value="${cc}" ${cc === p.country ? 'selected' : ''}>${flag(cc)} ${esc(n)}</option>`).join('');
     const st = (i, v, n) => `<div class="sstat"><i>${i}</i><b>${v}</b><small>${n}</small></div>`;
     return `<div class="sbox sme"><span class="savat big">${esc(p.avatar)}</span>
-        <div class="sform"><small>Tu nombre</small><div class="addfriend" style="margin-top:2px"><input id="socName" maxlength="16" autocomplete="off" translate="no" value="${esc(myName())}"><button class="btn small green" id="socSaveName">Guardar</button></div>
+        <div class="sform"><small>Tu nombre</small><div class="addfriend" style="margin-top:2px"><input id="socName" maxlength="16" autocomplete="off" translate="no" value="${esc(myName())}"><button class="btn small green" id="socSaveName">Guardar</button></div><div class="snmsg" id="socNameMsg"></div>
         <small>País</small><select id="socCountry" translate="no">${opts}</select></div></div>
       <div class="savs">${avatars().map(a => `<button data-av="${a}" class="${a === p.avatar ? 'on' : ''}">${a}</button>`).join('')}</div>
       <div class="shead">Tus estadísticas</div>
@@ -389,10 +428,24 @@
     list.querySelectorAll('[data-sc]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); scope = b.dataset.sc; refresh(); }));
     list.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); metric = b.dataset.m; refresh(); }));
     list.querySelectorAll('[data-av]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); prof().avatar = b.dataset.av; X.persist(); dirty(1500); render(); }));
-    on('socSaveName', () => {
-      const n = cleanName($('socName').value);
-      prof().name = n; X.persist(); dirty(500); render();
-      X.toast(T('Nombre guardado'));
+    on('socSaveName', async () => {
+      const n = cleanName($('socName').value), b = $('socSaveName'), m = $('socNameMsg');
+      b.disabled = true; m.className = 'snmsg'; m.textContent = T('Comprobando…');
+      try { await saveName(n); m.className = 'snmsg ok'; m.textContent = T('Nombre guardado'); X.toast(T('Nombre guardado')); render(); }
+      catch (e) { b.disabled = false; m.className = 'snmsg bad'; m.textContent = T(nameErr(e)); }
+    });
+    // mientras escribe, se mira si el nombre está libre (medio segundo después de dejar de teclear)
+    const ni = $('socName');
+    if (ni) ni.addEventListener('input', () => {
+      clearTimeout(nameT); const m = $('socNameMsg'); m.className = 'snmsg'; m.textContent = '';
+      const n = cleanName(ni.value);
+      nameT = setTimeout(async () => {
+        const r = await nameFree(n).catch(e => e);
+        if (cleanName(ni.value) !== n) return;
+        if (r === true) { m.className = 'snmsg ok'; m.textContent = T('✓ Disponible'); }
+        else if (r === 'MINE') { m.className = 'snmsg ok'; m.textContent = T('Es tu nombre'); }
+        else { m.className = 'snmsg bad'; m.textContent = T(nameErr(r)); }
+      }, 550);
     });
     const sel = $('socCountry');
     if (sel) sel.addEventListener('change', () => { prof().country = sel.value; X.persist(); dirty(500); for (const k in BOARD) delete BOARD[k]; render(); });
@@ -436,7 +489,12 @@
     syncing = true;
     try {
       if (net !== 'online') setNet('connecting');
+      // nombres de antes de que fueran únicos: se reservan solos; si ya lo tenía otro, vuelve a «Jugador XXXX»
+      if (prof().name && !X.save.nameLc) {
+        try { await saveName(prof().name); } catch (e) { if (e.code === 'TAKEN' || e.code === 'BAD' || e.code === 'SHORT') { prof().name = ''; X.save.nameLc = null; X.persist(); X.toast(T('Tu nombre ya lo usa otro jugador: elige uno nuevo en tu perfil'), 3500); } }
+      }
       await push();
+      if (!checkTester.at || Date.now() - checkTester.at > 30 * 60e3) { checkTester.at = Date.now(); await checkTester(); }
       if (!FR.loaded || Date.now() - FR.at > 5 * 60e3) await loadFriends();
       setNet('online');
     } catch (e) { setNet(e.status === 0 ? 'offline' : 'error', errText(e)); }
@@ -494,7 +552,7 @@
     auth = null; saveAuth(); lastPushed = ''; lsSet(PUSH_KEY, '');
     FR.list = []; FR.inc = []; FR.out = []; FR.loaded = false; FR.at = 0;
     for (const k in BOARD) delete BOARD[k];
-    X.save.codeUid = null; X.save.profUid = null; X.save.friends = []; X.save.noOnline = true; X.newPid(); X.persist();
+    X.save.codeUid = null; X.save.profUid = null; X.save.friends = []; X.save.nameLc = null; X.save.tester = false; X.save.noOnline = true; X.newPid(); X.persist();
     setNet('offline');
   }
   async function wipeServer() {
@@ -506,6 +564,7 @@
       for (const f of new Map(A.concat(B).map(x => [x._id, x])).values()) { try { await delDoc(`friendships/${f._id}`); } catch (e) { if (e.status !== 404) throw e; } }
       const c = X.codeCore(), d = await getDoc(`codes/${c}`);
       if (d && d.uid === me) await delDoc(`codes/${c}`);
+      if (X.save.nameLc) { try { await delDoc(`names/${encodeURIComponent(X.save.nameLc)}`); } catch (e) { if (e.status !== 404 && e.status !== 403) throw e; } }
       try { await delDoc(`users/${me}`); } catch (e) { if (e.status !== 404) throw e; }
       await call(`${IDT}/accounts:delete?key=${CFG.apiKey}`, { method: 'POST', body: JSON.stringify({ idToken: auth.id }) }, false);
     }
@@ -705,5 +764,5 @@
   const Club = { time: clubTime, load: clubLoad, create: clubCreate, search: clubSearch, join: clubJoin, leave: clubLeave, kick: clubKick, role: clubRole,
     transfer: clubTransfer, accept: clubAccept, reject: clubReject, settings: clubSettings, report: clubReport, league: clubLeague, state: CL, get id() { return myClubId(); } };
 
-  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
+  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, checkTester: () => token().then(checkTester), get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
 })();
