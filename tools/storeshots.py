@@ -62,5 +62,19 @@ with sync_playwright() as p:
         E("Club.open('boss')"); pg.wait_for_timeout(1500); pg.screenshot(path=OUT + 'clubboss.png')
     if want('chest'):
         E("document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.manual(false); const r = { coins: 1500, gems: 15, bomb: 3, rainbow: 2, golden: 1 }; RRGame.grant(r); RRGame.openChestFX('crystal', r, () => {});")
-        pg.wait_for_timeout(600); pg.mouse.click(180, 330); pg.wait_for_timeout(1200); pg.screenshot(path=OUT + 'chest.png')
+        hint = lambda: pg.evaluate("() => { const h = document.querySelector('#cStage .chint'); return h ? h.textContent : '' }")
+        def until(f, ms=15000):
+            for _ in range(ms // 100):
+                if f(): return True
+                pg.wait_for_timeout(100)
+            return False
+        until(lambda: hint() != '')
+        for want_h in ('Otra', 'Una', ''):
+            pg.mouse.click(180, 330)
+            until(lambda: (want_h in hint()) if want_h else hint() == '', 5000)
+        pg.wait_for_timeout(1100); pg.screenshot(path=OUT + 'chest.png')
+        for _ in range(20):
+            if pg.evaluate("() => !!document.querySelector('#cStage .ok')"): break
+            until(lambda: hint() != '', 6000); pg.mouse.click(180, 330); pg.wait_for_timeout(700)
+        pg.wait_for_timeout(800); pg.screenshot(path=OUT + 'chest2.png')
     print('errores', errs[:5]); b.close()
