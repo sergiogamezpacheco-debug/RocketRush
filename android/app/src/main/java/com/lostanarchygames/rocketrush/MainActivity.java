@@ -39,6 +39,7 @@ public class MainActivity extends ComponentActivity {
     private WebView web;
     private Billing billing;
     private Ads ads;
+    private GoogleLogin google;
     private Insets lastInsets = Insets.NONE;
 
     @Override
@@ -97,6 +98,7 @@ public class MainActivity extends ComponentActivity {
 
         billing = new Billing(this, this::js);
         ads = new Ads(this, this::js);
+        google = new GoogleLogin(this, this::js);
         web.loadUrl("https://appassets.androidplatform.net/assets/index.html");
     }
 
@@ -175,6 +177,10 @@ public class MainActivity extends ComponentActivity {
         @JavascriptInterface public void billingBuy(String id) { runOnUiThread(() -> billing.buy(MainActivity.this, id)); }
         @JavascriptInterface public void billingFinish(String token, boolean consume) { billing.finish(token, consume); }
         @JavascriptInterface public void billingRestore() { billing.restore(); }
+
+        // ---------- entrar con Google ----------
+        @JavascriptInterface public void googleSignIn(String webClientId) { runOnUiThread(() -> google.signIn(MainActivity.this, webClientId)); }
+        @JavascriptInterface public void googleSignOut() { runOnUiThread(() -> google.signOut(MainActivity.this)); }
 
         // ---------- anuncios (AdMob) y consentimiento (UMP) ----------
         /** age: edad del jugador (0 = no la sabemos). Menores de 16: anuncios no personalizados. */
