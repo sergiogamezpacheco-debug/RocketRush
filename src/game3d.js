@@ -2352,7 +2352,7 @@
   }
 
   // ---------------- pantallas ----------------
-  const screens = ['title', 'map', 'hwmap', 'xmmap', 'pass', 'missions', 'social', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard'];
+  const screens = ['title', 'map', 'hwmap', 'xmmap', 'pass', 'missions', 'social', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard', 'privacy'];
   function show(id) { for (const s of screens) $(s).classList.toggle('on', s === id); }
   function hideAll() { for (const s of screens) $(s).classList.remove('on'); }
   // mensaje sobre la bandeja de bolas (no tapa el cielo ni la estructura)
@@ -2771,6 +2771,7 @@
     $('loseCost').textContent = cost;
     $('loseCoins').disabled = save.coins < cost;
     $('loseStarter').hidden = gift || save.starter || !(L.hard || save.coins < cost);
+    $('loseStarter').textContent = 'Pack de inicio · 1.000 monedas + 3 bombas · ' + iapPrice(SHOP.find(x => x.id === 'starter'));
     $('loseStreak').textContent = save.streak >= 2 ? `Si sales o reintentas, pierdes la racha de ${save.streak}.` : '';
     consumeGemRoll(L);
     show('lose'); Audio.lose(); vibe(30);
@@ -2789,7 +2790,23 @@
       if (n <= 0) { clearInterval(iv); setTimeout(() => { el.classList.remove('on'); if (save.music) Audio.startMusic(); cb(true); }, 300); }
     }, 1000);
   }
-  window.onChromaReward = ok => { const cb = window.__rewardCb; window.__rewardCb = null; if (cb) cb(ok); };
+  window.onChromaReward = (ok, why) => {
+    const cb = window.__rewardCb; window.__rewardCb = null;
+    if (why === 'noad') toast('No hay anuncios disponibles ahora mismo. Prueba en un momento.', 2600);
+    if (cb) cb(!!ok);
+  };
+  // anuncio entre niveles (intersticial): en la app es uno de verdad; en el navegador, el simulado de 3 segundos
+  function showInterstitial(next) {
+    const A = window.ChromaAndroid;
+    if (A && A.showInterstitial) { window.onChromaInterstitial = () => { window.onChromaInterstitial = null; next(); }; A.showInterstitial(); return; }
+    showRewarded(() => next());
+  }
+  // muesca y barras del sistema (Android 15+ dibuja de borde a borde): margen en píxeles CSS
+  window.ChromaInsets = (t0, r0, b0, l0) => {
+    const st = document.documentElement.style;
+    st.setProperty('--sat', (+t0 || 0) + 'px'); st.setProperty('--sar', (+r0 || 0) + 'px');
+    st.setProperty('--sab', (+b0 || 0) + 'px'); st.setProperty('--sal', (+l0 || 0) + 'px');
+  };
 
 
   // ---------------- bolas de los mundos ----------------
@@ -2841,10 +2858,51 @@
     { id: 'b3', name: '+2 bolas', desc: 'Empiezas con dos bolas más', coins: 200, grant: () => { save.boosters.extra++; } },
     { id: 'b4', name: 'Cohete de salida', desc: 'Al empezar revienta la fila con más bloques', coins: 200, grant: () => { save.boosters.rocket = (save.boosters.rocket || 0) + 1; } },
   ];
+  // compras con Google Play: el precio que se ve es el de Play (en la moneda del jugador); el premio se da cuando Play
+  // confirma el pago y después se avisa a Play de que ya se ha entregado (si no, lo devuelve a los 3 días).
+  const IAP_IDS = SHOP.filter(s => s.price).map(s => s.id);
+  const iap = { prices: {}, asked: 0 };
+  const payNative = () => !!(window.ChromaAndroid && window.ChromaAndroid.billingBuy);
+  function iapQuery() { if (payNative() && Date.now() - iap.asked > 5000) { iap.asked = Date.now(); try { window.ChromaAndroid.billingQuery(JSON.stringify(IAP_IDS)); } catch (e) { /* nada */ } } }
+  const iapPrice = s => iap.prices[s.id] || s.price;
+  const iapOnce = id => id === 'noads' || id === 'starter';
+  function iapGrant(id, token) {
+    const it = SHOP.find(s => s.id === id); if (!it) return;
+    save.iapDone = save.iapDone || [];
+    if (token && save.iapDone.includes(token)) { try { window.ChromaAndroid.billingFinish(token, !iapOnce(id)); } catch (e) { /* nada */ } return; }
+    it.grant(); if (token) { save.iapDone.push(token); save.iapDone = save.iapDone.slice(-60); }
+    stats().iap = (stats().iap || 0) + 1; persist(); setCoins(); Audio.win(); toast('¡Gracias por tu compra!', 2600);
+    if (token) try { window.ChromaAndroid.billingFinish(token, !iapOnce(id)); } catch (e) { /* nada */ }
+    if ($('shop').classList.contains('on')) { const sc = $('shopList').scrollTop; openShop(); $('shopList').scrollTop = sc; }
+    if ($('lose').classList.contains('on') && id === 'starter') showLose();
+  }
+  window.onBilling = m => {
+    if (!m) return;
+    if (m.type === 'products') {
+      for (const it of m.items || []) if (it && it.id && it.price) iap.prices[it.id] = it.price;
+      if ($('shop').classList.contains('on')) { const sc = $('shopList').scrollTop; openShop(); $('shopList').scrollTop = sc; }
+    } else if (m.type === 'purchase') iapGrant(m.id, m.token);
+    else if (m.type === 'owned') {
+      // restaurar: lo que se compra una sola vez sigue siendo suyo (al reinstalar o en otro móvil)
+      let ch = false;
+      for (const id of m.ids || []) { if (id === 'noads' && !save.adsRemoved) { save.adsRemoved = true; ch = true; } if (id === 'starter' && !save.starter) { save.starter = true; ch = true; } }
+      if (ch) persist();
+    } else if (m.type === 'error' && m.code !== 1) toast('No se ha podido completar la compra. No se te ha cobrado nada.', 2800);
+  };
+  function iapBuy(it) {
+    if (payNative()) {
+      if (!iap.prices[it.id]) { iapQuery(); toast('La tienda de Google Play no responde. Comprueba la conexión y vuelve a probar.', 2800); return; }
+      window.ChromaAndroid.billingBuy(it.id); return;
+    }
+    if (TEST_MODE) { it.grant(); persist(); setCoins(); Audio.coin(); toast('Compra de prueba hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
+    toast('Las compras solo están disponibles en la app de Android.', 2600);
+  }
   function openShop(focus) {
+    iapQuery();
+    $('shopNote').textContent = payNative() ? 'Pagos seguros con Google Play.' : TEST_MODE ? 'Compras de prueba: no se cobra nada.' : 'Las compras solo están disponibles en la app de Android.';
     const items = SHOP.filter(s => !(s.once && save.starter) && !(s.id === 'noads' && save.adsRemoved));
     const SIC = { g1: '<i class="gem"></i>', g2: '<i class="gems2"></i>', g3: '<i class="chest crystal"></i>', starter: '<i class="chest gold"></i>', c1: '<i class="coin"></i>', c2: '<i class="chest wood"></i>', b1: '<i class="ball bBomb"></i>', b2: '<i class="ball bRainbow"></i>', b3: '<i class="ball bPlus2"></i>', b4: '<span style="display:inline-block;width:34px;height:34px">' + ROCKET_SVG.replace(/width="44" height="44"/, 'width="34" height="34"') + '</span>' };
-    const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}</b><span>${s.desc}</span></div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : s.price}</button></div>`;
+    const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}</b><span>${s.desc}</span></div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : iapPrice(s)}</button></div>`;
     const wrow = k => {
       const open = wbOpen(k), have = save.boosters[k] || 0;
       return `<div class="shopitem wb ${open ? '' : 'locked'}"><div class="ball ${CSSB[k]}"></div><div><b>${WBALLS[k].name} <small>nv. ${wbLevel(k)}${have ? ' · tienes ' + have : ''}</small></b><span>${open ? WB_DESC[k] : 'Se desbloquea en el mundo ' + WBALLS[k].world}</span></div>` +
@@ -2855,7 +2913,7 @@
     const st = items.find(s => s.id === 'starter');
     const feat = st ? `<div class="feat"><div class="frays"></div><div class="ftag">OFERTA ÚNICA</div><div class="fic"><i class="chest gold"></i></div>
       <div class="ftx"><b>${st.name}</b><div class="fit"><span><i class="coin"></i>1.000</span><span><i class="ball bBomb"></i>×3</span><span><i class="ball bRainbow"></i>×3</span></div></div>
-      <div class="fbuy"><button class="btn green" data-id="starter">${st.price}</button><small>solo una vez</small></div></div>` : '';
+      <div class="fbuy"><button class="btn green" data-id="starter">${iapPrice(st)}</button><small>solo una vez</small></div></div>` : '';
     const rowT = s => TAG[s.id] ? row(s).replace('<div class="shopitem">', `<div class="shopitem hot"><i class="rtag">${TAG[s.id]}</i>`) : row(s);
     const by = ids => items.filter(s => ids.includes(s.id)).map(rowT).join('');
     const hw = hwActive(), xm = xmActive();
@@ -2884,8 +2942,9 @@
     }));
     $('shopList').querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', () => {
       const it = SHOP.find(s => s.id === b.dataset.id);
-      if (it.coins) { if (save.coins < it.coins) { toast('No tienes monedas suficientes'); return; } save.coins -= it.coins; }
-      it.grant(); persist(); setCoins(); Audio.coin(); toast(it.coins ? '¡Comprado!' : 'Compra de prueba hecha (no se ha cobrado nada)');
+      if (!it.coins) { iapBuy(it); return; }
+      if (save.coins < it.coins) { toast('No tienes monedas suficientes'); return; } save.coins -= it.coins;
+      it.grant(); persist(); setCoins(); Audio.coin(); toast('¡Comprado!');
       openShop();
     }));
     setCoins(); $('shop').classList.add('on');
@@ -3142,7 +3201,7 @@
   function openRedeem() {
     $('settings').classList.remove('on');
     liveBox({ rib: 'CÓDIGO REGALO', ico: '🎟️', title: lt('Escribe tu código'), extra: '<input id="lbCode" class="lbinput" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ROCKET2026"><p class="sub lbmsg" id="lbMsg"></p>',
-      btns: [{ t: 'CANJEAR', fn: doRedeem }, { t: 'Cerrar', cls: 'gray', fn: () => { $('liveBox').classList.remove('on'); show('settings'); } }] });
+      btns: [{ t: 'CANJEAR', fn: doRedeem }, { t: 'Cerrar', cls: 'gray', fn: () => { $('liveBox').classList.remove('on'); $('settings').classList.add('on'); } }] });
     setTimeout(() => { const i = $('lbCode'); if (i) i.focus(); }, 50);
   }
   async function doRedeem() {
@@ -3273,7 +3332,7 @@
   // tienda de Halloween: se paga con caramelos
   const HW_SHOP = [
     { id: 'hskin', ic: '🎃', name: 'Cañón Calabaza', desc: 'Cañón exclusivo de Halloween', price: 400, tag: 'EXCLUSIVO', owned: () => save.skins.owned.includes('pumpkin'), grant: () => grant({ skin: 'pumpkin' }) },
-    { id: 'hchest', ic: '🧰', name: 'Cofre embrujado', desc: 'Monedas, bolas y gemas al azar', price: 250, chest: true },
+    { id: 'hchest', ic: '🧰', name: 'Cofre embrujado', desc: 'Siempre: 250-750 monedas, 1-2 bombas y 3-8 gemas · 50 %: bola arcoíris · 25 %: bola dorada', price: 250, chest: true },
     { id: 'hav', ic: '🧛', name: 'Avatares de Halloween', desc: 'Vampiro, bruja, fantasma, calabaza, calavera y araña para tu perfil', price: 80, owned: () => !!save.hwAvatars, grant: () => { save.hwAvatars = true; return ['avatares de Halloween']; } },
     { id: 'hgold', ic: '✨', name: 'Bola dorada', desc: 'Atraviesa la estructura de lado a lado', price: 220, grant: () => grant({ golden: 1 }) },
     { id: 'hbomb', ic: '💣', name: 'Pack de 3 bombas', desc: 'Para cualquier nivel', price: 120, grant: () => grant({ bomb: 3 }) },
@@ -3434,7 +3493,7 @@
   // tienda de Navidad: se paga con caramelos navideños
   const XM_SHOP = [
     { id: 'xskin', ic: '🍭', name: 'Cañón Bastón', desc: 'Cañón exclusivo de Navidad, con rayas de bastón de caramelo', price: 400, tag: 'EXCLUSIVO', owned: () => save.skins.owned.includes('candycane'), grant: () => grant({ skin: 'candycane' }) },
-    { id: 'xchest', ic: '🎁', name: 'Regalo sorpresa', desc: 'Monedas, bolas y gemas al azar', price: 250, chest: true },
+    { id: 'xchest', ic: '🎁', name: 'Regalo sorpresa', desc: 'Siempre: 250-750 monedas, 1-2 bombas y 3-8 gemas · 50 %: bola arcoíris · 25 %: bola dorada', price: 250, chest: true },
     { id: 'xav', ic: '🎅', name: 'Avatares de Navidad', desc: 'Papá Noel, reno, muñeco de nieve, árbol, regalo y cascanueces para tu perfil', price: 80, owned: () => !!save.xmAvatars, grant: () => { save.xmAvatars = true; return ['avatares de Navidad']; } },
     { id: 'xgold', ic: '✨', name: 'Bola dorada', desc: 'Atraviesa la estructura de lado a lado', price: 220, grant: () => grant({ golden: 1 }) },
     { id: 'xbomb', ic: '💣', name: 'Pack de 3 bombas', desc: 'Para cualquier nivel', price: 120, grant: () => grant({ bomb: 3 }) },
@@ -4021,11 +4080,94 @@
   on('sCode', openRedeem);
   if (window.Live) window.Live.on(() => { liveUi(); hwUi(); xmUi(); setTimeout(liveCheck, 300); if (G.mode === 'title' && G.titleReady && (G.hwWorld !== (hwActive() && !!window.Halloween) || G.xmWorld !== (!G.hwWorld && xmActive() && !!window.Christmas))) goTitle(); });
   setInterval(() => { if (document.hidden) return; liveUi(); liveCheck(); }, 5000);
+  // ---------------- privacidad, ayuda y accesibilidad ----------------
+  const SITE = 'https://rocket-rush-7297c.web.app', SUPPORT = 'rocketrush.lostanarchygames@hotmail.com';
+  const siteLang = () => (window.I18N && I18N.lang === 'es') ? '' : '/en';
+  const ageNow = () => save.birthYear ? new Date().getFullYear() - save.birthYear : 0;
+  function adsStart() {
+    const A = window.ChromaAndroid;
+    if (A && A.adsInit && save.birthYear) try { A.adsInit(ageNow()); } catch (e) { /* nada */ }
+  }
+  function refreshPrivacy() {
+    const A = window.ChromaAndroid;
+    let req = false; try { req = !!(A && A.adsPrivacyRequired && A.adsPrivacyRequired()); } catch (e) { req = false; }
+    $('pAds').hidden = !req;
+    $('pOnline').textContent = 'Funciones en línea: ' + (save.kid ? 'no disponibles' : save.noOnline ? 'no' : 'sí');
+    $('pOnline').disabled = !!save.kid;
+    $('pId').textContent = 'Tu código de jugador: ' + myCode();
+  }
+  function openPrivacy() { $('settings').classList.remove('on'); refreshPrivacy(); $('pDelNote').textContent = ''; $('privacy').classList.add('on'); }
+  on('sPriv', openPrivacy);
+  on('pBack', () => { $('privacy').classList.remove('on'); refreshToggles(); $('settings').classList.add('on'); });
+  on('pPolicy', () => openUrl(SITE + siteLang() + '/privacidad'));
+  on('pTerms', () => openUrl(SITE + siteLang() + '/terminos'));
+  on('pAds', () => { try { window.ChromaAndroid.adsPrivacyOptions(); } catch (e) { /* nada */ } });
+  on('pOnline', () => {
+    if (save.kid) return;
+    save.noOnline = !save.noOnline; persist(); refreshPrivacy();
+    if (!save.noOnline && window.Social) window.Social.dirty(1500);
+    toast(save.noOnline ? 'Funciones en línea apagadas: amigos y clasificaciones no se actualizan' : 'Funciones en línea encendidas');
+  });
+  on('pDelete', async () => {
+    const b = $('pDelete'), note = $('pDelNote');
+    if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Toca otra vez para borrarla'; note.textContent = 'Se borran tu perfil público, tu código de amigo y tus amistades. Tu progreso en este móvil se queda.'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Borrar mi cuenta en línea'; }, 4000); return; }
+    delete b.dataset.armed; b.textContent = 'Borrando…'; b.disabled = true;
+    try {
+      if (window.Social) await window.Social.deleteAccount();
+      note.textContent = 'Cuenta en línea borrada. Las funciones en línea quedan apagadas.'; Audio.win();
+    } catch (e) { note.textContent = 'No se ha podido borrar: comprueba la conexión y vuelve a probar.'; }
+    b.disabled = false; b.textContent = 'Borrar mi cuenta en línea'; refreshPrivacy();
+  });
+  on('pSupport', () => {
+    const v = BUILD ? '1.0.' + BUILD : '';
+    const body = `\n\n---\nCódigo de jugador: ${myCode()}\nVersión: ${v}\nIdioma: ${window.I18N ? I18N.lang : 'es'}\n${navigator.userAgent}`;
+    openUrl('mailto:' + SUPPORT + '?subject=' + encodeURIComponent('Rocket Rush · ayuda') + '&body=' + encodeURIComponent(body));
+  });
+  on('pCredits', () => {
+    $('privacy').classList.remove('on');
+    liveBox({ rib: 'CRÉDITOS', ico: '🚀', title: 'Rocket Rush', extra: `<div class="credits"><b>Lost Anarchy Games</b>Diseño y desarrollo: Sergio Gámez Pacheco
+      <b>Programas de código abierto</b>three.js — licencia MIT, © 2010-2024 three.js authors<br>cannon-es — licencia MIT, © 2020 pmndrs y © 2015 Stefan Hedman
+      <b>Música y sonidos</b>Creados por el propio juego mientras suena (sin grabaciones de terceros)
+      <b>Licencia MIT</b><small>Se concede permiso, de forma gratuita, a cualquier persona que obtenga una copia de este software y de los archivos de documentación asociados, para utilizarlo sin restricciones, siempre que el aviso de copyright y este aviso de permiso se incluyan en todas las copias. EL SOFTWARE SE PROPORCIONA «TAL CUAL», SIN GARANTÍA DE NINGÚN TIPO.</small></div>`,
+      btns: [{ t: 'VOLVER', fn: () => { $('liveBox').classList.remove('on'); openPrivacy(); } }] });
+  });
+  // accesibilidad: menos destellos (relámpagos, fogonazos y temblor de cámara) y gráficos en modo ahorro
+  function applyGfx() {
+    const low = !!save.lowGfx;
+    pixelRatio = low ? 1 : Math.min(window.devicePixelRatio || 1, mobile ? 1.75 : 1.5);
+    renderer.setPixelRatio(pixelRatio); resize();
+    if (renderer.shadowMap.enabled === low) {
+      renderer.shadowMap.enabled = !low;
+      scene.traverse(o => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; });
+    }
+  }
+  on('sCalm', () => { save.calm = !save.calm; persist(); refreshToggles(); });
+  on('sGfx', () => { save.lowGfx = !save.lowGfx; persist(); applyGfx(); refreshToggles(); });
+  // edad (la primera vez): pregunta neutra, sin decir qué edad hace falta. Menores de 13: sin funciones en línea;
+  // menores de 16: anuncios sin personalizar. Solo se guarda el año, en el móvil.
+  function ageGate(then) {
+    if (!save.birthYear && window.RR_AGE) { save.birthYear = new Date().getFullYear() - window.RR_AGE; save.kid = window.RR_AGE < 13; persist(); }   // pruebas automáticas
+    if (save.birthYear) { then && then(); return; }
+    const y0 = new Date().getFullYear(), sel = $('agYear');
+    sel.innerHTML = '<option value="">—</option>' + Array.from({ length: 100 }, (_, i) => `<option value="${y0 - i}">${y0 - i}</option>`).join('');
+    sel.value = ''; $('agOk').disabled = true;
+    sel.onchange = () => { $('agOk').disabled = !sel.value; };
+    $('agOk').onclick = () => {
+      if (!sel.value) return;
+      Audio.init(); Audio.click();
+      save.birthYear = +sel.value; save.kid = ageNow() < 13; persist();
+      $('ageGate').hidden = true;
+      if (save.kid && window.Social && window.Social.hasAccount) window.Social.deleteAccount().catch(() => { /* se reintenta otro día */ });
+      adsStart(); then && then();
+    };
+    $('ageGate').hidden = false;
+  }
   on('sReset', () => {
     const b = $('sReset');
     if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Toca otra vez para borrar todo'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Borrar progreso'; }, 3000); return; }
     delete b.dataset.armed; b.textContent = 'Borrar progreso';
-    save = DEFAULT_SAVE(); persist(); setCoins(); toast('Progreso borrado');
+    const keep = { birthYear: save.birthYear, kid: save.kid, noOnline: save.noOnline, lang: save.lang, calm: save.calm, lowGfx: save.lowGfx, adsRemoved: save.adsRemoved, iapDone: save.iapDone, pid: save.pid, codeUid: save.codeUid, profUid: save.profUid };
+    save = Object.assign(DEFAULT_SAVE(), keep); persist(); setCoins(); toast('Progreso borrado');
   });
   on('preBack', () => { $('pre').classList.remove('on'); if (G.mode !== 'map') goMap(); });
   on('preGo', () => {
@@ -4089,7 +4231,7 @@
   on('loseAd', () => showRewarded(ok => { if (ok) continueWithBalls(); }));
   on('loseCoins', () => { const cost = +$('loseCost').textContent; if (save.coins >= cost) { save.coins -= cost; persist(); continueWithBalls(); } });
   on('loseGift', () => { if (G.giftWorld) { save.casiFree = save.casiFree || {}; save.casiFree[G.giftWorld] = true; persist(); } continueWithBalls(); });
-  on('loseStarter', () => { const it = SHOP.find(x => x.id === 'starter'); it.grant(); persist(); setCoins(); Audio.coin(); toast('Compra de prueba hecha (no se ha cobrado nada)'); showLose(); });
+  on('loseStarter', () => { const it = SHOP.find(x => x.id === 'starter'); if (iapBuy(it)) showLose(); });
   on('loseRetry', () => { save.streak = 0; stats().winRun = 0; persist(); hideAll(); G.mode = 'pre'; openPre(G.level.id); });
   on('loseMap', () => { save.streak = 0; stats().winRun = 0; persist(); goMap(); });
   on('ncOk', () => { Audio.click(); closeNewCard(); });
@@ -4118,12 +4260,14 @@
     for (const [k, ids] of [['sound', ['pSound', 'sSound']], ['vibe', ['pVibe', 'sVibe']], ['music', ['pMusic', 'sMusic']]])
       for (const id of ids) $(id).style.opacity = save[k] ? 1 : 0.35;
     $('sNotif').textContent = 'Aviso de racha: ' + (dailySave().notif === false ? 'no' : 'sí');
+    $('sCalm').textContent = 'Menos destellos: ' + (save.calm ? 'sí' : 'no');
+    $('sGfx').textContent = 'Gráficos: ' + (save.lowGfx ? 'ahorro' : 'altos');
     $('sState').textContent = `Sonido ${save.sound ? 'sí' : 'no'} · Vibración ${save.vibe ? 'sí' : 'no'} · Música ${save.music ? 'sí' : 'no'}`;
   }
   function maybeInterstitial(next) {
     const AD = liveCfg().ads || {}, adFrom = +AD.from || 10, adGap = (AD.gapMin != null ? +AD.gapMin : 3) * 60000;
     const now = Date.now();
-    if (!AD.off && !save.adsRemoved && G.level && !G.level.bonus && G.level.id >= adFrom && now - (save.lastInter || 0) > adGap) { save.lastInter = now; persist(); showRewarded(() => next()); }
+    if (!AD.off && !save.adsRemoved && G.level && !G.level.bonus && G.level.id >= adFrom && now - (save.lastInter || 0) > adGap) { save.lastInter = now; persist(); showInterstitial(next); }
     else next();
   }
 
@@ -4182,6 +4326,7 @@
     G.shake = Math.max(0, G.shake - dt * 1.6);
     G.recoil = Math.max(0, G.recoil - dt * 4);
     flashLight.intensity = Math.max(0, flashLight.intensity - dt * 220);
+    if (save.calm) { if (flashLight.intensity > 8) flashLight.intensity = 8; if (G.shake > 0.04) G.shake = 0.04; }
     const sim = G.sim;
     if (sim && !G.paused) {
       if (G.mode === 'play') {
@@ -4267,8 +4412,9 @@
     $('langPick').hidden = false;
     langButtons($('lpGrid'), () => { $('langPick').hidden = true; langButtons($('sLang')); });
   }
-  ensureSeason(); applySkin();
+  ensureSeason(); applySkin(); if (save.lowGfx) applyGfx();
   goTitle(); setCoins(); scheduleReminder();
+  ageGate(); if (save.birthYear) adsStart();
   requestAnimationFrame(() => requestAnimationFrame(autoDailySoon));   // cuenta desde que la portada ya se ve
   requestAnimationFrame(frame);
   window.ChromaGame = { G, startLevel, tick, manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, LEVELS, goTitle, finishWin };

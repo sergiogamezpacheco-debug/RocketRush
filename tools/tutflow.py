@@ -5,7 +5,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(args=['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'])
     pg = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=1, is_mobile=True, has_touch=True).new_page()
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.add_init_script("window.RR_TUT_TEST = true; localStorage.setItem('rocketrush.lang','es')")
+    pg.add_init_script("window.RR_TUT_TEST = true; window.RR_AGE = 30; localStorage.setItem('rocketrush.lang','es')")
     pg.route('**/*googleapis.com/**', lambda r: r.abort())
     pg.goto('file:///home/claude/chroma3d/dist/index.html')
     st = lambda: pg.evaluate("() => [Tutorial.step, Tutorial.visible, document.querySelector('#tut .tu-tt').textContent]")

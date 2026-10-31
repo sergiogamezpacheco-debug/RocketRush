@@ -25,7 +25,10 @@
   function setNet(s, err) { net = s; netErr = err || ''; renderNet(); }
   let inflight = 0;                               // peticiones en curso (para las pruebas)
   class FbErr extends Error { constructor(status, code, msg) { super(msg || code); this.status = status; this.code = code || ''; } }
+  // menores de 13 años o funciones en línea apagadas en Ajustes: no se habla con el servidor
+  const offline = () => !!(X.save.kid || X.save.noOnline || !X.save.birthYear);   // sin edad (aún no ha contestado): nada
   async function call(url, opt, authed) {
+    if (offline()) throw new FbErr(-1, 'OFF', X.save.kid ? 'kid' : 'off');
     opt = opt || {};
     const h = Object.assign({ 'Content-Type': 'application/json' }, opt.headers || {});
     if (authed !== false) h.Authorization = 'Bearer ' + await token();
@@ -275,6 +278,7 @@
   const pct = s => s && s.plays ? Math.round(100 * (s.wins || 0) / s.plays) : 0;
   function errText(e) {
     const t = (e && (e.code + ' ' + e.message)) || '';
+    if (e && e.status === -1) return X.save.kid ? 'Amigos y clasificaciones no están disponibles para tu edad.' : 'Las funciones en línea están desactivadas en Ajustes › Privacidad.';
     if (!e || e.status === 0) return 'Sin conexión a internet.';
     if (/ADMIN_ONLY_OPERATION|OPERATION_NOT_ALLOWED|CONFIGURATION_NOT_FOUND/.test(t)) return 'El servidor aún no está listo: falta activar el inicio de sesión anónimo en Firebase.';
     if (/index/i.test(t)) { console.warn('[RR social] ' + e.message); return 'Falta crear un índice en Firestore para esta clasificación.'; }
@@ -397,6 +401,7 @@
   async function refresh() {
     render();
     if (tab === 'me') return;
+    if (offline()) { loadErr = T(errText({ status: -1 })); setNet('error', loadErr); render(); return; }
     if (!navigator.onLine) { setNet('offline'); return; }
     if (maint()) { loadErr = T('En mantenimiento: vuelve en un rato'); setNet('error', loadErr); render(); return; }
     busy = true; loadErr = ''; if (net !== 'online') setNet('connecting'); render();
@@ -425,6 +430,7 @@
   // mantenimiento activado desde el panel: no se sube ni se descarga nada
   const maint = () => !!(window.Live && window.Live.cfg.maint && window.Live.cfg.maint.on);
   async function sync() {
+    if (offline()) return;
     if (syncing || !navigator.onLine) { if (!navigator.onLine) setNet('offline'); return; }
     if (maint()) return;
     syncing = true;
@@ -475,5 +481,34 @@
     throw new CodeErr('USED_UP');
   }
 
-  window.Social = { open, dirty, sync, addByCode, render, redeem, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
+  // ---------------- borrar la cuenta en línea ----------------
+  // Se borran el perfil público (users), el código de amigo (codes), las amistades y solicitudes (friendships)
+  // y la cuenta de Firebase. El progreso del juego está solo en el móvil y no se toca (se borra aparte).
+  // Después las funciones en línea quedan apagadas, para que no se cree una cuenta nueva sin querer.
+  async function deleteAccount() {
+    if (auth && auth.refresh) {
+      const was = [X.save.kid, X.save.noOnline, X.save.birthYear];
+      X.save.kid = false; X.save.noOnline = false; X.save.birthYear = X.save.birthYear || 1;
+      try { await wipeServer(); } finally { X.save.kid = was[0]; X.save.noOnline = was[1]; X.save.birthYear = was[2]; }
+    }
+    auth = null; saveAuth(); lastPushed = ''; lsSet(PUSH_KEY, '');
+    FR.list = []; FR.inc = []; FR.out = []; FR.loaded = false; FR.at = 0;
+    for (const k in BOARD) delete BOARD[k];
+    X.save.codeUid = null; X.save.profUid = null; X.save.friends = []; X.save.noOnline = true; X.newPid(); X.persist();
+    setNet('offline');
+  }
+  async function wipeServer() {
+    {
+      await token();
+      const me = auth.uid, q = k => runQuery({ from: [{ collectionId: 'friendships' }], where: ffilter(k, 'EQUAL', me), limit: 300 });
+      const [A, B] = await Promise.all([q('a'), q('b')]);
+      for (const f of new Map(A.concat(B).map(x => [x._id, x])).values()) { try { await delDoc(`friendships/${f._id}`); } catch (e) { if (e.status !== 404) throw e; } }
+      const c = X.codeCore(), d = await getDoc(`codes/${c}`);
+      if (d && d.uid === me) await delDoc(`codes/${c}`);
+      try { await delDoc(`users/${me}`); } catch (e) { if (e.status !== 404) throw e; }
+      await call(`${IDT}/accounts:delete?key=${CFG.apiKey}`, { method: 'POST', body: JSON.stringify({ idToken: auth.id }) }, false);
+    }
+  }
+
+  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
 })();

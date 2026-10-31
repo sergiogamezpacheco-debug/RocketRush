@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
@@ -11,13 +12,24 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="Rocket Rush"
         android:hardwareAccelerated="true"
-        android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+        android:enableOnBackInvokedCallback="true"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+
+        <!-- Android 16 en tablets y plegables: el juego está pensado en vertical (se mantiene centrado) -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+            android:value="true" />
+
+        <!-- AdMob: identificador de la app (el de prueba de Google salvo que GitHub ponga el real) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="portrait"
-            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|uiMode"
+            android:configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden|screenLayout|uiMode"
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

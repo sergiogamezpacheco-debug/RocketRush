@@ -28,19 +28,23 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # El SDK de Android ya viene instalado en las máquinas de GitHub: solo se aceptan sus licencias
+      # El SDK de Android ya viene instalado en las máquinas de GitHub: se aceptan sus licencias y se añade Android 16 (API 36)
       - name: Preparar el SDK de Android
         run: |
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" > /dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.7'
+          gradle-version: '8.13'
 
       - name: Compilar APK de prueba
         working-directory: android
+        env:
+          ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
+          ADMOB_REWARDED: ${{ vars.ADMOB_REWARDED }}
+          ADMOB_INTERSTITIAL: ${{ vars.ADMOB_INTERSTITIAL }}
         run: gradle assembleDebug --no-daemon --stacktrace
 
       - uses: actions/upload-artifact@v4

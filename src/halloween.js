@@ -204,7 +204,7 @@
       }
       if (LT.t0 >= 0) {
         const e = t - LT.t0, k = e < 0.06 ? 1 : e < 0.12 ? 0.25 : e < 0.2 ? 0.85 : e < 0.45 ? 0.85 * (1 - (e - 0.2) / 0.25) : 0;
-        flashLevel(Math.max(0, k));
+        flashLevel(Math.max(0, k) * (X.save && X.save.calm ? 0.18 : 1));
         if (e >= 0.45) { LT.t0 = -1; LT.next = t + (H.G.mode === 'title' ? rnd(1, 2) : 5); }
       }
     }

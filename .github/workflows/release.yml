@@ -1,0 +1,71 @@
+name: Versión para Google Play (AAB)
+
+# Se lanza a mano (Actions › Versión para Google Play › Run workflow).
+# Hace el paquete .aab firmado con la clave de subida que está en los secretos del repositorio:
+#   UPLOAD_KEYSTORE_B64 (el archivo .jks en base64), UPLOAD_KEYSTORE_PASS, UPLOAD_KEY_ALIAS, UPLOAD_KEY_PASS
+# El juego va SIN modo prueba. El .aab se descarga de la ejecución y se sube a Play Console.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  aab:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Empaquetar el juego (versión para publicar)
+        env:
+          APP_VERSION: 1.0.${{ github.run_number }}
+        run: |
+          node tools/build.js --release
+          mkdir -p android/app/src/main/assets
+          cp dist/index.html android/app/src/main/assets/index.html
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Preparar el SDK de Android
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Recuperar la clave de subida
+        env:
+          KS: ${{ secrets.UPLOAD_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KS" ]; then echo "::error::Falta el secreto UPLOAD_KEYSTORE_B64 (lanza antes «Crear clave de subida»)"; exit 1; fi
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/subida.jks"
+          echo "UPLOAD_KEYSTORE_FILE=$RUNNER_TEMP/subida.jks" >> "$GITHUB_ENV"
+
+      - name: Compilar el AAB firmado
+        working-directory: android
+        env:
+          UPLOAD_KEYSTORE_PASS: ${{ secrets.UPLOAD_KEYSTORE_PASS }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASS: ${{ secrets.UPLOAD_KEY_PASS }}
+          ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
+          ADMOB_REWARDED: ${{ vars.ADMOB_REWARDED }}
+          ADMOB_INTERSTITIAL: ${{ vars.ADMOB_INTERSTITIAL }}
+        run: |
+          gradle bundleRelease --no-daemon --stacktrace
+          mv app/build/outputs/bundle/release/*.aab "app/build/outputs/bundle/release/RocketRush-1.0.${{ github.run_number }}.aab"
+
+      - name: Borrar la clave de la máquina
+        if: always()
+        run: rm -f "$RUNNER_TEMP/subida.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RocketRush-play-1.0.${{ github.run_number }}
+          path: android/app/build/outputs/bundle/release/*.aab

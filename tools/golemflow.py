@@ -8,7 +8,7 @@ heavy=float(sys.argv[3]) if len(sys.argv)>3 else 0.5
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     pg=b.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True).new_page(); errs=[]
-    pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
+    pg.add_init_script("window.RR_AGE = 30; localStorage.setItem('rocketrush.lang','es')")
     pg.on('pageerror',lambda e: errs.append(str(e)))
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(2000)
     pg.evaluate("() => ChromaGame.manual(true)")

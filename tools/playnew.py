@@ -10,7 +10,7 @@ SHOT = """() => { const s=ChromaGame.G.sim; if (!s.canFire()) return 'espera'; c
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     pg=b.new_context(viewport={'width':390,'height':844}).new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
-    pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
+    pg.add_init_script("window.RR_AGE = 30; localStorage.setItem('rocketrush.lang','es')")
     pg.add_init_script("localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:100, seen:{bird:true,ship:true,c_desert:true,c_snow:true,c_jungle:true,c_volcano:true,c_space:true}}))")
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(1500); ev(pg,"() => ChromaGame.manual(true)")
     shots=[]

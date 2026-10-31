@@ -18,7 +18,7 @@
   const GOLEM_SKIN = { snow: [0xbfe0ff, 0.2, 0.2], space: [0xb8bcd0, 0.8, 0.3], candy: [0xffa8d8, 0, 0.4], temple: [0x9aa86a, 0, 0.9], neon: [0x3a3a5a, 0.7, 0.3], volcano: [0x3b3236, 0, 0.9], desert: [0xd8b078, 0, 0.9] };
   const css = `
   body.bossmode #meter{visibility:hidden}
-  #bossBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(max(10px,env(safe-area-inset-top)) + 64px);width:min(94vw,460px);z-index:4;display:none;pointer-events:none}
+  #bossBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 64px);width:min(94vw,460px);z-index:4;display:none;pointer-events:none}
   #bossBar.on{display:block}
   .bbTop{display:flex;align-items:center;gap:8px;color:#fff;font-weight:900;font-size:16px;margin-bottom:5px;text-shadow:0 2px 0 rgba(0,0,0,.6)}
   .bbTop svg{width:30px;height:30px;flex:none;filter:drop-shadow(0 2px 0 rgba(0,0,0,.5))}

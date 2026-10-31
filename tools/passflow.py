@@ -8,7 +8,7 @@ def on(pg,id): return ev(pg,f"() => document.getElementById('{id}').classList.co
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     pg=b.new_context(viewport={'width':390,'height':844}).new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
-    pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
+    pg.add_init_script("window.RR_AGE = 30; localStorage.setItem('rocketrush.lang','es')")
     pg.add_init_script("localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:6, stars:{1:3,2:3,3:2,4:3,5:1}, coins:800, gemDry:2, daily:{n:0,last:null,best:0,shields:0,adRescue:-99,auto:Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)}}))")
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(1500)
     ev(pg,"() => ChromaGame.manual(true)")

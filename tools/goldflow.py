@@ -9,7 +9,7 @@ def vis(pg,id): return ev(pg,f"() => !document.getElementById('{id}').hidden")
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     pg=b.new_context(viewport={'width':390,'height':844}).new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
-    pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
+    pg.add_init_script("window.RR_AGE = 30; localStorage.setItem('rocketrush.lang','es')")
     stars={i:3 for i in range(1,6)}
     pg.add_init_script("localStorage.setItem('chromacrash3d.v1', JSON.stringify({worlds3:true, unlocked:11, stars:%s, coins:400, bonusSeen:{10001:true}, daily:{n:0,last:null,best:0,shields:0,adRescue:-99,auto:Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)}}))" % str(stars).replace("'",'"'))
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(1500)

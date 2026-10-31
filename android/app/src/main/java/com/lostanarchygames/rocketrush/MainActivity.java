@@ -1,6 +1,5 @@
 package com.lostanarchygames.rocketrush;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -8,7 +7,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
-import android.view.View;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
@@ -17,21 +15,42 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.activity.ComponentActivity;
+import androidx.activity.EdgeToEdge;
+import androidx.activity.OnBackPressedCallback;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.webkit.WebViewAssetLoader;
+
+import org.json.JSONObject;
 
 /**
  * Envoltorio nativo: carga el juego desde los recursos de la app, sin conexión.
  * El juego se sirve como https://appassets.androidplatform.net/assets/index.html (sale de la propia APK, no de internet):
  * así el WebView lo trata como una página segura y puede hablar con Firebase y guardar la sesión.
+ * Android 15+ dibuja de borde a borde: las zonas de la muesca y de las barras se pasan al juego como variables CSS
+ * (--sat, --sar, --sab, --sal) y el juego deja ese margen.
  */
-public class MainActivity extends Activity {
+public class MainActivity extends ComponentActivity {
 
     private WebView web;
+    private Billing billing;
+    private Ads ads;
+    private Insets lastInsets = Insets.NONE;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (Build.VERSION.SDK_INT >= 28) {
+            WindowManager.LayoutParams lp = getWindow().getAttributes();
+            lp.layoutInDisplayCutoutMode = Build.VERSION.SDK_INT >= 30 ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            getWindow().setAttributes(lp);
+        }
 
         web = new WebView(this);
         web.setBackgroundColor(0xFF1D1440);
@@ -51,11 +70,47 @@ public class MainActivity extends Activity {
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return assets.shouldInterceptRequest(request.getUrl());
             }
+            @Override
+            public void onPageFinished(WebView view, String url) { pushInsets(); }
         });
         web.addJavascriptInterface(new Bridge(), "ChromaAndroid");
         setContentView(web);
+
+        // muesca y barras del sistema: el juego recibe sus medidas en píxeles CSS
+        ViewCompat.setOnApplyWindowInsetsListener(web, (v, wi) -> {
+            lastInsets = wi.getInsets(WindowInsetsCompat.Type.displayCutout());
+            pushInsets();
+            return WindowInsetsCompat.CONSUMED;
+        });
         hideSystemUi();
+
+        // gesto atrás (también el predictivo de Android 14+): primero cierra lo que haya abierto en el juego
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (web == null) { finish(); return; }
+                web.evaluateJavascript("(window.ChromaBack && window.ChromaBack()) ? 'si' : 'no'", value -> {
+                    if (value == null || !value.contains("si")) moveTaskToBack(true);
+                });
+            }
+        });
+
+        billing = new Billing(this, this::js);
+        ads = new Ads(this, this::js);
         web.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+    }
+
+    /** Ejecuta código en el juego (siempre en el hilo principal). */
+    void js(String code) {
+        runOnUiThread(() -> { if (web != null) web.evaluateJavascript(code, null); });
+    }
+    static String q(String s) { return JSONObject.quote(s == null ? "" : s); }
+
+    private void pushInsets() {
+        if (web == null) return;
+        float d = getResources().getDisplayMetrics().density;
+        js(String.format(java.util.Locale.US, "window.ChromaInsets && window.ChromaInsets(%.1f,%.1f,%.1f,%.1f)",
+                lastInsets.top / d, lastInsets.right / d, lastInsets.bottom / d, lastInsets.left / d));
     }
 
     /** Funciones que el juego puede llamar desde JavaScript. */
@@ -64,27 +119,18 @@ public class MainActivity extends Activity {
         public void vibrate(long ms) {
             Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
             if (v == null || ms <= 0) return;
-            if (Build.VERSION.SDK_INT >= 26) {
-                v.vibrate(VibrationEffect.createOneShot(Math.min(ms, 300), VibrationEffect.DEFAULT_AMPLITUDE));
-            } else {
-                v.vibrate(Math.min(ms, 300));
-            }
+            if (Build.VERSION.SDK_INT >= 26) v.vibrate(VibrationEffect.createOneShot(Math.min(ms, 300), VibrationEffect.DEFAULT_AMPLITUDE));
+            else v.vibrate(Math.min(ms, 300));
         }
 
         /** Aviso de la racha diaria: el juego pasa la hora (ms desde 1970, como texto) y el mensaje. */
         @JavascriptInterface
         public void scheduleReminder(String atMs, String title, String text) {
-            try {
-                ReminderReceiver.schedule(MainActivity.this, Long.parseLong(atMs), title, text);
-            } catch (NumberFormatException e) {
-                // hora no válida: no se programa
-            }
+            try { ReminderReceiver.schedule(MainActivity.this, Long.parseLong(atMs), title, text); } catch (NumberFormatException e) { /* hora no válida */ }
         }
 
         @JavascriptInterface
-        public void cancelReminder() {
-            ReminderReceiver.cancel(MainActivity.this);
-        }
+        public void cancelReminder() { ReminderReceiver.cancel(MainActivity.this); }
 
         /** Comparte un texto (invitación con el código de amigo) con las apps del móvil. */
         @JavascriptInterface
@@ -93,20 +139,20 @@ public class MainActivity extends Activity {
                 Intent i = new Intent(Intent.ACTION_SEND);
                 i.setType("text/plain");
                 i.putExtra(Intent.EXTRA_TEXT, text);
-                startActivity(Intent.createChooser(i, "Invitar a un amigo"));
+                startActivity(Intent.createChooser(i, "Rocket Rush"));
             });
         }
 
-        /** Abre un enlace fuera del juego (ficha de Play para actualizar, privacidad…). Solo https y market. */
+        /** Abre un enlace fuera del juego (ficha de Play, privacidad, correo de soporte). Solo https, market y mailto. */
         @JavascriptInterface
         public void openUrl(String url) {
-            if (url == null || !(url.startsWith("https://") || url.startsWith("market://"))) return;
+            if (url == null || !(url.startsWith("https://") || url.startsWith("market://") || url.startsWith("mailto:"))) return;
             runOnUiThread(() -> {
                 try {
-                    Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+                    Intent i = new Intent(url.startsWith("mailto:") ? Intent.ACTION_SENDTO : Intent.ACTION_VIEW, android.net.Uri.parse(url));
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(i);
-                } catch (Exception e) { /* sin navegador ni Play */ }
+                } catch (Exception e) { /* sin navegador, correo ni Play */ }
             });
         }
 
@@ -120,17 +166,29 @@ public class MainActivity extends Activity {
                 }
             });
         }
+
+        @JavascriptInterface
+        public String version() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return ""; } }
+
+        // ---------- compras (Google Play Billing) ----------
+        @JavascriptInterface public void billingQuery(String idsJson) { billing.query(idsJson); }
+        @JavascriptInterface public void billingBuy(String id) { runOnUiThread(() -> billing.buy(MainActivity.this, id)); }
+        @JavascriptInterface public void billingFinish(String token, boolean consume) { billing.finish(token, consume); }
+        @JavascriptInterface public void billingRestore() { billing.restore(); }
+
+        // ---------- anuncios (AdMob) y consentimiento (UMP) ----------
+        /** age: edad del jugador (0 = no la sabemos). Menores de 16: anuncios no personalizados. */
+        @JavascriptInterface public void adsInit(int age) { runOnUiThread(() -> ads.init(MainActivity.this, age)); }
+        @JavascriptInterface public void showRewarded() { runOnUiThread(() -> ads.showRewarded(MainActivity.this)); }
+        @JavascriptInterface public void showInterstitial() { runOnUiThread(() -> ads.showInterstitial(MainActivity.this)); }
+        @JavascriptInterface public boolean adsPrivacyRequired() { return ads.privacyRequired(); }
+        @JavascriptInterface public void adsPrivacyOptions() { runOnUiThread(() -> ads.privacyOptions(MainActivity.this)); }
     }
 
-    @SuppressWarnings("deprecation")
     private void hideSystemUi() {
-        getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN);
+        WindowInsetsControllerCompat c = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        c.hide(WindowInsetsCompat.Type.systemBars());
+        c.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
     }
 
     @Override
@@ -157,19 +215,12 @@ public class MainActivity extends Activity {
             web.resumeTimers();
             web.evaluateJavascript("window.ChromaResume && window.ChromaResume()", null);
         }
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public void onBackPressed() {
-        if (web == null) { super.onBackPressed(); return; }
-        web.evaluateJavascript("(window.ChromaBack && window.ChromaBack()) ? 'si' : 'no'", value -> {
-            if (value == null || !value.contains("si")) finish();
-        });
+        if (billing != null) billing.restore();   // compras pendientes que se completaron fuera (pago en efectivo, etc.)
     }
 
     @Override
     protected void onDestroy() {
+        if (billing != null) billing.end();
         if (web != null) web.destroy();
         super.onDestroy();
     }

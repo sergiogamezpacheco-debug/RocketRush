@@ -2,27 +2,47 @@ plugins {
     id 'com.android.application'
 }
 
+// Identificadores de AdMob: por defecto, los de prueba de Google (no dan dinero, pero se ven como anuncios de verdad).
+// Los reales se ponen en GitHub › Settings › Secrets and variables › Actions › Variables:
+// ADMOB_APP_ID, ADMOB_REWARDED e ADMOB_INTERSTITIAL (son públicos: no hace falta guardarlos como secreto).
+def env = { String k, String d -> def v = System.getenv(k); return (v != null && !v.trim().isEmpty()) ? v.trim() : d }
+def admobApp = env('ADMOB_APP_ID', 'ca-app-pub-3940256099942544~3347511713')
+def admobRewarded = env('ADMOB_REWARDED', 'ca-app-pub-3940256099942544/5224354917')
+def admobInter = env('ADMOB_INTERSTITIAL', 'ca-app-pub-3940256099942544/1033173712')
+// Clave de subida a Google Play (solo en GitHub, desde los secretos; nunca en el repositorio)
+def upload = System.getenv('UPLOAD_KEYSTORE_FILE')
+
 android {
     namespace 'com.lostanarchygames.rocketrush'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.lostanarchygames.rocketrush"
         minSdk 24
-        targetSdk 34
+        targetSdk 36
         // en GitHub Actions cada compilación lleva un número mayor (así el móvil la reconoce como actualización)
         versionCode 10 + (System.getenv("GITHUB_RUN_NUMBER") ?: "0").toInteger()
         versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        manifestPlaceholders = [admobAppId: admobApp]
+        resValue 'string', 'admob_rewarded', admobRewarded
+        resValue 'string', 'admob_interstitial', admobInter
     }
 
-    // Clave fija para las APK de prueba: todas se firman igual y se instalan encima de la anterior.
-    // (Para Google Play se usará otra clave privada que NO va al repositorio.)
     signingConfigs {
+        // Clave fija para las APK de prueba: todas se firman igual y se instalan encima de la anterior.
         pruebas {
             storeFile file('rocketrush-test.jks')
             storePassword 'rocketrush'
             keyAlias 'rocketrush'
             keyPassword 'rocketrush'
+        }
+        if (upload) {
+            subida {
+                storeFile file(upload)
+                storePassword System.getenv('UPLOAD_KEYSTORE_PASS')
+                keyAlias System.getenv('UPLOAD_KEY_ALIAS')
+                keyPassword System.getenv('UPLOAD_KEY_PASS')
+            }
         }
     }
 
@@ -32,8 +52,11 @@ android {
         }
         release {
             minifyEnabled false
+            if (upload) signingConfig signingConfigs.subida
         }
     }
+
+    buildFeatures { resValues true }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -48,5 +71,13 @@ android.applicationVariants.all { variant ->
 
 dependencies {
     // sirve el juego desde la APK con una dirección https (lo necesita Firebase)
-    implementation 'androidx.webkit:webkit:1.8.0'
+    implementation 'androidx.webkit:webkit:1.12.1'
+    // pantalla de borde a borde, gesto atrás predictivo e insets (muesca y barras)
+    implementation 'androidx.activity:activity:1.9.3'
+    implementation 'androidx.core:core:1.13.1'
+    // compras dentro del juego con Google Play
+    implementation 'com.android.billingclient:billing:8.0.0'
+    // anuncios (AdMob) y formulario de consentimiento (UMP)
+    implementation 'com.google.android.gms:play-services-ads:24.0.0'
+    implementation 'com.google.android.ump:user-messaging-platform:3.1.0'
 }

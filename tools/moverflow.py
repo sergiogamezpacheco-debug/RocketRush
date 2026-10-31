@@ -10,7 +10,7 @@ LEAD="""(kind) => { const s=ChromaGame.G.sim, m=s.movers.find(x=>x.kind===kind &
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     pg=b.new_context(viewport={'width':390,'height':844}).new_page(); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
-    pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
+    pg.add_init_script("window.RR_AGE = 30; localStorage.setItem('rocketrush.lang','es')")
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(1500)
     ev(pg,"() => ChromaGame.manual(true)")
     for kind in ['bird','ship']:

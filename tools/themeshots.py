@@ -10,7 +10,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     ctx=b.new_context(viewport={'width':390,'height':844},device_scale_factor=1,is_mobile=True,has_touch=True)
     pg=ctx.new_page(); errs=[]
-    pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
+    pg.add_init_script("window.RR_AGE = 30; localStorage.setItem('rocketrush.lang','es')")
     pg.on('pageerror',lambda e: errs.append(str(e)))
     stars={i:(3 if i%3 else 2) for i in range(1,12)}
     pg.add_init_script("localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:12, coins:2660, gems:19, stars:%s, daily:{n:3,last:Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)-1,best:3,shields:0,adRescue:-99}}))" % str(stars).replace("'",'"'))

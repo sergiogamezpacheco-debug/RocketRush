@@ -114,7 +114,7 @@ with sync_playwright() as p:
             ctx.route(re.compile(r'https://' + re.escape(host) + '/.*'), handler)
         pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.on('console', lambda m: m.type == 'warning' and 'RR social' in m.text and errs.append(m.text))
-        pg.add_init_script("localStorage.setItem('rocketrush.lang','es')")
+        pg.add_init_script("window.RR_AGE = 30; localStorage.setItem('rocketrush.lang','es')")
         if os.environ.get('FS_DB'): pg.add_init_script("window.RR_FS_DB = %s" % json.dumps(os.environ['FS_DB']))
         pg.add_init_script("if(!sessionStorage.g){sessionStorage.g=1;localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:%d, prof:{name:'%s',avatar:'🦊',country:'%s'}, stats:{wins:%d,plays:%d,bestShot:%d}}))}" % (lv, name + (' (prueba)' if LIVE else ''), 'ZZ' if LIVE else 'ES', lv - 1, lv + 3, lv // 2))
         pg.goto(os.environ.get('GAME_URL') or 'file://' + os.path.join(HERE, 'dist', 'index.html'), wait_until='domcontentloaded', timeout=60000)
