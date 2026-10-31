@@ -78,6 +78,13 @@ service cloud.firestore {
       allow get: if isMe(uid) || isAdmin();
       allow list, write: if isAdmin();
     }
+    // Copia del progreso (solo cuentas enlazadas con Google; la sube y la lee su dueño)
+    match /saves/{uid} {
+      allow get, delete: if isMe(uid);
+      allow create, update: if isMe(uid) && request.resource.data.keys().hasOnly(['data', 'at', 'lv', 'stars', 'dev'])
+        && request.resource.data.data is string && request.resource.data.data.size() <= 900000
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
     // Nombres de jugador únicos: names/{nombre en minúsculas} → uid. Nadie puede quitarle el nombre a otro.
     match /names/{n} {
       allow get: if signedIn();

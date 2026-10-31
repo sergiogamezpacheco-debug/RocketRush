@@ -24,6 +24,11 @@ class FakeFS:
         req = route.request; u = urllib.parse.urlparse(req.url); m = req.method
         body = json.loads(req.post_data) if req.post_data else {}
         self.log.append((m, u.path.split('/documents')[-1][:80]))
+        if 'accounts:signInWithIdp' in u.path:
+            if body.get('idToken') and getattr(self, 'google_existing', None):
+                return route.fulfill(status=400, json={'error': {'code': 400, 'message': 'FEDERATED_USER_ID_ALREADY_LINKED'}})
+            uid = 'ME' if body.get('idToken') else self.google_existing
+            return route.fulfill(json={'localId': uid, 'idToken': 'TG', 'refreshToken': 'RG', 'expiresIn': '3600', 'email': 'yo@gmail.com'})
         if 'accounts:signUp' in u.path: return route.fulfill(json={'localId': 'ME', 'idToken': 'T', 'refreshToken': 'R', 'expiresIn': '3600'})
         if 'accounts:delete' in u.path or 'securetoken' in u.netloc: return route.fulfill(json={'user_id': 'ME', 'id_token': 'T', 'refresh_token': 'R', 'expires_in': '3600'})
         path = urllib.parse.unquote(u.path.split('/documents', 1)[1]) if '/documents' in u.path else ''

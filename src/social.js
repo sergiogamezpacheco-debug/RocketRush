@@ -54,7 +54,7 @@
     if (auth && auth.refresh) {
       try {
         const j = await call(`${STS}/token?key=${CFG.apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(auth.refresh) }, false);
-        auth = { uid: j.user_id, id: j.id_token, refresh: j.refresh_token, exp: Date.now() + (+j.expires_in || 3600) * 1000 };
+        auth = { uid: j.user_id, id: j.id_token, refresh: j.refresh_token, exp: Date.now() + (+j.expires_in || 3600) * 1000, google: !!(auth && auth.google) };
         saveAuth(); return auth.id;
       } catch (e) {
         // sin conexión o servidor caído: se reintenta más tarde. Pase inválido (cuenta borrada): cuenta nueva
@@ -63,7 +63,7 @@
     }
     const j = await call(`${IDT}/accounts:signUp?key=${CFG.apiKey}`, { method: 'POST', body: JSON.stringify({ returnSecureToken: true }) }, false);
     auth = { uid: j.localId, id: j.idToken, refresh: j.refreshToken, exp: Date.now() + (+j.expiresIn || 3600) * 1000 };
-    saveAuth(); X.save.codeUid = null; X.persist();
+    saveAuth(); X.save.codeUid = null; X.save.gacc = null; X.persist();
     return auth.id;
   }
 
@@ -487,6 +487,7 @@
   // ---------------- sincronización en segundo plano ----------------
   let dt = 0;
   function dirty(ms) {
+    if (typeof cloudSoon === 'function') cloudSoon();
     if (dt && !ms) return;
     clearTimeout(dt);
     dt = setTimeout(() => { dt = 0; sync(); }, ms || 20000);
@@ -564,7 +565,9 @@
     auth = null; saveAuth(); lastPushed = ''; lsSet(PUSH_KEY, '');
     FR.list = []; FR.inc = []; FR.out = []; FR.loaded = false; FR.at = 0;
     for (const k in BOARD) delete BOARD[k];
-    X.save.codeUid = null; X.save.profUid = null; X.save.friends = []; X.save.nameLc = null; X.save.tester = false; X.save.noOnline = true; X.newPid(); X.persist();
+    X.save.codeUid = null; X.save.profUid = null; X.save.friends = []; X.save.nameLc = null; X.save.tester = false; X.save.gacc = null; X.save.noOnline = true;
+    try { if (window.ChromaAndroid && window.ChromaAndroid.googleSignOut) window.ChromaAndroid.googleSignOut(); } catch (e) { /* nada */ }
+    lsSet(CLOUD_KEY, '{}'); X.newPid(); X.persist();
     setNet('offline');
   }
   async function wipeServer() {
@@ -577,6 +580,7 @@
       const c = X.codeCore(), d = await getDoc(`codes/${c}`);
       if (d && d.uid === me) await delDoc(`codes/${c}`);
       if (X.save.nameLc) { try { await delDoc(`names/${encodeURIComponent(X.save.nameLc)}`); } catch (e) { if (e.status !== 404 && e.status !== 403) throw e; } }
+      try { await delDoc(`saves/${me}`); } catch (e) { if (e.status !== 404 && e.status !== 403) throw e; }
       try { await delDoc(`users/${me}`); } catch (e) { if (e.status !== 404) throw e; }
       await call(`${IDT}/accounts:delete?key=${CFG.apiKey}`, { method: 'POST', body: JSON.stringify({ idToken: auth.id }) }, false);
     }
@@ -779,6 +783,156 @@
   const Club = { time: clubTime, load: clubLoad, create: clubCreate, search: clubSearch, join: clubJoin, leave: clubLeave, kick: clubKick, role: clubRole,
     transfer: clubTransfer, accept: clubAccept, reject: clubReject, settings: clubSettings, report: clubReport, league: clubLeague, state: CL, get id() { return myClubId(); } };
 
+  // ---------------- entrar con Google y copia del progreso en la nube ----------------
+  // La cuenta anónima se ENLAZA a la de Google (mismo uid: amigos, club y nombre siguen). Si esa cuenta de Google ya tenía
+  // progreso de otro móvil, se entra en ella (la anónima de este móvil se borra) y se pregunta qué progreso quedarse.
+  // Copia: saves/{uid} = el progreso entero (JSON), al minuto de cada cambio y al salir del juego.
+  const GOOGLE_WEB = '385088273478-vtlgkobgmei8oeuu02t7jg318n7t5n7h.apps.googleusercontent.com';
+  const SAVE_KEY = 'chromacrash3d.v1', CLOUD_KEY = 'rocketrush.cloud';
+  class GErr extends Error { constructor(c) { super(c); this.code = c; } }
+  const linked = () => !!(auth && auth.google && X.save.gacc);
+  const devId = () => { let d = lsGet('rocketrush.dev'); if (!d) { d = Math.random().toString(36).slice(2, 12); lsSet('rocketrush.dev', d); } return d; };
+  let cloudInfo = {}; try { cloudInfo = JSON.parse(lsGet(CLOUD_KEY) || '{}') || {}; } catch (e) { cloudInfo = {}; }
+  function googleSignIn() {
+    return new Promise((res, rej) => {
+      const A = window.ChromaAndroid;
+      if (!A || !A.googleSignIn) { rej(new GErr('NO_APP')); return; }
+      if (offline()) { rej(new FbErr(-1, 'OFF')); return; }
+      window.onGoogleSignIn = async r => {
+        window.onGoogleSignIn = null;
+        if (!r || !r.ok) { rej(new GErr(r && r.error === 'CANCEL' ? 'CANCEL' : 'FAIL')); return; }
+        try { res(await googleFirebase(r)); } catch (e) { rej(e); }
+      };
+      A.googleSignIn(GOOGLE_WEB);
+    });
+  }
+  async function googleFirebase(r) {
+    await token();
+    const old = Object.assign({}, auth);
+    const post = { postBody: 'id_token=' + encodeURIComponent(r.idToken) + '&providerId=google.com', requestUri: 'http://localhost', returnSecureToken: true };
+    const idp = body => call(`${IDT}/accounts:signInWithIdp?key=${CFG.apiKey}`, { method: 'POST', body: JSON.stringify(body) }, false);
+    let j;
+    try { j = await idp(Object.assign({ idToken: old.id }, post)); }
+    catch (e) {
+      if (!/FEDERATED_USER_ID_ALREADY_LINKED|ALREADY_LINKED|EMAIL_EXISTS|CREDENTIAL/.test(e.code + ' ' + e.message)) throw e;
+      j = await idp(post);                         // esa cuenta de Google ya existía: se entra en ella
+    }
+    const switched = j.localId !== old.uid;
+    if (switched) { try { await wipeServer(); } catch (e) { /* la anónima de este móvil se queda huérfana */ } }
+    auth = { uid: j.localId, id: j.idToken, refresh: j.refreshToken, exp: Date.now() + (+j.expiresIn || 3600) * 1000, google: true };
+    saveAuth();
+    X.save.gacc = { email: r.email || j.email || '', name: r.name || j.displayName || '', at: Date.now() };
+    if (switched) { X.save.codeUid = null; X.save.profUid = null; X.save.club = null; X.save.nameLc = null; X.save.clubReq = null; lastPushed = ''; lsSet(PUSH_KEY, ''); }
+    X.persist();
+    const cloud = await cloudGet();
+    if (!switched || !cloud) { await cloudPut(true); dirty(800); }
+    return { switched, cloud };
+  }
+  async function cloudGet() {
+    const d = await getDoc(`saves/${auth.uid}`);
+    if (!d) return null;
+    let data = null; try { data = JSON.parse(d.data); } catch (e) { data = null; }
+    return data ? { data, at: d.at, lv: d.lv, stars: d.stars, dev: d.dev } : null;
+  }
+  let cloudT = 0, cloudBusy = false;
+  async function cloudPut(force) {
+    if (!linked() || offline() || cloudBusy) return false;
+    const raw = JSON.stringify(X.save);
+    if (raw.length > 900000) return false;
+    if (!force && raw === cloudInfo.last) return false;
+    cloudBusy = true;
+    try {
+      await token();
+      await setDoc(`saves/${auth.uid}`, { data: raw, at: new Date(), lv: Math.min(X.save.unlocked || 1, 100000), stars: X.starsTotal(), dev: devId() }, { merge: false });
+      cloudInfo = { last: raw, at: Date.now() }; lsSet(CLOUD_KEY, JSON.stringify({ at: cloudInfo.at, last: raw }));
+      return true;
+    } finally { cloudBusy = false; }
+  }
+  function cloudSoon() { if (!linked()) return; clearTimeout(cloudT); cloudT = setTimeout(() => { cloudPut().catch(() => { /* se reintenta en el próximo cambio */ }); }, 60000); }
+  // al salir del juego (Android lo avisa con ChromaPause) se sube lo que falte
+  { const p0 = window.ChromaPause; window.ChromaPause = () => { if (p0) p0(); if (linked()) cloudPut().catch(() => {}); }; }
+  function cloudApply(data) {
+    // se queda con el progreso de la nube y vuelve a abrir el juego con él (la cuenta de Google se mantiene)
+    data = Object.assign({}, data, { gacc: X.save.gacc, birthYear: data.birthYear || X.save.birthYear });
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); lsSet(CLOUD_KEY, JSON.stringify({ at: Date.now(), last: JSON.stringify(data) })); } catch (e) { return; }
+    location.reload();
+  }
+  async function googleSignOut() {
+    if (linked()) { try { await cloudPut(true); } catch (e) { /* sin conexión: la nube tiene la última copia */ } }
+    try { if (window.ChromaAndroid && window.ChromaAndroid.googleSignOut) window.ChromaAndroid.googleSignOut(); } catch (e) { /* nada */ }
+    auth = null; saveAuth(); lastPushed = ''; lsSet(PUSH_KEY, '');
+    X.save.gacc = null; X.save.codeUid = null; X.save.profUid = null; X.save.club = null; X.save.nameLc = null;
+    FR.list = []; FR.inc = []; FR.out = []; FR.loaded = false; FR.at = 0; for (const k in BOARD) delete BOARD[k];
+    X.persist(); setNet('offline'); dirty(2000);
+  }
+  const Account = { signIn: googleSignIn, signOut: googleSignOut, put: cloudPut, get: cloudGet, apply: cloudApply, get linked() { return linked(); }, get info() { return X.save.gacc; }, get lastAt() { return cloudInfo.at || 0; } };
+
+  // ventana de la cuenta (botón G de Ajustes)
+  const fmtAgo = t => { if (!t) return T('nunca'); const m = Math.round((Date.now() - t) / 60000); return m < 1 ? T('ahora mismo') : m < 60 ? T('hace {x} min').replace('{x}', m) : m < 1440 ? T('hace {x} h').replace('{x}', Math.round(m / 60)) : new Date(t).toLocaleDateString(window.I18N ? I18N.lang : 'es'); };
+  function accountBox(state) {
+    const el = $('gAcc'); if (!el) return;
+    const msg = t => { $('gaMsg').textContent = t ? T(t) : ''; };
+    const btns = list => {
+      $('gaBtns').innerHTML = list.map(([id, cls, t]) => `<button class="btn ${cls}" data-ga="${id}">${t}</button>`).join('');
+      $('gaBtns').querySelectorAll('[data-ga]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); act(b.dataset.ga, b); }));
+    };
+    const close = () => { el.classList.remove('on'); refreshG(); };
+    const setTxt = (title, text, extra) => { $('gaTitle').textContent = T(title); $('gaText').textContent = T(text); $('gaExtra').innerHTML = extra || ''; };
+    const app = !!(window.ChromaAndroid && window.ChromaAndroid.googleSignIn);
+    const draw = () => {
+      msg('');
+      if (state && state.kind === 'choose') {
+        const c = state.cloud, l = X.save;
+        setTxt('Ya tienes progreso guardado', 'Esta cuenta de Google ya tenía progreso de otro móvil. ¿Con cuál te quedas?',
+          `<div class="gacmp"><div><b>${T('En la nube')}</b>${T('Nivel')} ${c.lv || 1} · ⭐ ${c.stars || 0}<br>${fmtAgo(c.at)}</div><div><b>${T('En este móvil')}</b>${T('Nivel')} ${l.unlocked || 1} · ⭐ ${X.starsTotal()}</div></div>`);
+        btns([['useCloud', 'green', T('Usar el de la nube')], ['useLocal', 'gray small', T('Quedarme con el de este móvil')]]);
+        return;
+      }
+      if (X.save.kid) { setTxt('Cuenta', 'Guardar el progreso con Google no está disponible para tu edad.'); btns([['x', 'green', T('Cerrar')]]); return; }
+      if (linked()) {
+        const g = X.save.gacc;
+        setTxt('Tu cuenta de Google', g.email || g.name || '', `<p class="sub">${T('Última copia en la nube')}: <b>${fmtAgo(Account.lastAt)}</b></p>`);
+        btns([['save', 'blue', '☁️ ' + T('Guardar ahora')], ['restore', 'gray small', T('Recuperar de la nube')], ['out', 'gray small', T('Cerrar sesión')], ['x', 'green', T('Cerrar')]]);
+        return;
+      }
+      setTxt('Guarda tu progreso', 'Entra con Google y tu progreso se guardará en la nube. Si cambias de móvil o reinstalas el juego, lo recuperas.', app ? '' : `<p class="sub">${T('Disponible en la app de Android.')}</p>`);
+      btns((app ? [['in', 'gwhite', `${'<svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.3.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>'}<span>${T('Entrar con Google')}</span>`]] : []).concat([['x', 'green', T('Cerrar')]]));
+    };
+    async function act(a, b) {
+      if (a === 'x') { close(); return; }
+      if (a === 'in') {
+        b.disabled = true; msg('Conectando…');
+        try {
+          const r = await Account.signIn();
+          if (r.switched && r.cloud) { state = { kind: 'choose', cloud: r.cloud }; draw(); return; }
+          X.toast(T('¡Listo! Tu progreso se guarda en tu cuenta de Google'), 3000); X.Audio.win && X.Audio.win(); state = null; draw(); refreshG();
+        } catch (e) {
+          b.disabled = false;
+          msg(e.code === 'CANCEL' ? '' : e.code === 'NO_APP' ? 'Disponible en la app de Android.' : e.status === -1 ? 'Las funciones en línea están desactivadas en Ajustes › Privacidad.' : e.status === 0 ? 'Sin conexión a internet.' : 'No se ha podido entrar con Google. Prueba otra vez.');
+        }
+        return;
+      }
+      if (a === 'useCloud') { msg('Cargando…'); Account.apply(state.cloud.data); return; }
+      if (a === 'useLocal') { b.disabled = true; try { await Account.put(true); } catch (e) { /* se subirá luego */ } dirty(800); X.toast(T('¡Listo! Tu progreso se guarda en tu cuenta de Google'), 3000); state = null; draw(); refreshG(); return; }
+      if (a === 'save') { b.disabled = true; msg('Guardando…'); try { await Account.put(true); msg('Guardado en la nube'); } catch (e) { msg('Sin conexión: se guardará más tarde.'); } b.disabled = false; draw(); msg('Guardado en la nube'); return; }
+      if (a === 'restore') {
+        if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = T('Toca otra vez: se cambia tu progreso por el de la nube'); return; }
+        msg('Cargando…');
+        try { const c = await Account.get(); if (!c) { msg('No hay ninguna copia en la nube todavía.'); return; } Account.apply(c.data); } catch (e) { msg('Sin conexión a internet.'); }
+        return;
+      }
+      if (a === 'out') {
+        if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = T('Toca otra vez para cerrar sesión'); return; }
+        await Account.signOut(); X.toast(T('Sesión cerrada. Tu progreso se queda en este móvil.'), 3000); draw(); refreshG(); return;
+      }
+    }
+    draw(); el.classList.add('on');
+  }
+  function refreshG() { const ok = $('sGoogleOk'); if (ok) ok.hidden = !linked(); }
+  { const gb = $('sGoogle'); if (gb) gb.addEventListener('click', () => { X.Audio.click && X.Audio.click(); accountBox(null); }); }
+  { const fb = $('sFacebook'); if (fb) fb.addEventListener('click', () => { X.Audio.click && X.Audio.click(); X.toast(T('Entrar con Facebook llegará pronto. De momento puedes usar Google.'), 3000); }); }
+  setTimeout(refreshG, 0);
+
   // ---------------- denunciar y bloquear ----------------
   // Bloquear se guarda en el móvil: su nombre y su avatar ya no se ven (ni en clasificaciones ni en clubes), sus solicitudes
   // de amistad se descartan y, si era tu amigo, deja de serlo. Denunciar manda el caso al panel (reports/{tú}_{él}).
@@ -841,5 +995,5 @@
     draw(); el.classList.add('on');
   }
 
-  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, sheet, isBlocked, isClubBlocked, blocked, blockedClubs, unblock, unblockClub, badName: n => badName(n), checkTester: () => token().then(checkTester), get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
+  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, account: Account, sheet, isBlocked, isClubBlocked, blocked, blockedClubs, unblock, unblockClub, badName: n => badName(n), checkTester: () => token().then(checkTester), get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
 })();

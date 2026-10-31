@@ -972,6 +972,11 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 @keyframes lbpulse{50%{transform:scale(1.05)}}
 #liveBox{z-index:30}
 #modSheet{z-index:31}
+#gAcc{z-index:31}.gacc{text-align:center}.gaico{margin:2px 0}.gaico svg{background:#fff;border-radius:16px;padding:8px}.gabtns{display:flex;flex-direction:column;gap:2px;margin-top:6px}.gamsg{min-height:16px;font-weight:800}
+.btn.gwhite{background:#fff;color:#1f1f1f;text-shadow:none}.btn.gwhite svg{flex:none}
+.gbtn,.fbbtn{position:relative}.gbtn svg{width:24px;height:24px}.fbbtn{background:linear-gradient(170deg,#4f8dfb,#1877f2)!important;font:900 28px/1 Arial,sans-serif;color:#fff}
+.gok{position:absolute;right:-6px;bottom:-6px;width:20px;height:20px;border-radius:50%;background:#37c46b;border:2px solid #fff;color:#fff;font-size:12px;font-style:normal;display:flex;align-items:center;justify-content:center}
+.gacmp{display:flex;gap:8px;margin:8px 0}.gacmp>div{flex:1;border-radius:14px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2);padding:8px;font-size:13px;font-weight:800}.gacmp b{display:block;font-size:15px;color:#ffe680;margin-bottom:2px}
 #liveBox .panel{position:relative;width:min(88vw,360px);text-align:center}
 #liveBox .xbtn[hidden]{display:none}
 .lbico{font-size:54px;line-height:1;margin:4px 0 6px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.2))}
@@ -1293,7 +1298,7 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 <div class="screen dim" id="settings">
   <div class="panel">
     <div class="ribbon">AJUSTES</div>
-    <div class="toggles" style="margin-top:18px"><button class="iconbtn" id="sSound">&#9835;</button><button class="iconbtn" id="sVibe">&#12316;</button><button class="iconbtn" id="sMusic">&#9836;</button></div>
+    <div class="toggles" style="margin-top:18px"><button class="iconbtn gbtn" id="sGoogle" aria-label="Google"><svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.3.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg><i class="gok" id="sGoogleOk" hidden>&#10003;</i></button><button class="iconbtn" id="sSound">&#9835;</button><button class="iconbtn" id="sVibe">&#12316;</button><button class="iconbtn" id="sMusic">&#9836;</button><button class="iconbtn fbbtn" id="sFacebook" aria-label="Facebook">f</button></div>
     <p class="sub" id="sState"></p>
     <div class="langrow" id="sLang"></div>
     <button class="btn gray small" id="sNotif">Aviso de racha: sí</button>
@@ -1343,6 +1348,7 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
   </div>
 </div>
 <div class="screen dim" id="modSheet"><div class="panel msheet"><div class="ribbon">JUGADOR</div><div class="msico"></div><h2 class="msname" translate="no"></h2><p class="sub msnote"></p><div class="msbtns"></div></div></div>
+<div class="screen dim" id="gAcc"><div class="panel gacc"><div class="ribbon" id="gaRib">CUENTA</div><div class="gaico" id="gaIco"><svg viewBox="0 0 48 48" width="56" height="56" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.3.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg></div><h2 id="gaTitle"></h2><p class="sub" id="gaText"></p><div id="gaExtra"></div><p class="sub gamsg" id="gaMsg"></p><div class="gabtns" id="gaBtns"></div></div></div>
 <div class="langpick" id="ageGate" hidden><div class="panel"><div class="ribbon" id="agRib">¡HOLA!</div><p class="sub">¿En qué año naciste?</p><select id="agYear" class="agsel" aria-label="Año de nacimiento"></select><button class="btn green" id="agOk" disabled>CONTINUAR</button><p class="note">Se guarda solo en este móvil. Sirve para mostrarte el contenido y los anuncios adecuados.</p></div></div>
 <div class="langpick" id="langPick" hidden><div class="panel"><div class="ribbon">IDIOMA · LANGUAGE</div><p class="sub lpsub">Elige tu idioma · Choose your language</p><div class="langgrid" id="lpGrid"></div></div></div>
 <div class="screen dim" id="newCard"><div class="panel nc"><div class="ribbon">¡BLOQUE NUEVO!</div><div class="ncico"><img id="ncIcon" alt=""></div><h2 id="ncName"></h2><p class="sub" id="ncWhat"></p><button class="btn green" id="ncOk">¡A PROBARLO!</button></div></div>

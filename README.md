@@ -507,6 +507,20 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   `KEY_BACKUP_PASS`) y después Actions › «Versión para Google Play (AAB)», que deja el `.aab` firmado sin modo prueba.
 - Prueba: `tools/storeflow.py`.
 
+## Entrar con Google y copia del progreso en la nube
+
+- Ajustes: botón **G** a la izquierda de los de sonido (con ✓ cuando hay sesión) y **f** de Facebook a la derecha (de
+  momento avisa de que llega pronto: hace falta el ID de la app de Facebook).
+- Android: `GoogleLogin.java` (Credential Manager, «Sign in with Google») con el ID de cliente web de Firebase; el juego
+  recibe el `idToken` en `window.onGoogleSignIn` y `social.js` entra en Firebase con `accounts:signInWithIdp`.
+- Si la cuenta de Google es nueva, se **enlaza** la anónima (mismo uid: amigos, club y nombre siguen). Si ya tenía
+  progreso de otro móvil, se entra en ella, se borra la anónima de este móvil y se pregunta con qué progreso quedarse.
+- Copia: `saves/{uid}` (el progreso entero en JSON, ≤ 900 KB), al minuto de cada cambio, al salir del juego y con
+  «Guardar ahora». «Recuperar de la nube» y «Cerrar sesión» en la misma ventana. Borrar la cuenta borra también la copia.
+- Reglas: solo el dueño la lee y solo la sube una sesión de Google (`sign_in_provider == google.com`).
+- Para que funcione en el móvil, en Firebase › app Android tienen que estar las huellas SHA-1 (tabla de abajo).
+- Prueba: `tools/googleflow.py`.
+
 ## Huellas de las claves (públicas: van en Firebase › app Android › huellas digitales)
 
 | Clave | SHA-1 |

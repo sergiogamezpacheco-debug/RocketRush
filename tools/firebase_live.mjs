@@ -137,6 +137,10 @@ if (SA) {
   await del(`testers/${A.uid}`, SA);
 }
 
+// ---------------- copia del progreso ----------------
+r = await patch(`saves/${A.uid}`, { data: '{}', at: new Date(), lv: 1, stars: 0, dev: 'x' }, A.tok); ok(r.s === 403, 'sin entrar con Google no se sube copia a la nube');
+r = await get(`saves/${A.uid}`, B.tok); ok(r.s === 403, 'nadie lee la copia de otro');
+
 // ---------------- denuncias ----------------
 r = await patch(`reports/${B.uid}_${A.uid}`, { by: B.uid, kind: 'player', target: A.uid, name: 'Prueba A', reason: 'name', at: new Date() }, B.tok, '&currentDocument.exists=false');
 ok(r.s === 200, 'denunciar a un jugador' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
