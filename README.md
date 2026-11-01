@@ -83,6 +83,12 @@ Todo está en `src/cannons.js` (catálogo, cómo se dibuja cada cañón y cada b
 - **Pase Pro**: el nivel 30 da el cañón de la temporada (temporada 1: Arcoíris, 2: Robot, 3: Bosque Encantado, y vuelta a empezar)
   y el nivel 20 el Huevo de dragón.
 - Guardado: `save.skins` (aspectos del cañón), `save.can = { lv, own, eq }` (nivel de mejora y cañones) y `save.bskin = { own, eq }` (bolas).
+- **Mi colección** (en Amigos › Perfil): todo lo que tienes y, con candado, lo que te falta, con contador (p. ej. 12 de 45)
+  y filtros Aspectos · Cañones · Bolas. Tocar uno lo pone; uno con candado dice cómo conseguirlo. La cuadrícula se desplaza
+  sola si no cabe, y «Conseguir más» lleva a la tienda.
+- **Tu cañón para este nivel** (ventana de antes de jugar): 3 huecos (cañón, aspecto y bolas). Al tocar uno sube un cajón
+  con los de ese tipo; lo que eliges se queda para los siguientes niveles. Se cierra tocando fuera o con «atrás».
+  La ventana del nivel ya se desplaza si no cabe en la pantalla. Prueba: `python3 tools/coleccionflow.py`.
 - Prueba: `python3 tools/cannonflow.py` (tienda, compras, mejoras, física de cada cañón, liga sin bonus y Pase).
 
 ## Racha diaria

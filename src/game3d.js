@@ -2566,7 +2566,7 @@
   let preSel = {};
   function openPre(id) {
     const L = byId(id); if (!L) return;
-    G.preId = id; preSel = {};
+    G.preId = id; preSel = {}; closeCosSheet();
     if (G.mode !== 'play') loadDemo(id);
     $('preTitle').textContent = L.club ? ({ ex: 'Club · Expedición ' + L.pos, lg: 'Club · Liga ' + L.pos, boss: 'Club · Jefe colosal' })[L.club] : L.xm ? (L.boss ? 'Jefe de Navidad' : 'Navidad · ' + L.pos) : L.hw ? (L.boss ? 'Jefe de Halloween' : 'Halloween · ' + L.pos) : L.bonus ? 'Nivel extra ' + L.world : L.boss ? 'Jefe · nivel ' + id : 'Nivel ' + id;
     $('preTitle').classList.toggle('gold', !!L.bonus);
@@ -2609,6 +2609,7 @@
       $('preWb').innerHTML = WBALLS[k] ? `<b>${WBALLS[k].name}:</b> ${WB_DESC[k]}` : DESC[k];
     }));
     $('preStreak').style.display = 'none';
+    renderLoadout();
     $('pre').classList.add('on'); $('preScroll').scrollTop = 0;
   }
   // premio de la racha de victorias: al ganar, uno al azar de su nivel (mejor cuanto más larga es la racha) y nunca el mismo dos veces seguidas
@@ -3080,17 +3081,93 @@
       `<div class="sechead" id="sBskin"><span>Aspectos de las bolas · conservan su color</span></div><div class="cgrid">${ballsSorted.map(x => cosCard({ k: 'ball', id: x.id })).join('')}</div>`;
   }
   // miniaturas 3D (se pintan poco a poco) y botones de las tarjetas
-  function bindCos(box, again) {
+  function fillThumbs(box) {
     const want = [], els = {};
     box.querySelectorAll('.cth[data-th]').forEach(el => {
       const [k, id, lv] = el.dataset.th.split(':'), q = k === 'up' ? { kind: 'model', id: 'base', lv: +lv } : { kind: k, id };
       const key = Cannons.thumbKey(q); (els[key] = els[key] || []).push(el); want.push(q);
     });
     Cannons.thumb(want, (key, url) => { if (url) for (const el of els[key] || []) { el.style.backgroundImage = `url(${url})`; el.classList.add('ok'); } });
+  }
+  function bindCos(box, again) {
+    fillThumbs(box);
     box.querySelectorAll('[data-buy]').forEach(b => b.addEventListener('click', () => { Audio.init(); const [k, id] = b.dataset.buy.split(':'); if (cosBuy(k, id)) again(); else if (cosPrice(k, id) && cosPrice(k, id).g && (save.gems || 0) < cosPrice(k, id).g) again('gems'); }));
     box.querySelectorAll('[data-eq]').forEach(b => b.addEventListener('click', () => { Audio.init(); const [k, id] = b.dataset.eq.split(':'); if (cosEquip(k, id)) again(); }));
     box.querySelectorAll('[data-up]').forEach(b => b.addEventListener('click', () => { Audio.init(); if (cosUpgrade()) again(); }));
   }
+  // ---------------- mi colección (en el perfil) y el cañón de antes de jugar ----------------
+  // Todo lo que tienes (y con candado lo que te falta): aspectos del cañón, cañones y bolas. Tocar uno lo pone.
+  const COL_KIND = { skin: 'Aspectos', model: 'Cañones', ball: 'Bolas' }, COL_ICO = { skin: '🎨', model: '🎯', ball: '⚽' };
+  function colList(k) {
+    const src = k === 'skin' ? Cannons.SKINS : k === 'model' ? Cannons.MODELS : Cannons.BALLS;
+    return src.map(d => ({ k, id: d.id, d, own: cosOwned(k, d.id), on: cosOwned(k, d.id) && cosOn(k, d.id) }))
+      .sort((a, b) => (b.on - a.on) || (b.own - a.own));
+  }
+  function cosHow(k, id) {
+    const d = cosDef(k, id), pr = cosPrice(k, id);
+    if (pr) return pr.c ? `${pr.c.toLocaleString('es-ES')} monedas en la tienda` : `${pr.g} gemas en la tienda`;
+    return { pass: 'Se consigue en el Pase Pro', event: 'Se consigue en un evento', streak: 'Se consigue con la racha diaria', temp: 'Sale a veces en «Temporales»' }[d.how] || 'En la tienda';
+  }
+  const shortName = n => n.replace(/^Cañón (de |del )?(?=\p{Lu})/u, '');
+  const BALL_PH = 'radial-gradient(circle at 35% 30%,#ffd0d8,#ff4f6d 45%,#8a1030 75%,transparent 77%)';
+  const thKey = q => q.k === 'model' && q.id === 'base' ? 'up:base:' + canSave().lv : q.k + ':' + q.id;
+  function colItem(q) {
+    const rar = q.k === 'model' ? (q.id === 'cohete' ? 'legend' : 'model') : q.d.rar;
+    const ph = q.k === 'ball' ? BALL_PH : q.d.css || 'rgba(255,255,255,.15)';
+    return `<button class="colit r-${rar}${q.own ? '' : ' lock'}${q.on ? ' on' : ''}" data-col="${q.k}:${q.id}"><div class="cth" data-th="${thKey(q)}" style="--ph:${ph}"></div><b>${shortName(q.d.name)}</b></button>`;
+  }
+  // tocar una pieza: si es tuya, la pones; si no, te dice cómo conseguirla
+  function colTap(k, id) {
+    if (cosOwned(k, id)) { if (!cosOn(k, id)) { cosEquip(k, id); toast('Puesto: ' + cosDef(k, id).name); } return true; }
+    Audio.click(); toast(cosDef(k, id).name + ' · ' + cosHow(k, id), 2600); return false;
+  }
+  let colF = 'skin';
+  function mountCol(el) {
+    if (!el) return;
+    const n = k => colList(k).filter(q => q.own).length, tot = k => colList(k).length;
+    const own = n('skin') + n('model') + n('ball'), all = tot('skin') + tot('model') + tot('ball');
+    el.innerHTML = `<div class="colbox"><div class="colhead"><span>🎒 Mi colección</span><small>${own} de ${all}</small></div><div class="colbar"><i style="width:${(100 * own / all).toFixed(0)}%"></i></div>
+      <div class="colchips">${['skin', 'model', 'ball'].map(k => `<button data-colf="${k}" class="${k === colF ? 'on' : ''}"><span>${COL_ICO[k]} ${COL_KIND[k]}</span><small>${n(k)}/${tot(k)}</small></button>`).join('')}</div>
+      ${colF === 'model' ? `<div class="colnote">Mejora del cañón: nivel ${canSave().lv} de 5 · sirve para cualquier cañón</div>` : ''}
+      <div class="colgrid">${colList(colF).map(colItem).join('')}</div>
+      <div class="colnote">Toca uno para usarlo · los del candado se consiguen en la tienda o en el pase</div>
+      <button class="btn gold small colshop">🛒 CONSEGUIR MÁS</button></div>`;
+    fillThumbs(el);
+    el.querySelectorAll('[data-colf]').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); Audio.init(); Audio.click(); colF = b.dataset.colf; mountCol(el); }));
+    el.querySelectorAll('[data-col]').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); Audio.init(); const [k, id] = b.dataset.col.split(':'); if (colTap(k, id)) { const g = el.querySelector('.colgrid'), sc = g.scrollTop; mountCol(el); el.querySelector('.colgrid').scrollTop = sc; } }));
+    el.querySelector('.colshop').addEventListener('click', ev => { ev.stopPropagation(); Audio.init(); Audio.click(); openShop(colF === 'ball' ? 'bskin' : 'can'); });
+  }
+  // ventana del nivel: los 3 huecos (cañón, aspecto, bolas); al tocar uno sube un cajón con lo que tienes
+  function renderLoadout() {
+    const box = $('preLoad'); if (!box) return;
+    const c = canSave(), L = G.preId ? byId(G.preId) : null;
+    const md = Cannons.MODEL[c.eq], sk = SKINS[save.skins.equip] || SKINS.classic, bl = Cannons.BALL[bSave().eq];
+    const slot = (k, th, ph, lab, name) => `<button class="lslot" data-ls="${k}"><span class="led">✎</span><div class="cth" data-th="${th}" style="--ph:${ph}"></div><small>${lab}</small><b>${name}</b></button>`;
+    box.innerHTML = `<div class="lhead">Tu cañón para este nivel</div><div class="lrow">` +
+      slot('model', c.eq === 'base' ? 'up:base:' + c.lv : 'model:' + c.eq, '#3a2f6e', 'CAÑÓN', shortName(md.name) + (c.lv > 1 ? ' · nv. ' + c.lv : '')) +
+      slot('skin', 'skin:' + sk.id, sk.css, 'ASPECTO', shortName(sk.name)) +
+      slot('ball', 'ball:' + bl.id, BALL_PH, 'BOLAS', bl.name) + '</div>' +
+      (L && L.club === 'lg' ? '<div class="lnote">En la liga de clubes todos los cañones tiran con la fuerza normal.</div>' : '');
+    fillThumbs(box);
+    box.querySelectorAll('[data-ls]').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); Audio.init(); Audio.click(); openCosSheet(b.dataset.ls); }));
+  }
+  function openCosSheet(k) {
+    const sh = $('cosSheet'); if (!sh) return;
+    const list = colList(k), own = list.filter(q => q.own).length;
+    $('csTitle').textContent = { skin: 'Elige el aspecto', model: 'Elige el cañón', ball: 'Elige tus bolas' }[k];
+    $('csCount').textContent = own + ' de ' + list.length;
+    $('csGrid').innerHTML = list.map(colItem).join(''); $('csGrid').scrollTop = 0;
+    fillThumbs($('csGrid'));
+    $('csGrid').querySelectorAll('[data-col]').forEach(b => b.addEventListener('click', ev => {
+      ev.stopPropagation(); Audio.init(); const [kk, id] = b.dataset.col.split(':');
+      if (colTap(kk, id)) { closeCosSheet(); renderLoadout(); }
+    }));
+    $('csShop').onclick = ev => { ev.stopPropagation(); Audio.init(); Audio.click(); closeCosSheet(); openShop(k === 'ball' ? 'bskin' : 'can'); };
+    sh.classList.add('on');
+  }
+  function closeCosSheet() { const sh = $('cosSheet'); if (sh) sh.classList.remove('on'); }
+  if ($('cosSheet')) $('cosSheet').addEventListener('click', ev => { if (ev.target.id === 'cosSheet') { Audio.click(); closeCosSheet(); } });
+
   setInterval(() => {
     if (document.hidden || !$('shop').classList.contains('on')) return;
     const T = tmpNow(), now = Date.now();
@@ -4217,7 +4294,7 @@
   on('passShop', () => openShop('gems'));
   on('passBuy', buyPro);
   on('passClaimAll', claimAll);
-  on('shopClose', () => { $('shop').classList.remove('on'); if ($('pass').classList.contains('on')) openPass(); });
+  on('shopClose', () => { $('shop').classList.remove('on'); if ($('pass').classList.contains('on')) openPass(); if ($('pre').classList.contains('on')) renderLoadout(); if ($('social').classList.contains('on')) mountCol($('colMount')); });
   on('btnSetT', () => { refreshToggles(); $('settings').classList.add('on'); });
   on('sClose', () => $('settings').classList.remove('on'));
   on('sTest', toggleTest);
@@ -4457,6 +4534,7 @@
     const open = id => $(id).classList.contains('on');
     if (open('chestOpen')) { if (openChestFX.skip) openChestFX.skip(); return true; }
     if (open('newCard')) { closeNewCard(); return true; }
+    if (open('cosSheet')) { closeCosSheet(); return true; }
     if (open('shop')) { $('shop').classList.remove('on'); return true; }
     if (open('daily')) { if (!$('dBtns').innerHTML) return true; closeDaily(true); return true; }
     if (open('settings')) { $('settings').classList.remove('on'); return true; }
@@ -4573,7 +4651,7 @@
   }
 
   // los jefes (bosses.js) usan estas piezas del juego
-  window.RRGame = { cubiFrames, openShop, goMap, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
+  window.RRGame = { cubiFrames, openShop, goMap, mountCol, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
     stats, plState, starsTotal, countLv, LEVELS, myCode, openPre: id => openPre(id), setTester, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,

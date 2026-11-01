@@ -443,6 +443,7 @@
         <div class="sform"><small>Tu nombre</small><div class="addfriend" style="margin-top:2px"><input id="socName" maxlength="16" autocomplete="off" translate="no" value="${esc(myName())}"><button class="btn small green" id="socSaveName">${prof().name ? `${T('Cambiar')} <i class="gem"></i>${NAME_GEMS}` : T('Guardar')}</button></div><div class="snmsg" id="socNameMsg"></div>
         <small>País</small><select id="socCountry" translate="no">${opts}</select></div></div>
       <div class="savs">${avatars().map(a => `<button data-av="${a}" class="${a === p.avatar ? 'on' : ''}">${a}</button>`).join('')}</div>
+      <div id="colMount"></div>
       <div class="shead">Tus estadísticas</div>
       <div class="sstats">${st('🏁', fmt(s.level), 'Niveles superados')}${st('⭐', fmt(s.stars), 'Estrellas')}${st('🎖', fmt(s.lv), 'Nivel de jugador')}
         ${st('🔥', fmt(s.daily), 'Racha diaria')}${st('📅', fmt(s.dailyBest), 'Mejor racha diaria')}${st('🏅', fmt(s.bestRun), 'Victorias seguidas (récord)')}
@@ -460,6 +461,7 @@
     if ($('socCode') && val) $('socCode').value = val;
     if (focus && $(focus) && focus === 'socCode') $(focus).focus();
     wire();
+    if (tab === 'me' && X.mountCol) X.mountCol($('colMount'));   // mi colección (game3d.js)
   }
   function wire() {
     const on = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', ev => { ev.stopPropagation(); X.Audio.click && X.Audio.click(); fn(el); }); };
