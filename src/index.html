@@ -1126,6 +1126,62 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 .cossheet .grab{width:48px;height:5px;border-radius:5px;background:rgba(255,255,255,.4);margin:0 auto 8px;flex:none}
 @keyframes csup{from{transform:translateY(100%)}to{transform:none}}
 @media (max-width:370px){.upcard{gap:6px;padding:7px}.upcard .uptx b{font-size:13.5px}.upcard .uptx span{font-size:10.5px}.upcard .uptx em{font-size:9.5px}.upcard .btn{font-size:11.5px;padding:5px 6px}}
+
+/* ---------- estelas, maestría y regalos entre amigos ---------- */
+.cth.trailpv{position:relative;background:radial-gradient(circle at 78% 50%,#fff 0 9%,#ffe27a 10% 15%,transparent 16%),linear-gradient(90deg,transparent 4%,var(--tr) 30% 72%,transparent 76%) center/100% 26% no-repeat;border-radius:12px;background-color:rgba(20,8,60,.35)}
+.cosc .cth.trailpv,.colit .cth.trailpv,.lslot .cth.trailpv{background-size:auto,100% 26%}
+.trailsw{display:inline-block;width:30px;height:14px;border-radius:8px;vertical-align:middle;background:linear-gradient(90deg,transparent,var(--tr) 40%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.4);margin-right:3px}
+.mastery{display:flex;flex-direction:column;gap:3px;margin:6px 2px;font-size:11.5px;font-weight:800;color:#e9e3ff}
+.mastery i{display:block;height:8px;border-radius:6px;background:rgba(0,0,0,.35);overflow:hidden}.mastery i b{display:block;height:100%;background:linear-gradient(90deg,#ffd23f,#ff7a1a)}
+.sgift{font:inherit;font-size:17px;line-height:1;width:36px;height:34px;border:0;border-radius:11px;cursor:pointer;background:linear-gradient(160deg,#9cf28a,#2fb04a);box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 3px 0 #145a24}
+.sgift.nudge{background:linear-gradient(160deg,#9ad8ff,#2a7ad6);box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 3px 0 #0f3a7a}
+.sgift.done{display:inline-flex;align-items:center;justify-content:center;width:auto;padding:0 6px;font-size:12px;font-weight:900;color:#d8ffd0;background:rgba(0,0,0,.25);box-shadow:none;cursor:default}
+.giftbox{display:flex;align-items:center;gap:10px;margin:10px 0;padding:10px 12px;border-radius:16px;color:#fff;text-align:left;background:linear-gradient(135deg,#ff7a1a,#ff3a8a);box-shadow:0 0 0 3px #fff,0 0 0 6px #ffd23f;animation:hwbob 2.4s ease-in-out infinite}
+.giftbox .gi{font-size:30px}.giftbox>div{flex:1;min-width:0}.giftbox b{display:block;font-size:14.5px}.giftbox small{font-size:11px;opacity:.9}
+.giftbox .btn{width:auto;margin:0;font-size:12px;padding:6px 10px;line-height:1.15}.giftbox .btn .coin{width:14px;height:14px;vertical-align:-2px}
+.giftall{display:block;width:100%;margin:4px 0 6px}
+.snote{font-size:11.5px;font-weight:700;color:#cfc6f5;margin:0 4px 8px;text-align:left}
+/* ---------- ventana de retención (logros, desafío, bienvenida) ---------- */
+.retpop{z-index:60}.retpop .panel{width:min(92vw,440px);max-height:calc(100% - 110px);display:flex;flex-direction:column}
+#rpBody{display:flex;flex-direction:column;min-height:0;flex:1 1 auto;gap:8px}
+.rptxt{margin:0 4px 2px;font-size:15px;font-weight:800;line-height:1.35}
+.rpsub{font-size:12px;font-weight:800;color:#e3dcff;margin-bottom:2px}
+.rpban{border-radius:16px;padding:10px 12px;text-align:left;color:#fff;box-shadow:0 0 0 3px #fff,0 0 0 6px #ffd23f;margin:4px 3px 6px}
+.rpban b{display:block;font-size:16px}.rpban small{display:block;font-size:11.5px;font-weight:800;opacity:.95;margin-top:2px}
+.rchips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.rchip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:rgba(20,8,60,.45);box-shadow:inset 0 0 0 2px rgba(255,230,128,.55);font-size:13px;font-weight:900;color:#fff;white-space:nowrap}
+.rchip .coin{width:18px;height:18px}.rchip .gem{width:17px;height:18px}.rchip .ball{width:18px;height:18px;margin:0}.rchip .skinsw,.rchip .bskinsw{width:18px;height:18px;border-width:2px;border-radius:6px}.rchip .bskinsw{border-radius:50%}.rchip .chest{width:30px;height:28px;margin:-6px -4px}
+.achlist{overflow-y:auto;min-height:0;flex:1 1 auto;padding:4px 3px 6px;-webkit-overflow-scrolling:touch}
+.achrow{display:flex;align-items:center;gap:10px;padding:9px 10px;margin-bottom:8px;border-radius:15px;text-align:left;background:rgba(20,8,60,.35);box-shadow:inset 0 0 0 2px rgba(255,255,255,.12)}
+.achrow.ready{background:linear-gradient(160deg,rgba(80,200,90,.45),rgba(30,120,60,.5));box-shadow:inset 0 0 0 2px #9cf28a,0 0 12px rgba(156,242,138,.5)}
+.achrow.done{opacity:.6}
+.achrow .aic{flex:none;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(255,255,255,.14)}
+.achrow .abd{flex:1;min-width:0}.achrow .abd b{display:block;font-size:14px}.achrow .abd small{display:block;font-size:11.5px;color:#ddd5ff;font-weight:700}
+.abar{height:7px;border-radius:5px;background:rgba(0,0,0,.35);margin:4px 0;overflow:hidden}.abar i{display:block;height:100%;background:linear-gradient(90deg,#ffd23f,#ff9a2a)}
+.arw{display:flex;flex-wrap:wrap;gap:4px}.arw .rchip{font-size:11px;padding:2px 7px}.arw .rchip .coin,.arw .rchip .gem,.arw .rchip .ball{width:14px;height:14px}
+.achrow .btn{flex:none;width:auto;margin:0;padding:8px 10px;font-size:13px}.achrow .adone{font-size:20px}
+.achbtn{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:520px;margin:10px auto 0;font-size:16px}
+.achbtn small{font-size:12px;opacity:.85}.achbtn .bdg,.wkb i{position:absolute;top:-8px;right:-4px;font-style:normal;font-size:11px;font-weight:900;background:#e8203a;color:#fff;border:2px solid #fff;border-radius:10px;padding:0 6px;line-height:16px}
+/* desafío de la semana */
+.hwnav button.wkb{background:linear-gradient(160deg,#ff8a3a,#d0301a);border-color:#ffd23f;box-shadow:0 0 0 2px #4a0a00,inset 0 3px 0 rgba(255,255,255,.25),0 4px 0 #3a0800}
+.wkme{font-size:13px;font-weight:800;color:#f1ecff}.wkme b{color:#ffe27a}
+.wklb{min-height:60px;max-height:230px;overflow-y:auto;border-radius:14px;background:rgba(20,8,60,.35);padding:4px 6px}
+.wkrow{display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:13.5px;font-weight:900;border-bottom:1px solid rgba(255,255,255,.08);text-align:left}
+.wkrow .p{width:28px;text-align:center}.wkrow .a{font-size:18px}.wkrow .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wkrow .s{color:#ffe27a}
+.wkrow.me{background:rgba(255,210,63,.18);border-radius:10px}
+.wkres{font-size:26px;font-weight:900;color:#ffe27a}.wkres small{display:block;font-size:13px;color:#fff}
+/* cofre gratis de la portada (4.º botón de la columna izquierda) */
+.sb.freechest{background:linear-gradient(160deg,#a87a4a,#6a4422)}
+.sb.freechest .chest{width:34px;height:30px;margin:0 0 1px;transform:none}
+.sb.freechest .fct{font-size:10px;color:#ffe27a}
+.sb.freechest.ready{background:linear-gradient(160deg,#ffe27a,#ff9a1a);animation:pulse 1.2s ease-in-out infinite}.sb.freechest.ready b{color:#5a2a00;text-shadow:none}
+/* mini-evento */
+.minipump .mpi{font-size:44px;line-height:52px;filter:drop-shadow(0 0 12px rgba(255,230,120,.85))}
+.stabs .minitab{background:linear-gradient(160deg,#ffd23f,#ff7a1a)!important}
+.minihead>b{font-size:15px}.minihead small{display:block;font-size:11.5px;font-weight:800}.minihead small b{display:inline;font-size:12.5px}
+.cgrid.mini1{grid-template-columns:minmax(0,150px);justify-content:center}
+.minirow{display:flex;align-items:center;gap:8px;margin:6px 2px;padding:8px 10px;border-radius:14px;background:rgba(20,8,60,.35)}
+.minirow .mrw{flex:1;display:flex;flex-wrap:wrap;gap:4px}.minirow .btn{flex:none;width:auto;margin:0;padding:7px 12px;font-size:14px}.minirow .chow{font-size:12px;font-weight:900;color:#9cf28a}
 </style>
 </head>
 <body>

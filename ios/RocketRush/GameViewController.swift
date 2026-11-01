@@ -79,6 +79,8 @@ final class GameViewController: UIViewController, WKScriptMessageHandler, WKUIDe
             vibrate: function (ms) { post('vibrate', [+ms || 0]); },
             scheduleReminder: function (at, title, text) { post('remind', [String(at), String(title || ''), String(text || '')]); },
             cancelReminder: function () { post('unremind'); },
+            scheduleNotice: function (name, at, title, text) { post('notice', [String(name), String(at), String(title || ''), String(text || '')]); },
+            cancelNotice: function (name) { post('unnotice', [String(name)]); },
             share: function (t) { post('share', [String(t || '')]); },
             openUrl: function (u) { post('open', [String(u || '')]); },
             askNotifications: function () { post('askNotif'); },
@@ -101,6 +103,11 @@ final class GameViewController: UIViewController, WKScriptMessageHandler, WKUIDe
             Reminder.schedule(at: Date(timeIntervalSince1970: at / 1000), title: title, text: text)
         case "unremind":
             Reminder.cancel()
+        case "notice":
+            guard a.count >= 4, let name = a[0] as? String, let at = Double(a[1] as? String ?? ""), let title = a[2] as? String, let text = a[3] as? String else { return }
+            Reminder.schedule(id: name, at: Date(timeIntervalSince1970: at / 1000), title: title, text: text)
+        case "unnotice":
+            if let name = a.first as? String { Reminder.cancel(id: name) }
         case "askNotif":
             UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
         case "share":
@@ -129,7 +136,9 @@ final class WeakHandler: NSObject, WKScriptMessageHandler {
 // aviso local de la racha diaria (lo programa el juego, como en Android)
 enum Reminder {
     static let id = "racha"
-    static func schedule(at: Date, title: String, text: String) {
+    static func schedule(at: Date, title: String, text: String) { schedule(id: id, at: at, title: title, text: text) }
+    static func cancel() { cancel(id: id) }
+    static func schedule(id: String, at: Date, title: String, text: String) {
         let c = UNMutableNotificationContent(); c.title = title; c.body = text; c.sound = .default
         let s = max(5, at.timeIntervalSinceNow)
         let req = UNNotificationRequest(identifier: id, content: c, trigger: UNTimeIntervalNotificationTrigger(timeInterval: s, repeats: false))
@@ -137,7 +146,7 @@ enum Reminder {
         center.removePendingNotificationRequests(withIdentifiers: [id])
         center.add(req, withCompletionHandler: nil)
     }
-    static func cancel() { UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id]) }
+    static func cancel(id: String) { UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id]) }
 }
 
 // sirve los archivos del juego (carpeta www de la app) en app://localhost/…

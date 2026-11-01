@@ -18,7 +18,7 @@
 
   // ---------------- guardado ----------------
   const SAVE_KEY = 'chromacrash3d.v1';
-  const DEFAULT_SAVE = () => ({ unlocked: 1, stars: {}, best: {}, coins: 300, boosters: { bomb: 2, rainbow: 1, extra: 1, golden: 0 }, gems: 0, gemDry: 0, gemRoll: null, bonusGemRoll: {}, pass: null, skins: { owned: ['classic'], equip: 'classic' }, bskin: { own: ['clasica'], eq: 'clasica' }, can: { lv: 1, own: ['base'], eq: 'base' }, streak: 0, sound: true, vibe: true, music: true, adsRemoved: false, starter: false, played: 0, lastInter: 0 });
+  const DEFAULT_SAVE = () => ({ unlocked: 1, stars: {}, best: {}, coins: 300, boosters: { bomb: 2, rainbow: 1, extra: 1, golden: 0 }, gems: 0, gemDry: 0, gemRoll: null, bonusGemRoll: {}, pass: null, skins: { owned: ['classic'], equip: 'classic' }, bskin: { own: ['clasica'], eq: 'clasica' }, trail: { own: ['ninguna'], eq: 'ninguna' }, can: { lv: 1, own: ['base'], eq: 'base' }, streak: 0, sound: true, vibe: true, music: true, adsRemoved: false, starter: false, played: 0, lastInter: 0 });
   let save;
   try { save = Object.assign(DEFAULT_SAVE(), JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) { save = DEFAULT_SAVE(); }
   // partidas antiguas: los niveles extra eran 101-110; ahora son 10001-10100 (101-1000 son niveles normales)
@@ -45,6 +45,8 @@
     save.unlocked = Math.min(LEVELS.length, last + 1);
     save.worlds3 = true;
   }
+  // enganches para retencion.js (cofre gratis, logros, desafío semanal, regalos, bienvenida y mini-eventos)
+  const RH = (n, d) => { try { const R = window.Retencion; return R && R[n] ? R[n](d) : undefined; } catch (e) { console.warn('[RR ret]', n, e); } };
   function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* sin almacenamiento */ } if (window.Social) window.Social.dirty(); }
 
   // ---------------- audio ----------------
@@ -1642,8 +1644,9 @@
       let m = G.ballMeshes.get(b);
       if (!m) { m = makeBallMesh(b.userData.ball, b.userData.r); scene.add(m); G.ballMeshes.set(b, m); }
       m.position.copy(b.position); m.quaternion.copy(b.quaternion);
-      const wt = W_TRAIL[b.userData.ball];
-      if (Math.random() < 0.6) spawnSprite(b.position.x, b.position.y, b.position.z, wt || 0xffffff, b.userData.r * (wt ? 2 : 1.4), 0.4, wt ? 0.4 : 0.25, { alpha: wt ? 0.6 : 0.35, add: !!wt });
+      const wt = W_TRAIL[b.userData.ball], tf = !wt && !G.demo && trailFx();
+      if (tf) { if (Math.random() < 0.85) { const c = tf.rb ? RB_COLS[Math.floor(G.t * 12) % RB_COLS.length] : tf.cols[Math.floor(Math.random() * tf.cols.length)]; spawnSprite(b.position.x + rnd(-0.08, 0.08), b.position.y + rnd(-0.08, 0.08), b.position.z, c, b.userData.r * 1.5 * tf.sz, 0.3, 0.45, { alpha: tf.a, add: !!tf.add }); } }
+      else if (Math.random() < 0.6) spawnSprite(b.position.x, b.position.y, b.position.z, wt || 0xffffff, b.userData.r * (wt ? 2 : 1.4), 0.4, wt ? 0.4 : 0.25, { alpha: wt ? 0.6 : 0.35, add: !!wt });
     }
     for (const [b, m] of G.ballMeshes) if (!live.has(b)) { scene.remove(m); Cannons.freeBall(m); G.ballMeshes.delete(b); }
   }
@@ -1955,7 +1958,7 @@
     for (const e of sim.events) {
       if (COMBO_EV[e.type] && G.mode === 'play') comboStep(e);
       switch (e.type) {
-        case 'shoot': G.combo = 0; if (WBALLS[e.kind]) stats().wballs = (stats().wballs || 0) + 1; G.shotBase = sim.popped + sim.fallen; {
+        case 'shoot': G.combo = 0; if (WBALLS[e.kind]) stats().wballs = (stats().wballs || 0) + 1; G.shotBase = sim.popped + sim.fallen; if (G.mode === 'play' && !G.demo) masteryShot(); {
           Audio.shoot(); G.recoil = 1; vibe(14);
           const m = sim.muzzle();
           spawnSprite(m.x, m.y, m.z - 0.5, 0xffd27a, 0.7, 1.2, 0.14, { add: true, alpha: 0.9 });
@@ -2456,7 +2459,7 @@
     if (G.hwWorld || G.xmWorld) { for (const m of G.meshes) if (m) m.visible = false; }
     Audio.setStyle(G.hwWorld ? 'spooky' : G.xmWorld ? 'xmas' : 'normal');
     $('title').classList.toggle('hw', G.hwWorld); $('title').classList.toggle('xm', G.xmWorld); hwUi(); xmUi();
-    $('hud').classList.remove('on'); show('title'); G.titleReady = true; updateTitle();
+    $('hud').classList.remove('on'); show('title'); G.titleReady = true; updateTitle(); RH('title');
   }
   // pantalla inicial: nivel en curso, avisos y estela de la bola-cohete
   function updateTitle() {
@@ -2466,7 +2469,7 @@
     const fl = $('streakFlame'); if (fl) { fl.hidden = !(save.streak >= 1); fl.querySelector('b').textContent = save.streak; }
     liveUi();
     $('passDotT').hidden = !passClaimable();
-    const n = misClaimable(); $('misDotT').hidden = !n; $('misDotT').textContent = n;
+    const n = misClaimable() + (RH('achCount') || 0); $('misDotT').hidden = !n; $('misDotT').textContent = n;
     layoutTrail();
   }
   function layoutTrail() {
@@ -2568,7 +2571,7 @@
     const L = byId(id); if (!L) return;
     G.preId = id; preSel = {}; closeCosSheet();
     if (G.mode !== 'play') loadDemo(id);
-    $('preTitle').textContent = L.club ? ({ ex: 'Club · Expedición ' + L.pos, lg: 'Club · Liga ' + L.pos, boss: 'Club · Jefe colosal' })[L.club] : L.xm ? (L.boss ? 'Jefe de Navidad' : 'Navidad · ' + L.pos) : L.hw ? (L.boss ? 'Jefe de Halloween' : 'Halloween · ' + L.pos) : L.bonus ? 'Nivel extra ' + L.world : L.boss ? 'Jefe · nivel ' + id : 'Nivel ' + id;
+    $('preTitle').textContent = L.weekly ? 'Desafío de la semana' : L.club ? ({ ex: 'Club · Expedición ' + L.pos, lg: 'Club · Liga ' + L.pos, boss: 'Club · Jefe colosal' })[L.club] : L.xm ? (L.boss ? 'Jefe de Navidad' : 'Navidad · ' + L.pos) : L.hw ? (L.boss ? 'Jefe de Halloween' : 'Halloween · ' + L.pos) : L.bonus ? 'Nivel extra ' + L.world : L.boss ? 'Jefe · nivel ' + id : 'Nivel ' + id;
     $('preTitle').classList.toggle('gold', !!L.bonus);
     $('preReward').hidden = !L.bonus;
     const replay = L.bonus && save.bonusDone && save.bonusDone[L.id];
@@ -2667,10 +2670,11 @@
     setWeatherChip(L);
     G.shotBase = null; stats().plays = (stats().plays || 0) + 1; persist();
     G.clubLoseDone = false; if (L.club && window.Club) window.Club.onStart(L);
+    if (L.weekly) RH('weeklyStart', L);
     G.casi = 0; G.firstShot = false; G.swapped = false; G.winShown = false; G.winAt = 0; G.extraUsed = false; shownScore = 0; lastTray = '';
     $('btnFinish').hidden = true; G.cannonKind = null;
     G.aimTarget.set(0, 1.5, 0);
-    $('hudLevel').textContent = L.club ? ({ ex: 'EXPEDICIÓN ' + L.pos, lg: 'LIGA ' + L.pos, boss: 'JEFE COLOSAL' })[L.club] : L.xm ? 'NAVIDAD ' + L.pos : L.hw ? 'HALLOWEEN ' + L.pos : L.bonus ? 'EXTRA ' + L.world : 'NIVEL ' + id;
+    $('hudLevel').textContent = L.weekly ? 'DESAFÍO' : L.club ? ({ ex: 'EXPEDICIÓN ' + L.pos, lg: 'LIGA ' + L.pos, boss: 'JEFE COLOSAL' })[L.club] : L.xm ? 'NAVIDAD ' + L.pos : L.hw ? 'HALLOWEEN ' + L.pos : L.bonus ? 'EXTRA ' + L.world : 'NIVEL ' + id;
     Audio.setStyle(L.hw ? 'spooky' : L.xm ? 'xmas' : 'normal'); G.hwWorld = false; G.xmWorld = false;
     G.candyRun = 0; G.xcandyRun = 0; hwCandyChip(); xmCandyChip();
     $('meterTarget').style.left = (L.target * 100) + '%';
@@ -2690,9 +2694,9 @@
     $('winRibbon').textContent = L.boss ? '¡JEFE DERROTADO!' : '¡DEMOLIDO!';
     const cp = L.club && window.Club ? window.Club._P() : null;
     const prevStars = cp ? ((L.club === 'ex' ? cp.ex : L.club === 'lg' ? cp.lgS : {})[L.pos] || 0) : (save.stars[L.id] || 0);
-    G.mystery = !L.bonus && !L.boss && !L.hw && !L.xm && !L.club && !prevStars && L.id % 5 === 0;
-    if (!L.club) { save.stars[L.id] = Math.max(prevStars, stars); save.best[L.id] = Math.max(save.best[L.id] || 0, sim.score); }
-    if (!L.bonus && !L.hw && !L.xm && !L.club && L.id >= save.unlocked) save.unlocked = Math.min(L.id + 1, LEVELS.length + 1);
+    G.mystery = !L.bonus && !L.boss && !L.hw && !L.xm && !L.club && !L.weekly && !prevStars && L.id % 5 === 0;
+    if (!L.club && !L.weekly) { save.stars[L.id] = Math.max(prevStars, stars); save.best[L.id] = Math.max(save.best[L.id] || 0, sim.score); }
+    if (!L.bonus && !L.hw && !L.xm && !L.club && !L.weekly && L.id >= save.unlocked) save.unlocked = Math.min(L.id + 1, LEVELS.length + 1);
     if (L.hw) { const h = hwState(); h.unlocked = Math.max(h.unlocked, L.pos + 1); }
     if (L.xm) { const h = xmState(); h.unlocked = Math.max(h.unlocked, L.pos + 1); }
     let coins = (20 + stars * 10) * (L.hard ? 2 : L.boss ? 3 : 1), gifts = L.boss ? ' · cofre de oro' : '';
@@ -2713,6 +2717,7 @@
     if (L.xm && xmActive()) { const c = Math.round((L.boss ? 25 : 3 + stars * 2) * liveMult('candy')); addXCandy(c); gifts += ' · +' + c + ' caramelos navideños'; }
     if (L.club && window.Club) { const t = window.Club.onEnd(L, { win: true, stars }); if (t) setTimeout(() => toast(t, 2600), 1500); }
     // bonificación temporal del panel (x2 monedas…)
+    { const ex = RH('win', { L, stars, score: sim.score }); if (ex) gifts += ex; }   // fichas del mini-evento, desafío, logros
     const cm = liveMult('coins'); if (cm > 1) { coins = Math.round(coins * cm); gifts += ` · x${cm} evento`; }
     G.pendingCoins = coins; save.coins += coins;
     save.streak = Math.min(save.streak + 1, 9); save.played++;
@@ -2761,6 +2766,7 @@
   const HONEYMOON = Levels.HARD[0] - 1;   // antes del primer nivel difícil, perder regala bolas
   function showLose() {
     const sim = G.sim, L = G.level;
+    if (L.weekly) RH('lose', { L, score: sim.score });
     if (L.club === 'boss' && window.Club && !G.clubLoseDone) { G.clubLoseDone = true; const t = window.Club.onEnd(L, { win: false }); if (t) setTimeout(() => toast(t, 2600), 600); }
     const p = Math.round(sim.progress() * 100), tgt = Math.round(sim.target * 100);
     $('loseTxt').textContent = tgt - p <= 10 ? '¡Te ha faltado muy poco!' : '¡Casi lo tiras!';
@@ -2930,10 +2936,10 @@
     const rowT = s => TAG[s.id] ? row(s).replace('<div class="shopitem">', `<div class="shopitem hot"><i class="rtag">${TAG[s.id]}</i>`) : row(s);
     const by = ids => items.filter(s => ids.includes(s.id)).map(rowT).join('');
     const hw = hwActive(), xm = xmActive();
-    $('shopTabs').innerHTML = (xm ? `<button data-to="sXm" class="hwtab xmtab" aria-label="Navidad"><span class="xti">${treeSvg()}</span></button>` : '') + (hw ? '<button data-to="sHw" class="hwtab" aria-label="Halloween">🎃</button>' : '') + [['sTmp', 'emo:⏳', 'Temporales'], ['sOff', 'ico ico-fire', 'Ofertas'], ['sCan', 'emo:🎨', 'Cañones'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
+    $('shopTabs').innerHTML = (RH('shopTab') || '') + (xm ? `<button data-to="sXm" class="hwtab xmtab" aria-label="Navidad"><span class="xti">${treeSvg()}</span></button>` : '') + (hw ? '<button data-to="sHw" class="hwtab" aria-label="Halloween">🎃</button>' : '') + [['sTmp', 'emo:⏳', 'Temporales'], ['sOff', 'ico ico-fire', 'Ofertas'], ['sCan', 'emo:🎨', 'Cañones'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
       .map(([id, ic, t]) => `<button data-to="${id}">${ic.startsWith('emo:') ? `<i class="emo">${ic.slice(4)}</i>` : `<i class="${ic}"></i>`}${t}</button>`).join('');
-    $('shopTabs').classList.toggle('withhw', hw || xm);
-    $('shopList').innerHTML = (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + tmpShopHtml() + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${feat}${by(['noads'])}` + canShopHtml() +
+    $('shopTabs').classList.toggle('withhw', hw || xm || !!RH('shopTab'));
+    $('shopList').innerHTML = (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + (RH('shopTop') || '') + tmpShopHtml() + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${feat}${by(['noads'])}` + canShopHtml() +
       `<div class="sechead" id="sGem"><span>Gemas · para el Pase Pro</span></div>${by(['g1', 'g2', 'g3'])}` +
       `<div class="sechead" id="sBall"><span>Potenciadores</span></div>${by(['b1', 'b2', 'b3'])}` +
       `<div class="sechead"><span>Bolas de los mundos</span></div>${WB_KEYS.map(wrow).join('')}` +
@@ -2945,6 +2951,7 @@
     };
     $('shopTabs').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { Audio.click(); goTab(b.dataset.to); }));
     $('shopTabs').querySelector('button').classList.add('on');
+    RH('shopBind', $('shopList'));
     bindCos($('shopList'), to => { const sc = $('shopList').scrollTop; openShop(to); if (!to) $('shopList').scrollTop = sc; });
     $('shopList').querySelectorAll('button[data-hw]').forEach(b => b.addEventListener('click', () => { Audio.init(); hwBuy(b.dataset.hw); }));
     $('shopList').querySelectorAll('button[data-xm]').forEach(b => b.addEventListener('click', () => { Audio.init(); xmBuy(b.dataset.xm); }));
@@ -2962,7 +2969,7 @@
       openShop();
     }));
     setCoins(); $('shop').classList.add('on');
-    if (focus) goTab({ gems: 'sGem', coins: 'sCoin', balls: 'sBall', hw: 'sHw', xm: 'sXm', tmp: 'sTmp', can: 'sCan', bskin: 'sBskin' }[focus] || 'sOff');
+    if (focus) goTab({ gems: 'sGem', coins: 'sCoin', balls: 'sBall', hw: 'sHw', xm: 'sXm', tmp: 'sTmp', can: 'sCan', bskin: 'sBskin', trail: 'sTrail', mini: 'sMini' }[focus] || 'sOff');
   }
 
   // ---------------- cañones y bolas: mejoras, cañones con más fuerza, aspectos y la pestaña «Temporales» ----------------
@@ -2982,14 +2989,21 @@
   // fuerza del cañón en una partida: en la liga de clubes todos tiran igual (sin mejoras ni cañones fuertes)
   function cannonPower(L) { if (L && L.club === 'lg') return null; const c = canSave(); return Cannons.power(c.eq, c.lv); }
   const COS_RAR = { base: '', common: 'COMÚN', rare: 'RARO', epic: 'ÉPICO', legend: 'LEGENDARIO', pass: 'PASE PRO', event: 'EVENTO', streak: 'RACHA', up: 'MEJORA', model: 'CAÑÓN' };
-  const cosDef = (k, id) => k === 'skin' ? SKINS[id] : k === 'ball' ? Cannons.BALL[id] : k === 'model' ? Cannons.MODEL[id] : null;
-  const cosOwned = (k, id) => k === 'skin' ? save.skins.owned.includes(id) : k === 'ball' ? bSave().own.includes(id) : k === 'model' ? canSave().own.includes(id) : false;
-  const cosOn = (k, id) => k === 'skin' ? save.skins.equip === id : k === 'ball' ? bSave().eq === id : k === 'model' ? canSave().eq === id : false;
+  // save.trail = { own, eq }: estelas de las bolas
+  function tSave() {
+    const t = save.trail && typeof save.trail === 'object' ? save.trail : (save.trail = {});
+    if (!Array.isArray(t.own)) t.own = ['ninguna']; if (!t.own.includes('ninguna')) t.own.unshift('ninguna');
+    if (!Cannons.TRAIL[t.eq] || !t.own.includes(t.eq)) t.eq = 'ninguna';
+    return t;
+  }
+  const cosDef = (k, id) => k === 'skin' ? SKINS[id] : k === 'ball' ? Cannons.BALL[id] : k === 'model' ? Cannons.MODEL[id] : k === 'trail' ? Cannons.TRAIL[id] : null;
+  const cosOwned = (k, id) => k === 'skin' ? save.skins.owned.includes(id) : k === 'ball' ? bSave().own.includes(id) : k === 'model' ? canSave().own.includes(id) : k === 'trail' ? tSave().own.includes(id) : false;
+  const cosOn = (k, id) => k === 'skin' ? save.skins.equip === id : k === 'ball' ? bSave().eq === id : k === 'model' ? canSave().eq === id : k === 'trail' ? tSave().eq === id : false;
   // «Temporales»: 2 cañones legendarios y 1 bola legendaria que cambian cada lunes, 2 ofertas del día (-30 %) y, la
   // primera semana de cada temporada, el cañón del Pase Pro de la anterior. El panel puede elegir los de la semana (live.tmp).
   const WEEK_EPOCH = Date.UTC(2026, 9, 5);                     // un lunes
   const TMP_PAIRS = [['diamante', 'volcan'], ['tesoro', 'holo'], ['diamante', 'holo'], ['volcan', 'tesoro']];
-  const TMP_BALLS = ['gema', 'pixel'];
+  const TMP_BALLS = ['gema', 'pixel'], TMP_TRAILS = ['rayo', 'cometa'];
   const PASS_LEFT_GEMS = 300;
   const hash = n => { n = (n ^ 61) ^ (n >>> 16); n = (n + (n << 3)) | 0; n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); return (n ^ (n >>> 15)) >>> 0; };
   function tmpNow() {
@@ -3003,6 +3017,7 @@
     }
     const items = sk.map(id => ({ k: 'skin', id, g: SKINS[id].g || 300, tag: 'week' }));
     if (ball) items.push({ k: 'ball', id: ball, g: Cannons.BALL[ball].g || 200, tag: 'week' });
+    { const tr = TMP_TRAILS[((wk % 2) + 2) % 2]; items.push({ k: 'trail', id: tr, g: Cannons.TRAIL[tr].g || 200, tag: 'week' }); }
     // ofertas del día (lo de la tienda que aún no tienes), iguales para el mismo jugador todo el día
     const day = dayKey(), dEnd = (day + 1) * 864e5 + new Date().getTimezoneOffset() * 6e4;
     const pool = [].concat(Cannons.SKINS.filter(x => x.how === 'shop').map(x => ({ k: 'skin', id: x.id })), Cannons.BALLS.filter(x => x.how === 'shop').map(x => ({ k: 'ball', id: x.id })))
@@ -3027,7 +3042,7 @@
   }
   function cosEquip(k, id) {
     if (!cosOwned(k, id)) return false;
-    if (k === 'skin') save.skins.equip = id; else if (k === 'ball') bSave().eq = id; else if (k === 'model') canSave().eq = id;
+    if (k === 'skin') save.skins.equip = id; else if (k === 'ball') bSave().eq = id; else if (k === 'model') canSave().eq = id; else if (k === 'trail') tSave().eq = id;
     persist(); applySkin(); Audio.click(); return true;
   }
   function cosBuy(k, id) {
@@ -3036,7 +3051,7 @@
     if (pr.c && save.coins < pr.c) { toast('No tienes monedas suficientes'); return false; }
     if (pr.g && (save.gems || 0) < pr.g) { toast(`Te faltan ${pr.g - (save.gems || 0)} gemas`, 2600); return false; }
     if (pr.c) save.coins -= pr.c; else save.gems -= pr.g;
-    if (k === 'skin') save.skins.owned.push(id); else if (k === 'ball') bSave().own.push(id); else canSave().own.push(id);
+    if (k === 'skin') save.skins.owned.push(id); else if (k === 'ball') bSave().own.push(id); else if (k === 'trail') tSave().own.push(id); else canSave().own.push(id);
     cosEquip(k, id); setCoins(); Audio.win(); vibe([20, 20, 40]);
     toast('¡' + d.name + ' es tuyo!', 2400);
     return true;
@@ -3058,7 +3073,8 @@
     const btn = on ? '<button class="btn gray" disabled>EN USO</button>' : own ? `<button class="btn green" data-eq="${q.k}:${q.id}">USAR</button>`
       : pr ? `<button class="btn ${pr.c ? 'gold' : 'green'}" data-buy="${q.k}:${q.id}">${q.was ? `<s>${q.was.toLocaleString('es-ES')}</s>` : ''}${priceHtml(pr)}</button>` : `<span class="chow">${how || ''}</span>`;
     const ph = q.k === 'ball' ? 'radial-gradient(circle at 35% 30%,#ffd0d8,#ff4f6d 45%,#8a1030 75%,transparent 77%)' : d.css || 'rgba(255,255,255,.15)';
-    return `<div class="cosc r-${rar}${own ? ' own' : ''}${on ? ' on' : ''}">${COS_RAR[rar] ? `<i class="crar">${COS_RAR[rar]}</i>` : ''}${extra || ''}<div class="cth" data-th="${q.k}:${q.id}" style="--ph:${ph}"></div><b>${d.name}</b>${q.k === 'model' ? `<small>${d.desc}</small>` : ''}${btn}</div>`;
+    const th = q.k === 'trail' ? `<div class="cth trailpv" style="--tr:${d.css}"></div>` : `<div class="cth" data-th="${q.k}:${q.id}" style="--ph:${ph}"></div>`;
+    return `<div class="cosc r-${rar}${own ? ' own' : ''}${on ? ' on' : ''}">${COS_RAR[rar] ? `<i class="crar">${COS_RAR[rar]}</i>` : ''}${extra || ''}${th}<b>${d.name}</b>${q.k === 'model' ? `<small>${d.desc}</small>` : ''}${btn}</div>`;
   }
   function tmpShopHtml() {
     const T = tmpNow();
@@ -3079,7 +3095,9 @@
       `<div class="sechead"><span>Cañones con más fuerza</span></div><div class="cgrid">${Cannons.MODELS.map(m => cosCard({ k: 'model', id: m.id })).join('')}</div>` +
       '<p class="cnote">En la liga de clubes todos los cañones tiran con la fuerza normal.</p>' +
       `<div class="sechead"><span>Aspectos del cañón</span></div><div class="cgrid">${skSorted.map(x => cosCard({ k: 'skin', id: x.id })).join('')}</div>` +
-      `<div class="sechead" id="sBskin"><span>Aspectos de las bolas · conservan su color</span></div><div class="cgrid">${ballsSorted.map(x => cosCard({ k: 'ball', id: x.id })).join('')}</div>`;
+      `<div class="sechead" id="sBskin"><span>Aspectos de las bolas · conservan su color</span></div><div class="cgrid">${ballsSorted.map(x => cosCard({ k: 'ball', id: x.id })).join('')}</div>` +
+      `<div class="sechead" id="sTrail"><span>Estelas de las bolas</span></div><div class="cgrid">${Cannons.TRAILS.map(x => cosCard({ k: 'trail', id: x.id })).join('')}</div>` +
+      `<p class="cnote">${masteryLines().map(m => m.txt).join(' · ')}</p>`;
   }
   // miniaturas 3D (se pintan poco a poco) y botones de las tarjetas
   function fillThumbs(box) {
@@ -3096,18 +3114,40 @@
     box.querySelectorAll('[data-eq]').forEach(b => b.addEventListener('click', () => { Audio.init(); const [k, id] = b.dataset.eq.split(':'); if (cosEquip(k, id)) again(); }));
     box.querySelectorAll('[data-up]').forEach(b => b.addEventListener('click', () => { Audio.init(); if (cosUpgrade()) again(); }));
   }
+  // ---------------- maestría y estelas ----------------
+  // Cada tiro suma a la maestría del aspecto de cañón que llevas. Las estelas de maestría se ganan con N tiros
+  // entre todos los aspectos de una rareza (p. ej. 500 con cañones legendarios → estela de Fuego).
+  const RB_COLS = [0xff4f6d, 0xffd23f, 0x5fd45a, 0x3d9bff, 0xa66bff];
+  const RAR_TXT = { common: 'comunes', rare: 'raros', epic: 'épicos', legend: 'legendarios' };
+  function masteryOf(rar) { const m = save.mastery || {}; let n = 0; for (const s of Cannons.SKINS) if (s.rar === rar && m[s.id]) n += m[s.id]; return n; }
+  function masteryLines() {
+    return Cannons.TRAILS.filter(t => t.how === 'mastery').map(t => {
+      const n = Math.min(t.m.n, masteryOf(t.m.rar)), own = tSave().own.includes(t.id);
+      return { id: t.id, p: own ? 1 : n / t.m.n, txt: own ? `Estela ${t.name}: conseguida` : `Estela ${t.name}: ${n}/${t.m.n} tiros con cañones ${RAR_TXT[t.m.rar]}` };
+    });
+  }
+  function masteryShot() {
+    const sk = (save.skins && save.skins.equip) || 'classic'; if (sk === 'classic') return;
+    save.mastery = save.mastery || {}; save.mastery[sk] = (save.mastery[sk] || 0) + 1;
+    for (const t of Cannons.TRAILS) if (t.how === 'mastery' && !tSave().own.includes(t.id) && masteryOf(t.m.rar) >= t.m.n) {
+      tSave().own.push(t.id); persist(); setTimeout(() => { toast('¡Maestría! Nueva estela: ' + t.name, 3000); Audio.win(); }, 400);
+    }
+  }
+  const trailFx = () => { const t = Cannons.TRAIL[tSave().eq]; return t && t.fx; };
+
   // ---------------- mi colección (en el perfil) y el cañón de antes de jugar ----------------
   // Todo lo que tienes (y con candado lo que te falta): aspectos del cañón, cañones y bolas. Tocar uno lo pone.
-  const COL_KIND = { skin: 'Aspectos', model: 'Cañones', ball: 'Bolas' }, COL_ICO = { skin: '🎨', model: '🎯', ball: '⚽' };
+  const COL_KIND = { skin: 'Aspectos', model: 'Cañones', ball: 'Bolas', trail: 'Estelas' }, COL_ICO = { skin: '🎨', model: '🎯', ball: '⚽', trail: '✨' };
   function colList(k) {
-    const src = k === 'skin' ? Cannons.SKINS : k === 'model' ? Cannons.MODELS : Cannons.BALLS;
+    const src = k === 'skin' ? Cannons.SKINS : k === 'model' ? Cannons.MODELS : k === 'trail' ? Cannons.TRAILS : Cannons.BALLS;
     return src.map(d => ({ k, id: d.id, d, own: cosOwned(k, d.id), on: cosOwned(k, d.id) && cosOn(k, d.id) }))
       .sort((a, b) => (b.on - a.on) || (b.own - a.own));
   }
   function cosHow(k, id) {
     const d = cosDef(k, id), pr = cosPrice(k, id);
     if (pr) return pr.c ? `${pr.c.toLocaleString('es-ES')} monedas en la tienda` : `${pr.g} gemas en la tienda`;
-    return { pass: 'Se consigue en el Pase Pro', event: 'Se consigue en un evento', streak: 'Se consigue con la racha diaria', temp: 'Sale a veces en «Temporales»' }[d.how] || 'En la tienda';
+    if (d.how === 'mastery') { const m = masteryLines().find(x => x.id === id); return m ? m.txt : 'Se consigue con maestría'; }
+    return { pass: 'Se consigue en el Pase Pro', event: 'Se consigue en un evento', streak: 'Se consigue con la racha diaria', temp: 'Sale a veces en «Temporales»', logro: 'Se consigue con un logro', mini: 'Se consigue en un mini-evento' }[d.how] || 'En la tienda';
   }
   const shortName = n => n.replace(/^Cañón (de |del )?(?=\p{Lu})/u, '');
   const BALL_PH = 'radial-gradient(circle at 35% 30%,#ffd0d8,#ff4f6d 45%,#8a1030 75%,transparent 77%)';
@@ -3115,7 +3155,8 @@
   function colItem(q) {
     const rar = q.k === 'model' ? (q.id === 'cohete' ? 'legend' : 'model') : q.d.rar;
     const ph = q.k === 'ball' ? BALL_PH : q.d.css || 'rgba(255,255,255,.15)';
-    return `<button class="colit r-${rar}${q.own ? '' : ' lock'}${q.on ? ' on' : ''}" data-col="${q.k}:${q.id}"><div class="cth" data-th="${thKey(q)}" style="--ph:${ph}"></div><b>${shortName(q.d.name)}</b></button>`;
+    const th = q.k === 'trail' ? `<div class="cth trailpv" style="--tr:${q.d.css}"></div>` : `<div class="cth" data-th="${thKey(q)}" style="--ph:${ph}"></div>`;
+    return `<button class="colit r-${rar}${q.own ? '' : ' lock'}${q.on ? ' on' : ''}" data-col="${q.k}:${q.id}">${th}<b>${shortName(q.d.name)}</b></button>`;
   }
   // tocar una pieza: si es tuya, la pones; si no, te dice cómo conseguirla
   function colTap(k, id) {
@@ -3126,17 +3167,18 @@
   function mountCol(el) {
     if (!el) return;
     const n = k => colList(k).filter(q => q.own).length, tot = k => colList(k).length;
-    const own = n('skin') + n('model') + n('ball'), all = tot('skin') + tot('model') + tot('ball');
+    const own = n('skin') + n('model') + n('ball') + n('trail'), all = tot('skin') + tot('model') + tot('ball') + tot('trail');
     el.innerHTML = `<div class="colbox"><div class="colhead"><span>🎒 Mi colección</span><small>${own} de ${all}</small></div><div class="colbar"><i style="width:${(100 * own / all).toFixed(0)}%"></i></div>
-      <div class="colchips">${['skin', 'model', 'ball'].map(k => `<button data-colf="${k}" class="${k === colF ? 'on' : ''}"><span>${COL_ICO[k]} ${COL_KIND[k]}</span><small>${n(k)}/${tot(k)}</small></button>`).join('')}</div>
+      <div class="colchips">${['skin', 'model', 'ball', 'trail'].map(k => `<button data-colf="${k}" class="${k === colF ? 'on' : ''}"><span>${COL_ICO[k]} ${COL_KIND[k]}</span><small>${n(k)}/${tot(k)}</small></button>`).join('')}</div>
       ${colF === 'model' ? `<div class="colnote">Mejora del cañón: nivel ${canSave().lv} de 5 · sirve para cualquier cañón</div>` : ''}
+      ${colF === 'trail' ? masteryLines().map(m => `<div class="mastery"><span>${m.txt}</span><i><b style="width:${Math.round(100 * m.p)}%"></b></i></div>`).join('') : ''}
       <div class="colgrid">${colList(colF).map(colItem).join('')}</div>
       <div class="colnote">Toca uno para usarlo · los del candado se consiguen en la tienda o en el pase</div>
       <button class="btn gold small colshop">🛒 CONSEGUIR MÁS</button></div>`;
     fillThumbs(el);
     el.querySelectorAll('[data-colf]').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); Audio.init(); Audio.click(); colF = b.dataset.colf; mountCol(el); }));
     el.querySelectorAll('[data-col]').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); Audio.init(); const [k, id] = b.dataset.col.split(':'); if (colTap(k, id)) { const g = el.querySelector('.colgrid'), sc = g.scrollTop; mountCol(el); el.querySelector('.colgrid').scrollTop = sc; } }));
-    el.querySelector('.colshop').addEventListener('click', ev => { ev.stopPropagation(); Audio.init(); Audio.click(); openShop(colF === 'ball' ? 'bskin' : 'can'); });
+    el.querySelector('.colshop').addEventListener('click', ev => { ev.stopPropagation(); Audio.init(); Audio.click(); openShop(colF === 'ball' ? 'bskin' : colF === 'trail' ? 'trail' : 'can'); });
   }
   // ventana del nivel: los 3 huecos (cañón, aspecto, bolas); al tocar uno sube un cajón con lo que tienes
   function renderLoadout() {
@@ -3147,7 +3189,8 @@
     box.innerHTML = `<div class="lhead">Tu cañón para este nivel</div><div class="lrow">` +
       slot('model', c.eq === 'base' ? 'up:base:' + c.lv : 'model:' + c.eq, '#3a2f6e', 'CAÑÓN', shortName(md.name) + (c.lv > 1 ? ' · nv. ' + c.lv : '')) +
       slot('skin', 'skin:' + sk.id, sk.css, 'ASPECTO', shortName(sk.name)) +
-      slot('ball', 'ball:' + bl.id, BALL_PH, 'BOLAS', bl.name) + '</div>' +
+      slot('ball', 'ball:' + bl.id, BALL_PH, 'BOLAS', bl.name) +
+      `<button class="lslot" data-ls="trail"><span class="led">✎</span><div class="cth trailpv" style="--tr:${Cannons.TRAIL[tSave().eq].css}"></div><small>ESTELA</small><b>${Cannons.TRAIL[tSave().eq].name}</b></button>` + '</div>' +
       (L && L.club === 'lg' ? '<div class="lnote">En la liga de clubes todos los cañones tiran con la fuerza normal.</div>' : '');
     fillThumbs(box);
     box.querySelectorAll('[data-ls]').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); Audio.init(); Audio.click(); openCosSheet(b.dataset.ls); }));
@@ -3155,7 +3198,7 @@
   function openCosSheet(k) {
     const sh = $('cosSheet'); if (!sh) return;
     const list = colList(k), own = list.filter(q => q.own).length;
-    $('csTitle').textContent = { skin: 'Elige el aspecto', model: 'Elige el cañón', ball: 'Elige tus bolas' }[k];
+    $('csTitle').textContent = { skin: 'Elige el aspecto', model: 'Elige el cañón', ball: 'Elige tus bolas', trail: 'Elige la estela' }[k];
     $('csCount').textContent = own + ' de ' + list.length;
     $('csGrid').innerHTML = list.map(colItem).join(''); $('csGrid').scrollTop = 0;
     fillThumbs($('csGrid'));
@@ -3163,7 +3206,7 @@
       ev.stopPropagation(); Audio.init(); const [kk, id] = b.dataset.col.split(':');
       if (colTap(kk, id)) { closeCosSheet(); renderLoadout(); }
     }));
-    $('csShop').onclick = ev => { ev.stopPropagation(); Audio.init(); Audio.click(); closeCosSheet(); openShop(k === 'ball' ? 'bskin' : 'can'); };
+    $('csShop').onclick = ev => { ev.stopPropagation(); Audio.init(); Audio.click(); closeCosSheet(); openShop(k === 'ball' ? 'bskin' : k === 'trail' ? 'trail' : 'can'); };
     sh.classList.add('on');
   }
   function closeCosSheet() { const sh = $('cosSheet'); if (sh) sh.classList.remove('on'); }
@@ -3218,7 +3261,7 @@
     [R({ coins: 200 }), R({ coins: 500 })],
     [R({ rainbow: 1 }), R({ bomb: 4 })],
     [R({ coins: 250 }), R({ gems: 10 })],
-    [R({ extra: 2 }), R({ rainbow: 4 })],
+    [R({ extra: 2 }), R({ rainbow: 4, trail: 'corazones' })],
     [R({ golden: 1, gems: 5 }), R({ skin: 'rainbow', golden: 2, coins: 1000 })],
   ];
   function seasonIndex() { return Math.max(0, Math.floor((Date.now() - SEASON_EPOCH) / (SEASON_DAYS * 864e5))); }
@@ -3227,6 +3270,7 @@
   function grant(r) {
     const out = [];
     if (r.bskin && !bSave().own.includes(r.bskin) && Cannons.BALL[r.bskin]) { bSave().own.push(r.bskin); out.push('Bolas ' + Cannons.BALL[r.bskin].name); }
+    if (r.trail && !tSave().own.includes(r.trail) && Cannons.TRAIL[r.trail]) { tSave().own.push(r.trail); out.push('Estela ' + Cannons.TRAIL[r.trail].name); }
     if (r.coins) { save.coins += r.coins; out.push(r.coins + ' monedas'); }
     if (r.gems) { save.gems = (save.gems || 0) + r.gems; out.push(r.gems + ' gemas'); }
     for (const k of ['bomb', 'rainbow', 'extra', 'golden']) if (r[k]) { save.boosters[k] = (save.boosters[k] || 0) + r[k]; out.push(r[k] + ' ' + ({ bomb: r[k] > 1 ? 'bombas' : 'bomba', rainbow: 'arcoíris', extra: '× +2 bolas', golden: r[k] > 1 ? 'bolas doradas' : 'bola dorada' })[k]); }
@@ -3259,6 +3303,7 @@
     const parts = [], txt = [];
     if (r.skin) { parts.push(`<i class="skinsw" style="background:${SKINS[r.skin].css}"></i>`); txt.push(SKINS[r.skin].name); }
     if (r.bskin) { parts.push('<i class="bskinsw"></i>'); txt.push('Bolas ' + Cannons.BALL[r.bskin].name); }
+    if (r.trail) { parts.push(`<i class="trailsw" style="--tr:${Cannons.TRAIL[r.trail].css}"></i>`); txt.push('Estela ' + Cannons.TRAIL[r.trail].name); }
     if (r.golden) { parts.push('<i class="ball bGolden"></i>'); txt.push(r.golden > 1 ? r.golden + ' bolas doradas' : 'Bola dorada'); }
     if (r.gems) { parts.push('<i class="gem"></i>'); txt.push(r.gems + ' gemas'); }
     if (r.bomb) { parts.push('<i class="ball bBomb"></i>'); txt.push(r.bomb > 1 ? r.bomb + ' bombas' : 'Bomba'); }
@@ -3354,7 +3399,7 @@
   // Lo que se cambia en el panel sin publicar versión: fechas de eventos, bonificaciones x2, avisos, regalos para todos,
   // códigos regalo, frecuencia de anuncios, mantenimiento y versión mínima. Ver live.js.
   const liveCfg = () => (window.Live && window.Live.cfg) || {};
-  const liveMult = k => (window.Live ? window.Live.mult(k) : 1);
+  const liveMult = k => Math.min(5, (window.Live ? window.Live.mult(k) : 1) * (k === 'coins' && (save.boost2 || 0) > Date.now() ? 2 : 1));
   const liveWin = o => (window.Live ? window.Live.inWin(o) : false);
   const lt = s => (window.I18N ? I18N.t(s) : s);
   // número de compilación (1.0.N): lo pone tools/build.js en Ajustes; en las versiones de pruebas no hay
@@ -3370,8 +3415,9 @@
   function liveUi() {
     const el = $('liveBoost'); if (!el) return;
     const bs = window.Live ? window.Live.boosts().filter(b => BOOST_TXT[b.kind] && (b.kind !== 'candy' || hwActive() || xmActive())) : [];
-    el.hidden = !bs.length;
-    el.innerHTML = bs.map(b => `<span>${BOOST_IC[b.kind]} x${Math.min(5, +b.mult)} ${escH(lt(BOOST_TXT[b.kind]))}${b.end ? ' · ⏳ ' + leftTxt(+b.end - Date.now()) : ''}</span>`).join('');
+    const mine = (save.boost2 || 0) > Date.now();
+    el.hidden = !bs.length && !mine;
+    el.innerHTML = (mine ? `<span>🪙 x2 ${escH(lt('monedas'))} · ⏳ ${leftTxt(save.boost2 - Date.now())}</span>` : '') + bs.map(b => `<span>${BOOST_IC[b.kind]} x${Math.min(5, +b.mult)} ${escH(lt(BOOST_TXT[b.kind]))}${b.end ? ' · ⏳ ' + leftTxt(+b.end - Date.now()) : ''}</span>`).join('');
   }
   // ventana de avisos (actualizar, mantenimiento, regalos, noticias y canjear código)
   function liveBox(o) {
@@ -4306,7 +4352,7 @@
   on('sTPay', () => { if (!TEST_MODE) return; save.fakePay = !fakePay(); persist(); refreshTest(); toast(save.fakePay ? 'Compras simuladas: la tienda no pasa por Google Play' : 'Compras con Google Play'); });
   on('sTReset', () => {
     if (!TEST_MODE) return;
-    save.skins = { owned: ['classic'], equip: 'classic' }; save.can = { lv: 1, own: ['base'], eq: 'base' }; save.bskin = { own: ['clasica'], eq: 'clasica' };
+    save.skins = { owned: ['classic'], equip: 'classic' }; save.can = { lv: 1, own: ['base'], eq: 'base' }; save.bskin = { own: ['clasica'], eq: 'clasica' }; save.trail = { own: ['ninguna'], eq: 'ninguna' };
     persist(); applySkin(); toast('Cañones, mejoras y bolas quitados: puedes volver a comprarlos');
   });
   // configuración en directo: ventana de avisos y código regalo
@@ -4451,6 +4497,7 @@
     const L = G.level;
     goMap();
     maybeAutoDaily(() => {
+      if (L.weekly) { RH('weeklyBack'); return; }
       if (L.club) { const n = window.Club && window.Club.next(L); if (window.Club) window.Club.back(L); if (n) openPre(n); return; }
       if (L.hw) { if (L.pos < 50 && hwActive()) openPre(L.id + 1); return; }
       if (L.xm) { if (L.pos < 50 && xmActive()) openPre(L.id + 1); return; }
@@ -4459,7 +4506,7 @@
       if (n <= LEVELS.length) openPre(n);
     });
   })));
-  on('winMap', afterMystery(() => maybeInterstitial(() => { if (G.level && G.level.club && window.Club) { window.Club.back(G.level); return; } goMap(); maybeAutoDaily(); })));
+  on('winMap', afterMystery(() => maybeInterstitial(() => { if (G.level && G.level.club && window.Club) { window.Club.back(G.level); return; } const wk = G.level && G.level.weekly; goMap(); if (wk) { RH('weeklyBack'); return; } maybeAutoDaily(); })));
   $('btnGold').addEventListener('pointerdown', e => {
     e.stopPropagation(); Audio.init();
     const sim = G.sim;
@@ -4476,14 +4523,14 @@
     centerText('+3 BOLAS', '#fff', 32);
   }));
   const paidReplay = L => L.bonus && save.bonusDone && save.bonusDone[L.id];
-  on('winRetry', () => { if (paidReplay(G.level)) { goMap(); openPre(G.level.id); } else { hideAll(); startLevel(G.level.id, []); } });
+  on('winRetry', () => { if (G.level.weekly) { hideAll(); goMap(); RH('weeklyBack'); return; } if (paidReplay(G.level)) { goMap(); openPre(G.level.id); } else { hideAll(); startLevel(G.level.id, []); } });
   on('winDouble', () => showRewarded(ok => { if (ok) { save.coins += G.pendingCoins; persist(); $('winCoins').textContent = '+' + (G.pendingCoins * 2); $('winDouble').disabled = true; Audio.coin(); } }));
   on('loseAd', () => showRewarded(ok => { if (ok) continueWithBalls(); }));
   on('loseCoins', () => { const cost = +$('loseCost').textContent; if (save.coins >= cost) { save.coins -= cost; persist(); continueWithBalls(); } });
   on('loseGift', () => { if (G.giftWorld) { save.casiFree = save.casiFree || {}; save.casiFree[G.giftWorld] = true; persist(); } continueWithBalls(); });
   on('loseStarter', () => { const it = SHOP.find(x => x.id === 'starter'); if (iapBuy(it)) showLose(); });
-  on('loseRetry', () => { save.streak = 0; stats().winRun = 0; persist(); hideAll(); G.mode = 'pre'; openPre(G.level.id); });
-  on('loseMap', () => { save.streak = 0; stats().winRun = 0; persist(); if (G.level && G.level.club && window.Club) { window.Club.back(G.level); return; } goMap(); });
+  on('loseRetry', () => { save.streak = 0; stats().winRun = 0; persist(); hideAll(); if (G.level.weekly) { goMap(); RH('weeklyBack'); return; } G.mode = 'pre'; openPre(G.level.id); });
+  on('loseMap', () => { save.streak = 0; stats().winRun = 0; persist(); if (G.level && G.level.club && window.Club) { window.Club.back(G.level); return; } const wk = G.level && G.level.weekly; goMap(); if (wk) RH('weeklyBack'); });
   on('ncOk', () => { Audio.click(); closeNewCard(); });
   on('btnFinish', () => { if (G.mode === 'play' && G.sim && G.sim.finish()) handleEvents(); });
   on('btnPause', () => { if (G.mode !== 'play') return; G.paused = true; refreshToggles(); show('pause'); });
@@ -4653,7 +4700,7 @@
   }
 
   // los jefes (bosses.js) usan estas piezas del juego
-  window.RRGame = { testBuild: TEST_MODE, cubiFrames, openShop, goMap, mountCol, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
+  window.RRGame = { testBuild: TEST_MODE, showRewarded, startLevel, openPre: id => openPre(id), hideAll, liveUi: () => liveUi(), updateTitle: () => updateTitle(), dayKey: () => dayKey(), leftTxt: ms => leftTxt(ms), liveCfg: () => liveCfg(), liveWin: o => liveWin(o), cosApi: { def: cosDef, owned: cosOwned, tSave: () => tSave(), bSave: () => bSave(), canSave: () => canSave() }, cubiFrames, openShop, goMap, mountCol, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
     stats, plState, starsTotal, countLv, LEVELS, myCode, openPre: id => openPre(id), setTester, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,
@@ -4678,6 +4725,7 @@
   ensureSeason(); applySkin(); if (save.lowGfx) applyGfx();
   setTimeout(() => { if (save.skins && save.skins.equip === 'candycane') applySkin(); }, 0);   // la textura del bastón llega con christmas.js
   goTitle(); setCoins(); scheduleReminder();
+  setTimeout(() => RH('boot'), 0);
   // sonido desde la portada: en la app (Android e iPhone) el audio puede empezar sin tocar nada; si el navegador lo
   // bloquea, se pone en marcha con el primer toque en cualquier parte de la pantalla (no hace falta pulsar JUGAR)
   Audio.init();

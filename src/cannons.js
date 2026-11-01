@@ -89,6 +89,18 @@
     { id: 'bosque', name: 'Cañón Bosque Encantado', rar: 'pass', how: 'pass', css: 'radial-gradient(circle at 35% 35%,#ff3a3a 0 10%,transparent 11%),radial-gradient(circle at 65% 60%,#ff3a3a 0 8%,transparent 9%),#5a8a4a', m: () => ({ body: M({ map: TX.scales(), color: 0x9adf9a, metalness: 0, roughness: 0.8, clearcoat: 0 }), ring: M({ color: 0x6a4a2a, roughness: 0.8, metalness: 0 }), band: M({ color: 0xff8ad0 }), wood: M({ color: 0x5a3a1a, roughness: 0.9, metalness: 0 }) }),
       x: (piv) => { const stm = M({ color: 0xfff6e0 }), cap = M({ color: 0xff3a3a }); for (let i = 0; i < 3; i++) { piv.add(mesh(new T.CylinderGeometry(0.04, 0.05, 0.16, 8), stm, -0.25 + i * 0.22, 0.48, 0.2 - i * 0.35)); piv.add(mesh(new T.SphereGeometry(0.11, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), cap, -0.25 + i * 0.22, 0.56, 0.2 - i * 0.35)); }
         const fl = [0xffffff, 0xffd23f, 0xff8ad0].map(c => M({ color: c })); for (let i = 0; i < 6; i++) { const a = i * 1.1; piv.add(mesh(new T.SphereGeometry(0.05, 8, 6), fl[i % 3], Math.cos(a) * 0.47, Math.sin(a) * 0.47, -1.0 + i * 0.12)); } } },
+    // premio de logro (no se compra)
+    { id: 'oro', name: 'Cañón Oro Macizo', rar: 'legend', how: 'logro', css: 'linear-gradient(180deg,#fff2b0,#ffc83d 45%,#b07a10)', m: () => ({ body: M({ color: 0xffcf3a, metalness: 1, roughness: 0.12, clearcoat: 1 }), ring: M({ color: 0xfff2b0, metalness: 1, roughness: 0.05 }), band: M({ color: 0x3a2a00, metalness: 0.6, roughness: 0.3 }), wood: M({ color: 0x8a5a10, metalness: 0.7, roughness: 0.3 }), hub: M({ color: 0xfff2b0, metalness: 1 }) }),
+      x: (piv) => { const st = M({ color: 0xfff6c0, metalness: 1, roughness: 0.05, emissive: 0x6a4a00, emissiveIntensity: 0.4 }); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; piv.add(mesh(new T.OctahedronGeometry(0.07), st, Math.cos(a) * 0.5, Math.sin(a) * 0.5, 0.1)); } } },
+    // mini-eventos de 3 días (uno por estación): se cambian por las fichas del evento
+    { id: 'castana', name: 'Cañón Castaña', rar: 'event', how: 'mini', css: 'radial-gradient(circle at 35% 30%,#c98a4a,#7a3e14 60%,#3a1a08)', m: () => ({ body: M({ color: 0x7a3e14, metalness: 0.15, roughness: 0.3, clearcoat: 1 }), ring: M({ color: 0xe8c08a, roughness: 0.6, metalness: 0 }), band: M({ color: 0xe8902a }), wood: M({ color: 0x5a3a1a, roughness: 0.9, metalness: 0 }) }),
+      x: (piv) => { const lf = [0xe8902a, 0xc8401a, 0xf2c23a].map(c => M({ color: c, roughness: 0.6, metalness: 0, side: T.DoubleSide })); for (let i = 0; i < 6; i++) { const l = mesh(new T.CircleGeometry(0.11, 5), lf[i % 3], (i % 2 ? 0.3 : -0.3), 0.36 + (i % 3) * 0.04, 0.3 - i * 0.28); l.rotation.set(-1.1, i, 0); l.scale.set(1, 1.6, 1); piv.add(l); } } },
+    { id: 'copo', name: 'Cañón Copo de Nieve', rar: 'event', how: 'mini', css: 'radial-gradient(circle,#fff 0 12%,transparent 13%) 0 0/14px 14px,linear-gradient(180deg,#e8f6ff,#8fd0ff)', m: () => ({ body: M({ map: TX.stripes('#e8f6ff', '#bfe6ff'), color: 0xffffff, metalness: 0.1, roughness: 0.2, clearcoat: 1 }), ring: M({ color: 0x8fd0ff, metalness: 0.6, roughness: 0.2 }), band: M({ color: 0x3d9bff }), wood: M({ color: 0xdfeefc, roughness: 0.5, metalness: 0.1 }) }),
+      x: (piv) => { const w = M({ color: 0xffffff, emissive: 0x9fd8ff, emissiveIntensity: 0.4 }); for (let i = 0; i < 3; i++) { const g = new T.Group(); for (let k = 0; k < 3; k++) { const b = mesh(new T.BoxGeometry(0.03, 0.26, 0.03), w); b.rotation.z = k * Math.PI / 3; g.add(b); } g.position.set(i === 1 ? 0 : (i ? 0.36 : -0.36), 0.42, 0.25 - i * 0.45); g.rotation.x = -0.4; piv.add(g); } } },
+    { id: 'cerezo', name: 'Cañón Cerezo', rar: 'event', how: 'mini', css: 'radial-gradient(circle,#fff 0 10%,#ff9ad5 11% 22%,transparent 23%) 0 0/16px 16px,#ffd6ec', m: () => ({ body: M({ map: TX.bubble(), color: 0xffd6ec, metalness: 0, roughness: 0.35, clearcoat: 1 }), ring: M({ color: 0x6a3a2a, roughness: 0.7, metalness: 0 }), band: M({ color: 0xff6ab0 }), wood: M({ color: 0x5a3a2a, roughness: 0.85, metalness: 0 }) }),
+      x: (piv) => { const pk = M({ color: 0xff9ad5, roughness: 0.4, metalness: 0 }), wh = M({ color: 0xffffff }); for (let i = 0; i < 7; i++) { const a = i * 0.9; piv.add(mesh(new T.SphereGeometry(0.06, 8, 6), i % 3 ? pk : wh, Math.cos(a) * 0.47, Math.sin(a) * 0.47, -0.2 - i * 0.15)); } } },
+    { id: 'surf', name: 'Cañón Surf', rar: 'event', how: 'mini', css: 'linear-gradient(180deg,#3dd8ff 0 45%,#fff 46% 54%,#ff8a3d 55%)', m: () => ({ body: M({ map: TX.stripes('#3dd8ff', '#ffffff'), color: 0xffffff, metalness: 0.05, roughness: 0.3, clearcoat: 1 }), ring: M({ color: 0xff8a3d, roughness: 0.3 }), band: M({ color: 0xffd23f }), wood: M({ color: 0xe8c48a, roughness: 0.8, metalness: 0 }) }),
+      x: (piv, root) => { const bd = mesh(new T.BoxGeometry(0.08, 0.9, 0.28), M({ color: 0xff6a3d, roughness: 0.3 }), 0.62, 0.05, 0.6); bd.rotation.set(0.2, 0, -0.25); root.add(bd); } },
     // los de antes (Pase, eventos y racha): se ganan, no se compran
     { id: 'royal', name: 'Cañón Real', rar: 'pass', how: 'pass', css: '#ffc83d', m: legacy({ color: 0xffc83d, metal: 0.9, rough: 0.2 }) },
     { id: 'ice', name: 'Cañón de Hielo', rar: 'pass', how: 'pass', css: '#9fe6ff', m: legacy({ color: 0x9fe6ff, metal: 0.1, rough: 0.05 }) },
@@ -372,10 +384,31 @@
         const cs = [new T.Color(COL[c]), new T.Color(light(c, 0.35)), new T.Color(dark(c, 0.7))], m4 = new T.Matrix4();
         list.forEach((p, i) => { m4.makeTranslation(p[0] * 0.25, p[1] * 0.25, p[2] * 0.25); im.setMatrixAt(i, m4); im.setColorAt(i, cs[(p[0] + p[1] * 2 + p[2] * 3 + 30) % 3]); });
         im.userData.inst = 1; return im; } },
+    { id: 'trofeo', name: 'Trofeo', rar: 'legend', how: 'logro', desc: 'Oro pulido con una estrella de su color',
+      mk: c => { const g = grp(one(sph(), mat('tro' + c, () => new T.MeshPhysicalMaterial({ color: new T.Color(0xffd23f).lerp(new T.Color(COL[c]), 0.35), metalness: 1, roughness: 0.15, clearcoat: 1 })))), st = mat('trs' + c, () => new T.MeshPhysicalMaterial({ color: COL[c], emissive: COL[c], emissiveIntensity: 0.5, roughness: 0.3 }));
+        const star = geo('star', () => { const sh = new T.Shape(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 0.14 : 0.32, a = i / 10 * Math.PI * 2 + Math.PI / 2; i ? sh.lineTo(Math.cos(a) * r, Math.sin(a) * r) : sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); } const gg = new T.ExtrudeGeometry(sh, { depth: 0.06, bevelEnabled: false }); gg.translate(0, 0, 0.8); return gg; });
+        g.add(one(star, st)); return g; } },
     { id: 'dragonb', name: 'Huevo de dragón', rar: 'pass', how: 'pass', desc: 'Escamas de su color',
       mk: c => { const m = one(sph(), texM('dragonb', c, (x, w, h, c) => { x.fillStyle = dark(c, 0.6); x.fillRect(0, 0, w, h); for (let yy = -1; yy < 10; yy++) for (let xx = -1; xx < 18; xx++) { const cx = xx * 32 + (yy % 2) * 16, cy = yy * 28, gr = x.createRadialGradient(cx, cy + 6, 2, cx, cy + 6, 20); gr.addColorStop(0, light(c, 0.5)); gr.addColorStop(0.7, css(c)); gr.addColorStop(1, dark(c, 0.4)); x.fillStyle = gr; x.beginPath(); x.arc(cx, cy, 17, 0, Math.PI); x.fill(); } })); m.scale.set(0.92, 1.06, 0.92); return m; } },
   ];
   const BALL = {}; for (const b of BALLS) BALL[b.id] = b;
+
+  // ---------------- estelas de las bolas ----------------
+  // fx: colores de las chispas que deja la bola · add: brillan (mezcla aditiva) · rb: arcoíris · sz: tamaño · a: opacidad
+  // m: maestría (tiros con un aspecto de cañón de esa rareza) que la regala
+  const TRAILS = [
+    { id: 'ninguna', name: 'Normal', rar: 'base', how: 'free', css: 'linear-gradient(90deg,transparent,rgba(255,255,255,.7))', fx: null },
+    { id: 'burbujas', name: 'Burbujas', rar: 'common', how: 'shop', c: 1500, css: 'radial-gradient(circle,rgba(255,255,255,.9) 0 3px,transparent 4px) 0 0/14px 14px,linear-gradient(90deg,transparent,#7ee0ff)', fx: { cols: [0xbfefff, 0xffffff], sz: 1.3, a: 0.55 } },
+    { id: 'hojas', name: 'Hojas', rar: 'common', how: 'mastery', m: { rar: 'common', n: 300 }, css: 'radial-gradient(circle,#7ac943 0 3px,transparent 4px) 0 0/12px 12px,linear-gradient(90deg,transparent,#e8902a)', fx: { cols: [0x7ac943, 0xe8902a, 0xf2c23a], sz: 0.9, a: 0.85 } },
+    { id: 'arcoiris', name: 'Arcoíris', rar: 'rare', how: 'shop', g: 60, css: 'linear-gradient(90deg,transparent,#ff4f6d,#ffd23f,#5fd45a,#3d9bff,#a66bff)', fx: { rb: true, sz: 1.1, a: 0.75, add: true } },
+    { id: 'estrellas', name: 'Estrellas', rar: 'epic', how: 'mastery', m: { rar: 'epic', n: 400 }, css: 'radial-gradient(circle,#fff 0 2px,transparent 3px) 0 0/12px 12px,linear-gradient(90deg,transparent,#7a5cff)', fx: { cols: [0xffffff, 0xfff6a0, 0xb8a0ff], sz: 0.7, a: 1, add: true } },
+    { id: 'fuego', name: 'Fuego', rar: 'epic', how: 'mastery', m: { rar: 'legend', n: 500 }, css: 'linear-gradient(90deg,transparent,#ff3a00,#ffd23f)', fx: { cols: [0xffd23f, 0xff6a1a, 0xff3a00], sz: 1.3, a: 0.85, add: true } },
+    { id: 'rayo', name: 'Rayo', rar: 'legend', how: 'temp', g: 200, css: 'repeating-linear-gradient(60deg,#fff36a 0 4px,transparent 4px 10px),linear-gradient(90deg,transparent,#3d9bff)', fx: { cols: [0x9fe6ff, 0xfff36a, 0xffffff], sz: 1, a: 1, add: true } },
+    { id: 'cometa', name: 'Cometa', rar: 'legend', how: 'temp', g: 220, css: 'linear-gradient(90deg,transparent,#3d6bff 40%,#bfefff 85%,#fff)', fx: { cols: [0xffffff, 0x9fd8ff, 0x3d6bff], sz: 1.7, a: 0.7, add: true } },
+    { id: 'corazones', name: 'Corazones', rar: 'pass', how: 'pass', css: 'radial-gradient(circle,#ff6ad5 0 4px,transparent 5px) 0 0/14px 14px,linear-gradient(90deg,transparent,#ff9ad5)', fx: { cols: [0xff6ad5, 0xff9ad5, 0xffffff], sz: 0.9, a: 0.9, add: true } },
+    { id: 'dorada', name: 'Dorada', rar: 'legend', how: 'logro', css: 'linear-gradient(90deg,transparent,#b07a10,#ffd23f,#fff2b0)', fx: { cols: [0xffd23f, 0xfff2b0, 0xffb41a], sz: 1.1, a: 0.95, add: true } },
+  ];
+  const TRAIL = {}; for (const t of TRAILS) TRAIL[t.id] = t;
   // bola con aspecto (o null: la de siempre). r: radio de la bola en el juego
   function ballMesh(id, c, r) {
     const b = BALL[id]; if (!b || !b.mk || !COL[c]) return null;
@@ -448,5 +481,5 @@
     return { f, speed: s, mass: f / s, boom: !!md.boom, combo: !!up.combo, aim: !!up.aim };
   }
 
-  window.Cannons = { SKINS, SKIN, MODELS, MODEL, UPGRADES, BALLS, BALL, COL, hooks, build, tick, ballMesh, freeBall, thumb, thumbKey, power, thumbs, setEnv(e) { env = e; if (tsc) tsc.environment = e; } };
+  window.Cannons = { SKINS, SKIN, MODELS, MODEL, UPGRADES, BALLS, BALL, TRAILS, TRAIL, COL, hooks, build, tick, ballMesh, freeBall, thumb, thumbKey, power, thumbs, setEnv(e) { env = e; if (tsc) tsc.environment = e; } };
 })();

@@ -10,31 +10,38 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-/** Recordatorio local de la racha diaria. No necesita conexión ni servidor. */
+/** Avisos locales (racha diaria y cofre gratis). No necesitan conexión ni servidor. Cada aviso tiene su número. */
 public class ReminderReceiver extends BroadcastReceiver {
 
     private static final String CHANNEL = "racha";
     private static final int REQ = 1;
 
     /** Programa (o sustituye) el aviso para el instante indicado, en milisegundos. */
-    static void schedule(Context c, long atMs, String title, String text) {
+    static void schedule(Context c, long atMs, String title, String text) { schedule(c, REQ, atMs, title, text); }
+    static void cancel(Context c) { cancel(c, REQ); }
+
+    /** Número de cada aviso: 1 racha, 2 cofre gratis (otros nombres: 3). */
+    static int idOf(String name) { return "racha".equals(name) ? 1 : "cofre".equals(name) ? 2 : 3; }
+
+    static void schedule(Context c, int req, long atMs, String title, String text) {
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
-        am.set(AlarmManager.RTC_WAKEUP, atMs, pending(c, title, text));
+        am.set(AlarmManager.RTC_WAKEUP, atMs, pending(c, req, title, text));
     }
 
-    static void cancel(Context c) {
+    static void cancel(Context c, int req) {
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
-        if (am != null) am.cancel(pending(c, null, null));
+        if (am != null) am.cancel(pending(c, req, null, null));
     }
 
-    private static PendingIntent pending(Context c, String title, String text) {
+    private static PendingIntent pending(Context c, int req, String title, String text) {
         Intent i = new Intent(c, ReminderReceiver.class);
+        i.putExtra("req", req);
         if (title != null) {
             i.putExtra("title", title);
             i.putExtra("text", text);
         }
-        return PendingIntent.getBroadcast(c, REQ, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        return PendingIntent.getBroadcast(c, req, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     @SuppressWarnings("deprecation")
@@ -63,7 +70,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                 .setAutoCancel(true)
                 .setContentIntent(pi);
         try {
-            nm.notify(REQ, b.build());
+            nm.notify(in.getIntExtra("req", REQ), b.build());
         } catch (SecurityException e) {
             // sin permiso de notificaciones: no se muestra nada
         }

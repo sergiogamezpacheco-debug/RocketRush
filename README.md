@@ -83,8 +83,8 @@ Todo está en `src/cannons.js` (catálogo, cómo se dibuja cada cañón y cada b
 - **Pase Pro**: el nivel 30 da el cañón de la temporada (temporada 1: Arcoíris, 2: Robot, 3: Bosque Encantado, y vuelta a empezar)
   y el nivel 20 el Huevo de dragón.
 - Guardado: `save.skins` (aspectos del cañón), `save.can = { lv, own, eq }` (nivel de mejora y cañones) y `save.bskin = { own, eq }` (bolas).
-- **Mi colección** (en Amigos › Perfil): todo lo que tienes y, con candado, lo que te falta, con contador (p. ej. 12 de 45)
-  y filtros Aspectos · Cañones · Bolas. Tocar uno lo pone; uno con candado dice cómo conseguirlo. La cuadrícula se desplaza
+- **Mi colección** (en Amigos › Perfil): todo lo que tienes y, con candado, lo que te falta, con contador
+  y filtros Aspectos · Cañones · Bolas · Estelas. Tocar uno lo pone; uno con candado dice cómo conseguirlo. La cuadrícula se desplaza
   sola si no cabe, y «Conseguir más» lleva a la tienda.
 - **Tu cañón para este nivel** (ventana de antes de jugar): 3 huecos (cañón, aspecto y bolas). Al tocar uno sube un cajón
   con los de ese tipo; lo que eliges se queda para los siguientes niveles. Se cierra tocando fuera o con «atrás».
@@ -126,6 +126,41 @@ Pruebas: `node tools/mechanics.js` (reglas de los bloques nuevos y de los objeto
 - **Dificultad**: en cada mundo, 1 nivel difícil, 4 medios y 5 fáciles. Cada nivel generado se afina con el jugador simulado (`tools/gentune.js`, resultados en `src/gentune.js`).
 - **Niveles extra**: uno por mundo (100 en total). Ahora usan los números 10001-10100; las partidas guardadas antiguas se convierten solas.
 - El mapa solo pinta los mundos abiertos y el siguiente, para que siga siendo ligero.
+
+## Motivos para volver (cofre gratis, bienvenida, mini-eventos, logros, desafío, regalos y estelas)
+
+Casi todo está en `src/retencion.js`, que se engancha al juego con `window.Retencion` (game3d.js lo llama en la portada, al
+ganar, al perder, al empezar y al salir del desafío, y en la tienda). Los regalos entre amigos están en `src/social.js` y las
+estelas en `src/cannons.js` / `src/game3d.js`. Prueba: `python3 tools/retencionflow.py`.
+
+- **Cofre gratis cada 4 horas**: 4.º botón de la columna izquierda de la portada (cuenta atrás; dorado y con «1» cuando está
+  listo). Da 80-200 monedas y a veces una bomba, un arcoíris, +2 bolas, gemas (12 %) o una bola dorada (3 %). Al abrirlo se
+  programa un aviso en el móvil para cuando vuelva a estar listo (Android e iPhone; se apaga con los avisos de la racha).
+  Guardado: `save.freeChest = { at, n }`.
+- **Regalo de bienvenida**: si vuelves tras 3 días o más sin jugar, sale «¡Has vuelto!» con 1.000 monedas, 10 gemas y monedas ×2
+  durante 24 h (`save.boost2`; se ve en la portada junto a las bonificaciones del panel). Si hay mini-evento, lo anuncia.
+- **Mini-eventos de 3 días**: el último fin de semana de cada mes (de viernes a domingo), menos octubre y diciembre (Halloween y
+  Navidad). Otoño (bellotas · Cañón Castaña), Nieve (copos · Cañón Copo de Nieve), Primavera (flores · Cañón Cerezo) y Verano
+  (conchas · Cañón Surf). Cada nivel superado da 1 ficha + 1 por estrella (los jefes, 5 + estrellas). Se cambian en la tienda
+  (pestaña con el icono del evento, arriba): cañón exclusivo 40, 5 gemas 10, cofre 15, 2 bombas 8, bola dorada 25. En la portada
+  sale un botón con la cuenta atrás. El panel (Eventos › Mini-eventos) puede dejarlo automático, elegir tema y fechas o apagarlos (`live.mini`).
+- **Logros** (botón «🏆 Logros» en Misiones; los que se pueden cobrar suman en el globo de Misiones de la portada): 18 logros con
+  2-3 niveles cada uno (bloques, jefes, 3 estrellas, estrellas, nivel, victorias, mejor tiro, racha, bolas de los mundos, amigos,
+  regalos enviados, aspectos de cañón, de bola, estelas, mejora del cañón, desafíos jugados, cofres gratis y club).
+  Premios que no se pueden comprar: **Cañón Oro Macizo** (Demoledor III, 10.000 bloques), **bola Trofeo** (Francotirador III,
+  15 bloques de un tiro) y **Estela Dorada** (Perfeccionista III, 250 niveles con 3 estrellas). Guardado: `save.ach`.
+- **Desafío de la semana** (botón ⚔️ en el mapa, junto a Club): un nivel difícil igual para todos que cambia cada lunes
+  (`Levels.weekly`, id 43001). 3 intentos (+1 con un vídeo); cuenta la mejor puntuación, no da estrellas ni desbloquea niveles.
+  Con conexión sube la puntuación a `weekly/{semana}/scores/{uid}` y enseña el top 5 y tu puesto. La semana siguiente da el premio
+  por puesto: 1.º 150 gemas, top 10 60 gemas, top 100 cofre de oro y el resto 300 monedas y 3 gemas (sin conexión, el último).
+- **Regalos entre amigos** (Amigos): 🎁 en cada amigo, 1 al día por amigo (50 monedas, no te cuesta nada), «Enviar a todos» y
+  un cartel para recoger los recibidos (máximo 20 al día). A los amigos que llevan 3 días o más sin jugar sale 👋 para avisarles
+  con el menú de compartir. En Firestore: `gifts/{para}_{de}_{día}` (solo entre amigos, una vez al día; reglas en `firebase/firestore.rules`).
+- **Estelas de las bolas** (rastro al disparar; tienda › Cañones, Mi colección y el 4.º hueco de antes de jugar): Burbujas
+  (1.500 monedas), Arcoíris (60 gemas), Rayo y Cometa (Temporales), Corazones (Pase Pro, nivel 30), Dorada (logro) y tres por
+  **maestría**: Hojas (300 tiros con cañones comunes), Estrellas (400 con épicos) y Fuego (500 con legendarios).
+  Guardado: `save.trail = { own, eq }` y `save.mastery`.
+- Avisos con nombre en la app: `ChromaAndroid.scheduleNotice(nombre, cuándo, título, texto)` / `cancelNotice(nombre)` (Android: `ReminderReceiver`; iPhone: `Reminder`).
 
 ## Nivel de jugador, misiones y amigos
 

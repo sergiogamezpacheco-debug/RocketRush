@@ -104,6 +104,33 @@ service cloud.firestore {
       allow read, delete: if isAdmin();
     }
 
+    // Regalos entre amigos: gifts/{para}_{de}_{día}. Lo crea quien regala, solo a un amigo (amistad aceptada) y uno al día;
+    // lo leen los dos y lo borra quien lo recibe (al recogerlo).
+    function pairOf(x, y) { return x < y ? x + '_' + y : y + '_' + x; }
+    match /gifts/{id} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['to', 'from', 'name', 'avatar', 'day', 'at'])
+        && request.resource.data.from == request.auth.uid && okStr(request.resource.data.to, 1, 64) && request.resource.data.to != request.auth.uid
+        && okStr(request.resource.data.name, 0, 20) && okStr(request.resource.data.avatar, 0, 16) && okInt(request.resource.data.day, 0, 1000000)
+        && id == request.resource.data.to + '_' + request.auth.uid + '_' + string(request.resource.data.day)
+        && get(/databases/$(database)/documents/friendships/$(pairOf(request.auth.uid, request.resource.data.to))).data.status == 'accepted';
+      allow get: if signedIn() && (resource == null || resource.data.to == request.auth.uid || resource.data.from == request.auth.uid);
+      allow list: if signedIn() && resource.data.to == request.auth.uid;
+      allow delete: if signedIn() && resource.data.to == request.auth.uid;
+      allow list, delete: if isAdmin();
+    }
+
+    // Desafío de la semana: weekly/{semana}/scores/{uid}. Cada uno sube solo la suya y solo para mejorarla.
+    match /weekly/{wk}/scores/{uid} {
+      allow read: if signedIn();
+      allow create, update: if isMe(uid) && wk.size() <= 12
+        && request.resource.data.keys().hasOnly(['name', 'avatar', 'country', 'score', 'at'])
+        && okStr(request.resource.data.name, 0, 20) && okStr(request.resource.data.avatar, 0, 16) && okStr(request.resource.data.country, 0, 3)
+        && okInt(request.resource.data.score, 0, 5000000)
+        && (resource == null || request.resource.data.score >= resource.data.score);
+      allow delete: if isMe(uid) || isAdmin();
+    }
+
     // ---------------- Clubes ----------------
     // clubs/{cid}: datos del club · clubs/{cid}/members/{uid}: cada miembro y su progreso de la semana
     // clubs/{cid}/requests/{uid}: solicitudes para entrar en clubes con solicitud · clubnames/{nombre en minúsculas}: nombre único

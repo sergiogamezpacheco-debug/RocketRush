@@ -134,6 +134,15 @@ public class MainActivity extends ComponentActivity {
         @JavascriptInterface
         public void cancelReminder() { ReminderReceiver.cancel(MainActivity.this); }
 
+        /** Otros avisos con nombre (p. ej. «cofre»: el cofre gratis ya está listo). */
+        @JavascriptInterface
+        public void scheduleNotice(String name, String atMs, String title, String text) {
+            try { ReminderReceiver.schedule(MainActivity.this, ReminderReceiver.idOf(name), Long.parseLong(atMs), title, text); } catch (NumberFormatException e) { /* hora no válida */ }
+        }
+
+        @JavascriptInterface
+        public void cancelNotice(String name) { ReminderReceiver.cancel(MainActivity.this, ReminderReceiver.idOf(name)); }
+
         /** Comparte un texto (invitación con el código de amigo) con las apps del móvil. */
         @JavascriptInterface
         public void share(String text) {

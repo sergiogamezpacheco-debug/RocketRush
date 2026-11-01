@@ -1051,11 +1051,25 @@
     return out;
   }
 
+  // ---- desafío de la semana: un nivel difícil igual para todos (semilla = la semana), id 43001 ----
+  const WEEKLY_NAMES = ['La Torre Imposible', 'El Muro Gigante', 'La Fortaleza', 'El Rascacielos', 'La Pirámide Loca', 'El Castillo de Naipes', 'La Gran Muralla', 'El Laberinto'];
+  function weeklyLevel(key) {
+    for (let i = ALL.length - 1; i >= 0; i--) if (ALL[i].weekly) ALL.splice(i, 1);
+    let h = 2166136261; for (const c of 'wk:' + key) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+    let a = h >>> 0;
+    const rnd = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const pool = LEVELS.filter(l => !l.boss && !l.bonus && l.hard && l.id >= 120 && l.id <= 900);
+    const b = pool[Math.floor(rnd() * pool.length)], nm = WEEKLY_NAMES[Math.floor(rnd() * WEEKLY_NAMES.length)];
+    const L = Object.assign({}, b, { id: 43001, weekly: key, pos: 1, weather: null, name: nm, src: b.id, goal: 'Desafío de la semana: cuenta la puntuación. Tienes 3 intentos.' });
+    ALL.push(L);
+    return L;
+  }
+
   // para el afinador: cambia bolas y objetivo de un nivel
   function retune(l, nb, target) {
     if (l.bonus) { l.target = target; l.balls = balancedBalls(l, nb); l.nb = l.balls.length; return; } l.nb = nb; l.target = target; l.balls = l.balls0 && l.balls0.length >= nb ? l.balls0.slice(0, nb) : (l.balls0 || '') + autoBalls(l, nb - (l.balls0 || '').length); }
 
-  const Levels = { club: clubLevels, HARD, MEDIUM, GEN_BIOMES, VARIANTS, LEVELS, BONUS, WORLDS, ALL, HW, HW_ZONES, XM, XM_ZONES, byId, grid, box3, plank, pillar, retune, worldInfo, CLASSIC, FRESH, DEBUT };
+  const Levels = { club: clubLevels, weekly: weeklyLevel, HARD, MEDIUM, GEN_BIOMES, VARIANTS, LEVELS, BONUS, WORLDS, ALL, HW, HW_ZONES, XM, XM_ZONES, byId, grid, box3, plank, pillar, retune, worldInfo, CLASSIC, FRESH, DEBUT };
   if (typeof module !== 'undefined' && module.exports) module.exports = Levels;
   else root.Levels = Levels;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

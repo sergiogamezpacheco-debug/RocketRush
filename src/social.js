@@ -275,6 +275,66 @@
     lastPushed = key; lsSet(PUSH_KEY, key);
   }
 
+  // ---------------- regalos entre amigos ----------------
+  // gifts/{para}_{de}_{día}: un regalo al día por amigo (día UTC). Lo crea quien regala (las reglas comprueban que son
+  // amigos); lo lee y lo borra quien lo recibe al recogerlo (+50 monedas cada uno, como mucho 20 al día).
+  const GIFT_COINS = 50, GIFT_MAX = 20;
+  const giftDay = () => Math.floor(Date.now() / 864e5);
+  const GF = { inbox: [], at: 0 };
+  function giftSent() { const g = X.save.giftSent; if (!g || g.day !== giftDay()) X.save.giftSent = { day: giftDay(), to: [], got: 0 }; return X.save.giftSent; }
+  async function loadGifts() {
+    if (!auth || !auth.uid) return;
+    GF.inbox = (await runQuery({ from: [{ collectionId: 'gifts' }], where: ffilter('to', 'EQUAL', auth.uid), limit: 60 })).filter(g => !isBlocked(g.from));
+    GF.at = Date.now(); if (X.updateTitle) X.updateTitle();
+  }
+  async function sendGift(uid) {
+    const sg = giftSent(); if (sg.to.includes(uid)) return false;
+    const day = giftDay();
+    try { await setDoc(`gifts/${uid}_${auth.uid}_${day}`, { to: uid, from: auth.uid, name: myName(), avatar: prof().avatar || '', day, at: new Date() }, { merge: false, mustNotExist: true }); }
+    catch (e) { if (!(e.status === 409 || /ALREADY_EXISTS|FAILED_PRECONDITION/.test(e.code))) throw e; }
+    sg.to.push(uid); const st = X.stats(); st.giftsSent = (st.giftsSent || 0) + 1; X.persist();
+    return true;
+  }
+  async function claimGifts() {
+    const sg = giftSent(), room = Math.max(0, GIFT_MAX - (sg.got || 0)), list = GF.inbox.slice(0, room);
+    let n = 0;
+    for (const g of list) { try { await delDoc(`gifts/${g._id}`); n++; } catch (e) { if (e.status === 404) n++; } }
+    GF.inbox = GF.inbox.filter(g => !list.includes(g));
+    if (n) { sg.got = (sg.got || 0) + n; X.grant({ coins: n * GIFT_COINS }); X.persist(); X.setCoins(); if (X.updateTitle) X.updateTitle(); }
+    return n;
+  }
+  // amigo que lleva 3 días o más sin jugar: «avisar» comparte un mensaje (WhatsApp, etc.)
+  const idleDays = u => u && u.updatedAt ? Math.floor((Date.now() - u.updatedAt) / 864e5) : 0;
+  function nudge(u) {
+    const t = T('¡Hola {x}! Te echo de menos en Rocket Rush. Vuelve y te mando un regalo 🎁').replace('{x}', u.name || '') + ' https://play.google.com/store/apps/details?id=com.lostanarchygames.rocketrush';
+    try { if (window.ChromaAndroid && window.ChromaAndroid.share) { window.ChromaAndroid.share(t); return; } } catch (e) { /* nada */ }
+    if (navigator.share) navigator.share({ text: t }).catch(() => {}); else if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => X.toast(T('Mensaje copiado')));
+  }
+
+  // ---------------- desafío de la semana ----------------
+  // weekly/{semana}/scores/{uid}: la mejor puntuación de cada jugador esa semana (las reglas solo dejan subirla)
+  const WK = {};
+  const wkQuery = (wk, kind, body) => call(`${FS}/weekly/${encodeURIComponent(wk)}:${kind}`, { method: 'POST', body: JSON.stringify(body) });
+  async function wkSubmit(wk, score) {
+    await token();
+    await setDoc(`weekly/${encodeURIComponent(wk)}/scores/${auth.uid}`, { name: myName(), avatar: prof().avatar || '', country: prof().country || '', score: Math.max(0, Math.min(5000000, Math.round(score))), at: new Date() }, { merge: false });
+    delete WK[wk];
+  }
+  async function wkBoard(wk, mine) {
+    const c = WK[wk]; if (c && Date.now() - c.at < 60e3) return c;
+    await token();
+    const j = await wkQuery(wk, 'runQuery', { structuredQuery: { from: [{ collectionId: 'scores' }], orderBy: [{ field: fld('score'), direction: 'DESCENDING' }], limit: 20 } });
+    const rows = (j || []).filter(x => x && x.document).map(x => docOf(x.document)).filter(r => !isBlocked(r._id)).map(mask);
+    let rank = 0;
+    const i = rows.findIndex(r => r._id === auth.uid);
+    if (i >= 0) rank = i + 1;
+    else if (mine > 0) {
+      const a = await wkQuery(wk, 'runAggregationQuery', { structuredAggregationQuery: { structuredQuery: { from: [{ collectionId: 'scores' }], where: ffilter('score', 'GREATER_THAN', mine) }, aggregations: [{ alias: 'n', count: {} }] } });
+      const f = a && a[0] && a[0].result && a[0].result.aggregateFields; rank = 1 + (f && f.n ? dec(f.n) : 0);
+    }
+    return (WK[wk] = { at: Date.now(), rows, rank });
+  }
+
   // ---------------- amigos ----------------
   const FR = { list: [], inc: [], out: [], at: 0, loaded: false };
   const other = f => f.a === auth.uid ? f.b : f.a;
@@ -295,6 +355,7 @@
     for (const { u } of FR.list) { const c = u.code && X.normCode(u.code); if (c && !X.save.friends.includes(c)) { X.save.friends.push(c); changed = true; } }
     if (changed) { X.persist(); X.renderMissions(); }
     badge();
+    loadGifts().catch(() => { /* sin regalos */ });
   }
   async function addByCode(text) {
     const c = X.normCode(text);
@@ -403,9 +464,11 @@
     const u = x.u, s = u.stats || {}, pair = x.f._id;
     const btns = kind === 'inc' ? `<button class="btn small green" data-act="ok" data-p="${esc(pair)}">Aceptar</button><button class="sx" data-act="no" data-p="${esc(pair)}" aria-label="Rechazar">✕</button>`
       : kind === 'out' ? `<button class="sx" data-act="no" data-p="${esc(pair)}" aria-label="Cancelar">✕</button>`
-        : `<button class="sx${sureP === pair ? ' sure' : ''}" data-act="del" data-p="${esc(pair)}" aria-label="Quitar amigo">${sureP === pair ? '¿Quitar?' : '✕'}</button>`;
+        : (giftSent().to.includes(u._id) ? '<span class="sgift done">✓ 🎁</span>' : `<button class="sgift" data-gift="${esc(u._id)}" aria-label="Enviar regalo">🎁</button>`) +
+          (idleDays(u) >= 3 ? `<button class="sgift nudge" data-nudge="${esc(u._id)}" aria-label="Avisar">👋</button>` : '') +
+          `<button class="sx${sureP === pair ? ' sure' : ''}" data-act="del" data-p="${esc(pair)}" aria-label="Quitar amigo">${sureP === pair ? '¿Quitar?' : '✕'}</button>`;
     return `<div class="scard ${kind}" data-u="${esc(u._id)}">${avatar(u)}<div class="sbody"><div class="srow">${nameOf(u)}</div>
-      <small>${kind === 'inc' ? 'Quiere ser tu amigo' : kind === 'out' ? 'Esperando respuesta' : `Nivel ${fmt(s.level)} · ⭐ ${fmt(s.stars)}`}</small>
+      <small>${kind === 'inc' ? 'Quiere ser tu amigo' : kind === 'out' ? 'Esperando respuesta' : `Nivel ${fmt(s.level)} · ⭐ ${fmt(s.stars)}` + (idleDays(u) >= 3 ? ' · ' + T('sin jugar desde hace {x} días').replace('{x}', idleDays(u)) : '')}</small>
       ${kind === 'ok' ? statChips(s) : ''}</div><div class="sbtns">${btns}</div></div>`;
   }
   function friendsHtml() {
@@ -415,7 +478,15 @@
     if (!FR.loaded) return h + `<div class="sempty">${loadErr ? esc(loadErr) : busy ? 'Cargando amigos…' : 'Conéctate a internet para ver a tus amigos.'}</div>`;
     const inc = FR.inc.filter(x => !isBlocked(x.u._id));
     if (inc.length) h += '<div class="shead">Solicitudes</div>' + inc.map(x => friendCard(x, 'inc')).join('');
+    if (GF.inbox.length) {
+      const room = Math.max(0, GIFT_MAX - (giftSent().got || 0)), n = Math.min(room, GF.inbox.length);
+      h += `<div class="giftbox"><span class="gi">🎁</span><div><b>${GF.inbox.length === 1 ? T('1 regalo para ti') : T('{x} regalos para ti').replace('{x}', GF.inbox.length)}</b><small>${esc(GF.inbox.slice(0, 3).map(g => g.name).join(', '))}${GF.inbox.length > 3 ? '…' : ''} · ${GIFT_COINS} ${T('monedas cada uno')}</small></div>` +
+        (n ? `<button class="btn small gold" id="socClaim">${T('RECOGER')}<br>+${n * GIFT_COINS} <i class="coin"></i></button>` : `<small>${T('Máximo de hoy recogido')}</small>`) + '</div>';
+    }
     h += `<div class="shead">Amigos <span>${FR.list.length}</span></div>`;
+    const canGift = FR.list.filter(x => !giftSent().to.includes(x.u._id) && !isBlocked(x.u._id));
+    if (canGift.length > 1) h += `<button class="btn small green giftall" id="socGiftAll">🎁 ${T('ENVIAR A TODOS')} (${canGift.length})</button>`;
+    if (FR.list.length) h += `<div class="snote">${T('Envía 1 regalo al día a cada amigo: no te cuesta nada y le das {x} monedas').replace('{x}', GIFT_COINS)}</div>`;
     h += FR.list.length ? FR.list.slice().sort((a, b) => ((b.u.stats || {}).level || 0) - ((a.u.stats || {}).level || 0)).map(x => friendCard(x, 'ok')).join('')
       : '<div class="sempty">Aún no tienes amigos. Comparte tu código y jugad juntos.</div>';
     if (FR.out.length) h += '<div class="shead">Enviadas</div>' + FR.out.map(x => friendCard(x, 'out')).join('');
@@ -491,6 +562,23 @@
       if (!u) return;
       X.Audio.click && X.Audio.click(); sheet({ kind: 'player', id, name: u.name, avatar: u.avatar });
     }));
+    list.querySelectorAll('[data-gift]').forEach(b => b.addEventListener('click', async ev => {
+      ev.stopPropagation(); X.Audio.click && X.Audio.click(); b.disabled = true;
+      try { await sendGift(b.dataset.gift); X.Audio.coin && X.Audio.coin(); X.toast(T('¡Regalo enviado!')); } catch (e) { X.toast(errText(e)); }
+      render();
+    }));
+    list.querySelectorAll('[data-nudge]').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); X.Audio.click && X.Audio.click(); const x = FR.list.find(q => q.u._id === b.dataset.nudge); if (x) nudge(x.u); }));
+    on('socGiftAll', async b => {
+      b.disabled = true; let n = 0;
+      for (const x of FR.list) if (!giftSent().to.includes(x.u._id) && !isBlocked(x.u._id)) { try { if (await sendGift(x.u._id)) n++; } catch (e) { /* sigue con los demás */ } }
+      if (n) { X.Audio.coin && X.Audio.coin(); X.toast(T('{x} regalos enviados').replace('{x}', n)); }
+      render();
+    });
+    on('socClaim', async b => {
+      b.disabled = true;
+      try { const n = await claimGifts(); if (n) { X.Audio.win && X.Audio.win(); X.toast(T('+{x} monedas de tus amigos').replace('{x}', n * GIFT_COINS), 2400); } } catch (e) { X.toast(errText(e)); }
+      render();
+    });
     list.querySelectorAll('[data-sc]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); scope = b.dataset.sc; refresh(); }));
     list.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); metric = b.dataset.m; refresh(); }));
     list.querySelectorAll('[data-av]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); prof().avatar = b.dataset.av; X.persist(); dirty(1500); render(); }));
@@ -641,6 +729,8 @@
       if (d && d.uid === me) await delDoc(`codes/${c}`);
       if (X.save.nameLc) { try { await delDoc(`names/${encodeURIComponent(X.save.nameLc)}`); } catch (e) { if (e.status !== 404 && e.status !== 403) throw e; } }
       try { await delDoc(`saves/${me}`); } catch (e) { if (e.status !== 404 && e.status !== 403) throw e; }
+      for (const g of GF.inbox) { try { await delDoc(`gifts/${g._id}`); } catch (e) { /* nada */ } }
+      if (X.save.wk && X.save.wk.id && X.save.wk.sent) { try { await delDoc(`weekly/${encodeURIComponent(X.save.wk.id)}/scores/${me}`); } catch (e) { /* nada */ } }
       try { await delDoc(`users/${me}`); } catch (e) { if (e.status !== 404) throw e; }
       await call(`${IDT}/accounts:delete?key=${CFG.apiKey}`, { method: 'POST', body: JSON.stringify({ idToken: auth.id }) }, false);
     }
@@ -1057,5 +1147,5 @@
     draw(); el.classList.add('on');
   }
 
-  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, account: Account, welcome, sheet, isBlocked, isClubBlocked, blocked, blockedClubs, unblock, unblockClub, badName: n => badName(n), checkTester: () => token().then(checkTester), get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
+  window.Social = { gifts: { load: () => token().then(loadGifts), get inbox() { return GF.inbox; }, send: uid => sendGift(uid), claim: claimGifts }, weekly: { submit: wkSubmit, board: wkBoard, get online() { return !offline(); } }, open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, account: Account, welcome, sheet, isBlocked, isClubBlocked, blocked, blockedClubs, unblock, unblockClub, badName: n => badName(n), checkTester: () => token().then(checkTester), get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
 })();
