@@ -4173,7 +4173,9 @@
     $('agOk').onclick = () => {
       if (!sel.value) return;
       Audio.init(); Audio.click();
-      save.birthYear = +sel.value; save.kid = ageNow() < 13; persist();
+      save.birthYear = +sel.value; save.kid = ageNow() < 13;
+      if (save.kid) { save.welcomed = true; const w = $('welcome'); if (w) w.hidden = true; }   // menores de 13: sin cuentas ni nombre en línea
+      persist();
       $('ageGate').hidden = true;
       if (save.kid && window.Social && window.Social.hasAccount) window.Social.deleteAccount().catch(() => { /* se reintenta otro día */ });
       adsStart(); then && then();
@@ -4184,7 +4186,7 @@
     const b = $('sReset');
     if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Toca otra vez para borrar todo'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Borrar progreso'; }, 3000); return; }
     delete b.dataset.armed; b.textContent = 'Borrar progreso';
-    const keep = { blocked: save.blocked, blockedClubs: save.blockedClubs, tester: save.tester, nameLc: save.nameLc, prof: save.prof, club: save.club, birthYear: save.birthYear, kid: save.kid, noOnline: save.noOnline, lang: save.lang, calm: save.calm, lowGfx: save.lowGfx, adsRemoved: save.adsRemoved, iapDone: save.iapDone, pid: save.pid, codeUid: save.codeUid, profUid: save.profUid };
+    const keep = { welcomed: save.welcomed, gacc: save.gacc, blocked: save.blocked, blockedClubs: save.blockedClubs, tester: save.tester, nameLc: save.nameLc, prof: save.prof, club: save.club, birthYear: save.birthYear, kid: save.kid, noOnline: save.noOnline, lang: save.lang, calm: save.calm, lowGfx: save.lowGfx, adsRemoved: save.adsRemoved, iapDone: save.iapDone, pid: save.pid, codeUid: save.codeUid, profUid: save.profUid };
     save = Object.assign(DEFAULT_SAVE(), keep); persist(); setCoins(); toast('Progreso borrado');
   });
   on('preBack', () => { $('pre').classList.remove('on'); if (G.mode !== 'map') goMap(); });

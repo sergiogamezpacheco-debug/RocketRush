@@ -507,6 +507,14 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   `KEY_BACKUP_PASS`) y después Actions › «Versión para Google Play (AAB)», que deja el `.aab` firmado sin modo prueba.
 - Prueba: `tools/storeflow.py`.
 
+## Bienvenida y nombre
+
+- La primera vez (después del idioma y la edad) sale **¡BIENVENIDO!**: elegir el nombre (único, se comprueba al escribir;
+  gratis) y guardar el progreso con Google (Facebook marcado «pronto»). «Ahora no» la cierra. Menores de 13: no sale.
+- Después, cambiar el nombre en el perfil cuesta **50 gemas** (cambiar solo mayúsculas es gratis).
+- Crear un club cuesta **5.000 monedas y 50 gemas**.
+- Prueba: `tools/welcomeflow.py`.
+
 ## Entrar con Google y copia del progreso en la nube
 
 - Ajustes: botón **G** a la izquierda de los de sonido (con ✓ cuando hay sesión) y **f** de Facebook a la derecha (de

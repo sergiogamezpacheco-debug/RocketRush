@@ -178,6 +178,54 @@
     prof().name = n; X.save.nameLc = k; X.persist();
     await push(true);
   }
+  // cambiar de nombre cuesta 50 gemas (el primero es gratis; cambiar solo mayúsculas también)
+  const NAME_GEMS = 50;
+  const nameCost = n => !!(prof().name && nameKey(prof().name) !== nameKey(n));
+
+  // ---------------- bienvenida (la primera vez, después del idioma y la edad): nombre y guardar el progreso ----------------
+  function welcome() {
+    const w = $('welcome'); if (!w) return;
+    if (X.save.welcomed || X.save.kid) { w.hidden = true; return; }
+    if (prof().name) { X.save.welcomed = true; X.persist(); return; }   // jugadores de antes que ya tenían nombre
+    const inp = $('welName'), m = $('welMsg'), acc = $('welAcc'), go = $('welGo');
+    inp.placeholder = T('Jugador') + ' ' + X.codeCore().slice(0, 4);
+    const showAcc = () => { acc.textContent = linked() ? '✓ ' + T('Progreso guardado con Google') + (X.save.gacc && X.save.gacc.email ? ' · ' + X.save.gacc.email : '') : ''; $('welGoogle').disabled = linked(); };
+    let t = 0;
+    inp.oninput = () => {
+      clearTimeout(t); m.className = 'snmsg'; m.textContent = '';
+      const n = cleanName(inp.value); if (!n) return;
+      t = setTimeout(async () => {
+        const r = await nameFree(n).catch(e => e);
+        if (cleanName(inp.value) !== n) return;
+        if (r === true || r === 'MINE') { m.className = 'snmsg ok'; m.textContent = T('✓ Disponible'); } else { m.className = 'snmsg bad'; m.textContent = T(nameErr(r)); }
+      }, 550);
+    };
+    const done = () => { X.save.welcomed = true; X.persist(); w.hidden = true; };
+    $('welGoogle').onclick = async () => {
+      X.Audio.init && X.Audio.init(); X.Audio.click && X.Audio.click();
+      acc.textContent = T('Conectando…');
+      try {
+        const r = await Account.signIn();
+        if (r.switched && r.cloud) { w.hidden = true; accountBox({ kind: 'choose', cloud: r.cloud }); return; }
+        X.Audio.win && X.Audio.win(); showAcc();
+        if (prof().name) done();          // la cuenta ya tenía nombre
+      } catch (e) { acc.textContent = e.code === 'CANCEL' ? '' : e.code === 'NO_APP' ? T('Disponible en la app de Android.') : e.status === 0 ? T('Sin conexión a internet.') : T('No se ha podido entrar con Google. Prueba otra vez.'); }
+    };
+    $('welFacebook').onclick = () => { X.Audio.click && X.Audio.click(); X.toast(T('Entrar con Facebook llegará pronto. De momento puedes usar Google.'), 3000); };
+    go.onclick = async () => {
+      X.Audio.init && X.Audio.init(); X.Audio.click && X.Audio.click();
+      const n = cleanName(inp.value); clearTimeout(t);
+      if (!n) { m.className = 'snmsg bad'; m.textContent = T('Escribe tu nombre o toca «Ahora no»'); return; }
+      go.disabled = true; m.className = 'snmsg'; m.textContent = T('Comprobando…');
+      try { await saveName(n); X.toast(T('¡Hola, {x}!').replace('{x}', n), 2500); done(); }
+      catch (e) { m.className = 'snmsg bad'; m.textContent = T(nameErr(e)); }
+      go.disabled = false;
+    };
+    $('welLater').onclick = () => { X.Audio.click && X.Audio.click(); done(); };
+    showAcc(); w.hidden = false;
+  }
+  setTimeout(welcome, 0);
+
   // ¿es probador? (el panel crea testers/{uid}); se mira al sincronizar y se recuerda en el móvil
   async function checkTester() {
     try { const d = await getDoc(`testers/${auth.uid}`); if (X.setTester) X.setTester(!!d); }
@@ -391,7 +439,7 @@
     const opts = COUNTRIES.map(cc => [cc, countryName(cc)]).sort((a, b) => a[1].localeCompare(b[1])).map(([cc, n]) => `<option value="${cc}" ${cc === p.country ? 'selected' : ''}>${flag(cc)} ${esc(n)}</option>`).join('');
     const st = (i, v, n) => `<div class="sstat"><i>${i}</i><b>${v}</b><small>${n}</small></div>`;
     return `<div class="sbox sme"><span class="savat big">${esc(p.avatar)}</span>
-        <div class="sform"><small>Tu nombre</small><div class="addfriend" style="margin-top:2px"><input id="socName" maxlength="16" autocomplete="off" translate="no" value="${esc(myName())}"><button class="btn small green" id="socSaveName">Guardar</button></div><div class="snmsg" id="socNameMsg"></div>
+        <div class="sform"><small>Tu nombre</small><div class="addfriend" style="margin-top:2px"><input id="socName" maxlength="16" autocomplete="off" translate="no" value="${esc(myName())}"><button class="btn small green" id="socSaveName">${prof().name ? `${T('Cambiar')} <i class="gem"></i>${NAME_GEMS}` : T('Guardar')}</button></div><div class="snmsg" id="socNameMsg"></div>
         <small>País</small><select id="socCountry" translate="no">${opts}</select></div></div>
       <div class="savs">${avatars().map(a => `<button data-av="${a}" class="${a === p.avatar ? 'on' : ''}">${a}</button>`).join('')}</div>
       <div class="shead">Tus estadísticas</div>
@@ -442,9 +490,15 @@
     list.querySelectorAll('[data-av]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); prof().avatar = b.dataset.av; X.persist(); dirty(1500); render(); }));
     on('socSaveName', async () => {
       const n = cleanName($('socName').value), b = $('socSaveName'), m = $('socNameMsg');
+      clearTimeout(nameT);
+      const paid = nameCost(n);
+      if (paid && (X.save.gems || 0) < NAME_GEMS) { m.className = 'snmsg bad'; m.textContent = T('Te faltan {x} gemas').replace('{x}', NAME_GEMS - (X.save.gems || 0)); return; }
       b.disabled = true; m.className = 'snmsg'; m.textContent = T('Comprobando…');
-      try { await saveName(n); m.className = 'snmsg ok'; m.textContent = T('Nombre guardado'); X.toast(T('Nombre guardado')); render(); }
-      catch (e) { b.disabled = false; m.className = 'snmsg bad'; m.textContent = T(nameErr(e)); }
+      try {
+        await saveName(n);
+        if (paid) { X.save.gems -= NAME_GEMS; X.persist(); X.setCoins(); }
+        m.className = 'snmsg ok'; m.textContent = T('Nombre guardado'); X.toast(T('Nombre guardado')); render();
+      } catch (e) { b.disabled = false; m.className = 'snmsg bad'; m.textContent = T(nameErr(e)); }
     });
     // mientras escribe, se mira si el nombre está libre (medio segundo después de dejar de teclear)
     const ni = $('socName');
@@ -913,7 +967,7 @@
         return;
       }
       if (a === 'useCloud') { msg('Cargando…'); Account.apply(state.cloud.data); return; }
-      if (a === 'useLocal') { b.disabled = true; try { await Account.put(true); } catch (e) { /* se subirá luego */ } dirty(800); X.toast(T('¡Listo! Tu progreso se guarda en tu cuenta de Google'), 3000); state = null; draw(); refreshG(); return; }
+      if (a === 'useLocal') { b.disabled = true; try { await Account.put(true); } catch (e) { /* se subirá luego */ } dirty(800); X.toast(T('¡Listo! Tu progreso se guarda en tu cuenta de Google'), 3000); state = null; draw(); refreshG(); if (!X.save.welcomed) { close(); welcome(); } return; }
       if (a === 'save') { b.disabled = true; msg('Guardando…'); try { await Account.put(true); msg('Guardado en la nube'); } catch (e) { msg('Sin conexión: se guardará más tarde.'); } b.disabled = false; draw(); msg('Guardado en la nube'); return; }
       if (a === 'restore') {
         if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = T('Toca otra vez: se cambia tu progreso por el de la nube'); return; }
@@ -995,5 +1049,5 @@
     draw(); el.classList.add('on');
   }
 
-  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, account: Account, sheet, isBlocked, isClubBlocked, blocked, blockedClubs, unblock, unblockClub, badName: n => badName(n), checkTester: () => token().then(checkTester), get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
+  window.Social = { open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, account: Account, welcome, sheet, isBlocked, isClubBlocked, blocked, blockedClubs, unblock, unblockClub, badName: n => badName(n), checkTester: () => token().then(checkTester), get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
 })();

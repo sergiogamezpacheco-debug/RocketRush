@@ -10,7 +10,7 @@
   const $ = id => document.getElementById(id);
   const T = s => (window.I18N ? I18N.t(s) : s);
   const on = id => { const e = $(id); return !!e && e.classList.contains('on'); };
-  const dimOpen = () => !!document.querySelector('.screen.dim.on') || on('chestOpen') || on('ad') || ($('langPick') && !$('langPick').hidden);
+  const dimOpen = () => !!document.querySelector('.screen.dim.on') || on('chestOpen') || on('ad') || ($('langPick') && !$('langPick').hidden) || ($('welcome') && !$('welcome').hidden) || ($('ageGate') && !$('ageGate').hidden) || on('gAcc');
 
   // ---------- estado guardado ----------
   const TIP_KEYS = ['candy', 'xgift', 'shop', 'pass', 'missions', 'social', 'daily', 'hw', 'xm', 'boss', 'club', 'clubIn', 'clubEx', 'clubBoss', 'clubLg'];
@@ -73,7 +73,7 @@
     xm: { when: () => on('xmmap') && !dimOpen(), target: () => ['#xmmap .xmhead'], title: 'Evento de Navidad', text: 'Un pueblo nevado con 50 niveles y 5 jefes: el Cascanueces, la Caja Sorpresa y el Capitán Escarcha. Rompe los regalos para conseguir caramelos navideños.' },
     hw: { when: () => on('hwmap') && !dimOpen(), target: () => ['#hwmap .hwhead'], title: 'Evento de Halloween', text: 'Un mundo especial con 50 niveles y 5 jefes. Rompe los bloques con caramelo para ganar caramelos y gástalos en la tienda de Halloween.' },
     // clubes: un consejo al abrirlos sin club y otro la primera vez en cada pestaña de tu club
-    club: { when: () => clubReady() && !window.Club.inClub, target: () => ['#clubHead .kltabs'], title: 'Clubes', text: 'Juega en equipo con hasta 30 jugadores. Busca un club y entra, o crea el tuyo por 500 monedas.' },
+    club: { when: () => clubReady() && !window.Club.inClub, target: () => ['#clubHead .kltabs'], title: 'Clubes', text: 'Juega en equipo con hasta 30 jugadores. Busca un club y entra, o crea el tuyo por 5.000 monedas y 50 gemas.' },
     clubIn: { when: () => clubReady() && window.Club.inClub && window.Club.tab === 'club', target: () => ['#clubHead .kltabs'], title: 'Tu club', text: 'Cada semana hay tres retos: la expedición, el jefe colosal y la liga del fin de semana. En esta pestaña ves a los miembros y lo que aporta cada uno.' },
     clubEx: { when: () => clubReady() && window.Club.inClub && window.Club.tab === 'ex', target: () => ['#clubList .klday'], title: 'Expedición', text: 'De lunes a viernes se abren 10 niveles cada día. Tus estrellas llenan el cofre del club y cada una te da 15 monedas al acabar la semana.' },
     clubBoss: { when: () => clubReady() && window.Club.inClub && window.Club.tab === 'boss', target: () => visible(['clubAttack']).length ? ['#clubAttack'] : ['#clubList .klbosscard'], point: true, title: 'Jefe colosal', text: 'Todo el club ataca al mismo jefe. Tienes 3 ataques al día: cuanta más vida le quites, más daño sumas para el club.' },

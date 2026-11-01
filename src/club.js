@@ -10,7 +10,7 @@
   const X = window.RRGame, $ = id => document.getElementById(id);
   if (!X || !window.Social || !window.Social.club || !window.Levels) return;
   const S = window.Social.club, Lv = window.Levels;
-  const ATTACKS = 3, HP_PER = 60000, CREATE_COST = 500, MAX = 30;
+  const ATTACKS = 3, HP_PER = 60000, CREATE_COST = 5000, CREATE_GEMS = 50, MAX = 30;
   const ICONS = ['🚀', '💣', '⚡', '👑', '🔥', '⭐', '🦁', '🐲', '🧱', '🎯', '💎', '🛡️'];
   const COLS = [['#ff7a3d', '#c94f1a'], ['#3d8bff', '#2a5fd6'], ['#37c46b', '#22914b'], ['#e8203a', '#8a1a2c'], ['#ffc83d', '#e09a12'], ['#8a5cff', '#5a2fd0'],
     ['#ff5fa8', '#c2307a'], ['#20c4c4', '#128a8a'], ['#9aa6c8', '#4a5478'], ['#ffd76a', '#b07a10'], ['#6a46e0', '#2a1d6c'], ['#1d1440', '#000']];
@@ -155,15 +155,15 @@
   function viewNoClub() {
     const s = save();
     if (ntab === 'create') {
-      const can = (s.coins || 0) >= CREATE_COST;
+      const needC = Math.max(0, CREATE_COST - (s.coins || 0)), needG = Math.max(0, CREATE_GEMS - (s.gems || 0)), can = !needC && !needG;
       return card(`<div class="klttl">➕ Crea tu club</div>
         <label class="sm">Nombre</label><input id="cfName" class="klinput" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(form.name)}" placeholder="Los Demoledores">
         <label class="sm">Descripción</label><input id="cfDesc" class="klinput" maxlength="80" autocomplete="off" value="${esc(form.desc)}" placeholder="¡Venid a demoler!">
         <label class="sm">Escudo</label><div class="klpick">${ICONS.map(i => `<button data-ico="${i}" class="${form.ico === i ? 'on' : ''}">${i}</button>`).join('')}</div>
         <div class="klpick col">${COLS.map((c, i) => `<button data-col="${i}" class="${form.c === i ? 'on' : ''}" style="background:${c[0]}"></button>`).join('')}</div>
         <div class="row klprev">${shield({ ico: form.ico, c: form.c })}<button class="btn small ${form.open ? 'green' : 'purple'}" id="cfOpen">${form.open ? 'Abierto: entra quien quiera' : 'Con solicitud: tú decides'}</button></div>
-        <button class="btn gold" id="cfGo" ${can && !busy ? '' : 'disabled'}><span>CREAR</span><i class="coin"></i>${CREATE_COST}</button>
-        ${can ? '' : `<div class="sm">Te faltan ${CREATE_COST - (s.coins || 0)} monedas</div>`}`);
+        <button class="btn gold" id="cfGo" ${can && !busy ? '' : 'disabled'}><span>CREAR</span><i class="coin"></i>${CREATE_COST.toLocaleString('es-ES')}<i class="gem"></i>${CREATE_GEMS}</button>
+        ${needC ? `<div class="sm">Te faltan ${needC.toLocaleString('es-ES')} monedas</div>` : ''}${needG ? `<div class="sm">Te faltan ${needG} gemas</div>` : ''}`);
     }
     const req = s.clubReq && Date.now() - s.clubReq.at < 7 * 864e5 ? card(`<div class="sm">Solicitud enviada a</div><b translate="no">${esc(s.clubReq.name)}</b><div class="sm">Cuando te acepten aparecerás dentro.</div><button class="btn gray small" id="cfReqCheck">Comprobar</button>`) : '';
     const list = found == null ? '<div class="sm klmid">Buscando clubes…</div>' : !found.length ? '<div class="sm klmid">No hay clubes con ese nombre. ¡Crea el tuyo!</div>'
@@ -305,9 +305,10 @@
   async function create() {
     const s = save(), name = (form.name || '').trim();
     if ((s.coins || 0) < CREATE_COST) { X.toast('No tienes monedas suficientes'); return; }
+    if ((s.gems || 0) < CREATE_GEMS) { X.toast('No tienes gemas suficientes'); return; }
     if (name.length < 3) { setMsg('El nombre necesita al menos 3 letras'); return; }
     const r = await run(() => S.create({ name, desc: form.desc, open: form.open, badge: { ico: form.ico, c: form.c }, minLv: 0 }));
-    if (r) { s.coins -= CREATE_COST; X.persist(); X.setCoins(); X.Audio.win && X.Audio.win(); X.toast('¡Club creado!'); tab = 'club'; render(); }
+    if (r) { s.coins -= CREATE_COST; s.gems = (s.gems || 0) - CREATE_GEMS; X.persist(); X.setCoins(); X.Audio.win && X.Audio.win(); X.toast('¡Club creado!'); tab = 'club'; render(); }
   }
   async function join(cid) {
     const r = await run(() => S.join(cid));
