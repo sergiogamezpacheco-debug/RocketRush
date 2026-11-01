@@ -3167,6 +3167,7 @@
   }
   function closeCosSheet() { const sh = $('cosSheet'); if (sh) sh.classList.remove('on'); }
   if ($('cosSheet')) $('cosSheet').addEventListener('click', ev => { if (ev.target.id === 'cosSheet') { Audio.click(); closeCosSheet(); } });
+  if ($('csX')) $('csX').addEventListener('click', ev => { ev.stopPropagation(); Audio.click(); closeCosSheet(); });
 
   setInterval(() => {
     if (document.hidden || !$('shop').classList.contains('on')) return;

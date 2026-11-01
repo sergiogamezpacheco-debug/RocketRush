@@ -1117,8 +1117,12 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 .lslot .led{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#ffd23f;box-shadow:0 0 0 2px #7a2a00;font-size:12px;line-height:22px;color:#7a2a00;z-index:1}
 .lnote{font-size:11px;font-weight:700;color:#8a5a9a;text-align:center;margin-top:6px}
 .cossheetdim{position:fixed;inset:0;z-index:70;display:none;align-items:flex-end;background:rgba(10,5,30,.55)}.cossheetdim.on{display:flex}
-.cossheet{width:100%;max-height:78%;display:flex;flex-direction:column;border-radius:26px 26px 0 0;padding:10px 14px max(18px,var(--sab,env(safe-area-inset-bottom)));background:linear-gradient(180deg,#4a2f8a,#2a1d5c);box-shadow:0 -6px 30px rgba(0,0,0,.5),0 0 0 3px #ffd23f;animation:csup .25s ease-out}
-.cossheet .colgrid{max-height:none;flex:1 1 auto;min-height:0}
+.cossheet{width:100%;height:min(60%,470px);display:flex;flex-direction:column;border-radius:26px 26px 0 0;padding:10px 14px max(18px,var(--sab,env(safe-area-inset-bottom)));background:linear-gradient(180deg,#4a2f8a,#2a1d5c);box-shadow:0 -6px 30px rgba(0,0,0,.5),0 0 0 3px #ffd23f;animation:csup .25s ease-out}
+.cossheet .colgrid{max-height:none;flex:1 1 auto;min-height:0;grid-template-columns:repeat(5,minmax(0,1fr));align-content:start}
+.cossheet .colit b{font-size:9px;min-height:20px}.cossheet .colit.lock::after{font-size:15px}
+.cossheet .colnote{margin-top:6px}.cossheet #csShop{margin-top:8px;flex:none;font-size:15px;padding:8px 10px}
+.csx{flex:none;width:30px;height:30px;margin-left:8px;border:0;border-radius:50%;cursor:pointer;font:inherit;font-weight:900;font-size:14px;color:#fff;background:rgba(255,255,255,.18)}
+.cossheet .colhead{flex:none}.cossheet .colhead span{flex:1}
 .cossheet .grab{width:48px;height:5px;border-radius:5px;background:rgba(255,255,255,.4);margin:0 auto 8px;flex:none}
 @keyframes csup{from{transform:translateY(100%)}to{transform:none}}
 </style>
@@ -1225,9 +1229,9 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 
 <!-- cajón para elegir cañón, aspecto o bolas (desde la ventana del nivel) -->
 <div class="cossheetdim" id="cosSheet"><div class="cossheet"><div class="grab"></div>
-  <div class="colhead"><span id="csTitle">Elige tus bolas</span><small id="csCount"></small></div>
+  <div class="colhead"><span id="csTitle">Elige tus bolas</span><small id="csCount"></small><button class="csx" id="csX" aria-label="Cerrar">✕</button></div>
   <div class="colgrid" id="csGrid"></div>
-  <div class="colnote">Se queda puesto para los siguientes niveles · los del candado se consiguen en la tienda o en el pase</div>
+  <div class="colnote">Se queda puesto para los siguientes niveles</div>
   <button class="btn gold small" id="csShop">🛒 CONSEGUIR MÁS</button></div></div>
 
 <div class="screen" id="hwmap">
