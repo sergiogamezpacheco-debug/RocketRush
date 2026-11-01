@@ -10,6 +10,9 @@ on:
     branches: [main]
     paths: ['ios/**', '.github/workflows/ios.yml']
 
+permissions:
+  contents: write     # para dejar las capturas en la rama resultados-ios
+
 jobs:
   ios:
     runs-on: macos-15
@@ -65,6 +68,18 @@ jobs:
             xcrun simctl io "$udid" screenshot "capturas/$file.png"
             xcrun simctl shutdown "$udid" || true
           done
+
+      - name: Guardar las capturas en la rama resultados-ios
+        if: always()
+        run: |
+          mkdir -p /tmp/res && cp ios/capturas/*.png /tmp/res/ 2>/dev/null || true
+          echo "Compilación 1.0.${{ github.run_number }} (${GITHUB_SHA::7})" > /tmp/res/LEEME.txt
+          git config user.name "github-actions"; git config user.email "actions@users.noreply.github.com"
+          git checkout -q --orphan resultados-ios
+          git rm -rfq . ; git clean -fdxq
+          cp -r /tmp/res/. .
+          git add -A; git commit -qm "Capturas de la app de iOS (${GITHUB_SHA::7})"
+          git push -qf origin resultados-ios
 
       - uses: actions/upload-artifact@v4
         with:
