@@ -185,6 +185,7 @@
   // ---------------- bienvenida (la primera vez, después del idioma y la edad): nombre y guardar el progreso ----------------
   function welcome() {
     const w = $('welcome'); if (!w) return;
+    if (window.RR_AGE) { X.save.welcomed = true; }      // pruebas automáticas: sin bienvenida
     if (X.save.welcomed || X.save.kid) { w.hidden = true; return; }
     if (prof().name) { X.save.welcomed = true; X.persist(); return; }   // jugadores de antes que ya tenían nombre
     const inp = $('welName'), m = $('welMsg'), acc = $('welAcc'), go = $('welGo');
