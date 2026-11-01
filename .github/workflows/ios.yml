@@ -69,6 +69,16 @@ jobs:
             xcrun simctl shutdown "$udid" || true
           done
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iOS-capturas-1.0.${{ github.run_number }}
+          path: ios/capturas/*.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iOS-simulador-1.0.${{ github.run_number }}
+          path: ios/build/Build/Products/Debug-iphonesimulator/RocketRush.app
+
       - name: Guardar las capturas en la rama resultados-ios
         if: always()
         run: |
@@ -80,13 +90,3 @@ jobs:
           cp -r /tmp/res/. .
           git add -A; git commit -qm "Capturas de la app de iOS (${GITHUB_SHA::7})"
           git push -qf origin resultados-ios
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: iOS-capturas-1.0.${{ github.run_number }}
-          path: ios/capturas/*.png
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: iOS-simulador-1.0.${{ github.run_number }}
-          path: ios/build/Build/Products/Debug-iphonesimulator/RocketRush.app
