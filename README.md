@@ -11,6 +11,7 @@ Puzle de física en 3D para Android, en primera persona desde detrás de un cañ
 | `src/` | El juego: reglas y física (`sim3d.js`), niveles (`levels3d.js`), ajuste de dificultad generado (`tuning.js`), gráficos, sonido y menús (`game3d.js`) y la página (`index.html`) |
 | `vendor/` | three.js r169 (gráficos 3D) y cannon-es 0.20 (física), ambos con licencia MIT, ya incluidos para funcionar sin conexión |
 | `tools/` | `build.js` junta todo en `dist/index.html`; `check3d.js` comprueba que los niveles no se caen solos; `curve3d.js` mide la dificultad con un jugador simulado; `tune.js` y `mergetune.js` ajustan bolas y objetivo de cada nivel; `shots.py`, `uiflow.py` hacen capturas y recorren los menús en Chromium |
+| `ios/` | App de iPhone y iPad con el mismo juego (Swift + WKWebView, se compila en GitHub con `ios.yml`, sin Mac). Ver `ios/LEEME.md` |
 | `android/` | App Android mínima que carga el juego sin conexión (pantalla completa, vibración, botón atrás) |
 | `.github/workflows/apk.yml` | Compila la APK automáticamente en GitHub |
 
