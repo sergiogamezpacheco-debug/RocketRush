@@ -2866,6 +2866,7 @@
   // confirma el pago y después se avisa a Play de que ya se ha entregado (si no, lo devuelve a los 3 días).
   const IAP_IDS = SHOP.filter(s => s.price).map(s => s.id);
   const iap = { prices: {}, asked: 0 };
+  const IOS = window.ChromaPlatform === 'ios';                 // app de iPhone y iPad (ios/): de momento sin compras ni anuncios
   const payNative = () => !!(window.ChromaAndroid && window.ChromaAndroid.billingBuy);
   function iapQuery() { if (payNative() && Date.now() - iap.asked > 5000) { iap.asked = Date.now(); try { window.ChromaAndroid.billingQuery(JSON.stringify(IAP_IDS)); } catch (e) { /* nada */ } } }
   const iapPrice = s => iap.prices[s.id] || s.price;
@@ -2899,11 +2900,11 @@
       window.ChromaAndroid.billingBuy(it.id); return;
     }
     if (TEST_MODE) { it.grant(); persist(); setCoins(); Audio.coin(); toast('Compra de prueba hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
-    toast('Las compras solo están disponibles en la app de Android.', 2600);
+    toast(IOS ? 'Las compras llegarán pronto a la app de iPhone y iPad.' : 'Las compras solo están disponibles en la app de Android.', 2600);
   }
   function openShop(focus) {
     iapQuery();
-    $('shopNote').textContent = payNative() ? 'Pagos seguros con Google Play.' : TEST_MODE ? 'Compras de prueba: no se cobra nada.' : 'Las compras solo están disponibles en la app de Android.';
+    $('shopNote').textContent = payNative() ? 'Pagos seguros con Google Play.' : TEST_MODE ? 'Compras de prueba: no se cobra nada.' : IOS ? 'Las compras llegarán pronto a la app de iPhone y iPad.' : 'Las compras solo están disponibles en la app de Android.';
     const items = SHOP.filter(s => !(s.once && save.starter) && !(s.id === 'noads' && save.adsRemoved));
     const SIC = { g1: '<i class="gem"></i>', g2: '<i class="gems2"></i>', g3: '<i class="chest crystal"></i>', starter: '<i class="chest gold"></i>', c1: '<i class="coin"></i>', c2: '<i class="chest wood"></i>', b1: '<i class="ball bBomb"></i>', b2: '<i class="ball bRainbow"></i>', b3: '<i class="ball bPlus2"></i>', b4: '<span style="display:inline-block;width:34px;height:34px">' + ROCKET_SVG.replace(/width="44" height="44"/, 'width="34" height="34"') + '</span>' };
     const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}</b><span>${s.desc}</span></div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : iapPrice(s)}</button></div>`;

@@ -210,7 +210,7 @@
         if (r.switched && r.cloud) { w.hidden = true; accountBox({ kind: 'choose', cloud: r.cloud }); return; }
         X.Audio.win && X.Audio.win(); showAcc();
         if (prof().name) done();          // la cuenta ya tenía nombre
-      } catch (e) { acc.textContent = e.code === 'CANCEL' ? '' : e.code === 'NO_APP' ? T('Disponible en la app de Android.') : e.status === 0 ? T('Sin conexión a internet.') : T('No se ha podido entrar con Google. Prueba otra vez.'); }
+      } catch (e) { acc.textContent = e.code === 'CANCEL' ? '' : e.code === 'NO_APP' ? T(NO_APP_TXT()) : e.status === 0 ? T('Sin conexión a internet.') : T('No se ha podido entrar con Google. Prueba otra vez.'); }
     };
     $('welFacebook').onclick = () => { X.Audio.click && X.Audio.click(); X.toast(T('Entrar con Facebook llegará pronto. De momento puedes usar Google.'), 3000); };
     go.onclick = async () => {
@@ -848,6 +848,8 @@
   const linked = () => !!(auth && auth.google && X.save.gacc);
   const devId = () => { let d = lsGet('rocketrush.dev'); if (!d) { d = Math.random().toString(36).slice(2, 12); lsSet('rocketrush.dev', d); } return d; };
   let cloudInfo = {}; try { cloudInfo = JSON.parse(lsGet(CLOUD_KEY) || '{}') || {}; } catch (e) { cloudInfo = {}; }
+  // en la app de iPhone y iPad (ios/) aún no se puede entrar con Google (irá junto con «Iniciar sesión con Apple»)
+  const NO_APP_TXT = () => window.ChromaPlatform === 'ios' ? 'Pronto en iPhone y iPad.' : 'Disponible en la app de Android.';
   function googleSignIn() {
     return new Promise((res, rej) => {
       const A = window.ChromaAndroid;
@@ -950,7 +952,7 @@
         btns([['save', 'blue', '☁️ ' + T('Guardar ahora')], ['restore', 'gray small', T('Recuperar de la nube')], ['out', 'gray small', T('Cerrar sesión')], ['x', 'green', T('Cerrar')]]);
         return;
       }
-      setTxt('Guarda tu progreso', 'Entra con Google y tu progreso se guardará en la nube. Si cambias de móvil o reinstalas el juego, lo recuperas.', app ? '' : `<p class="sub">${T('Disponible en la app de Android.')}</p>`);
+      setTxt('Guarda tu progreso', 'Entra con Google y tu progreso se guardará en la nube. Si cambias de móvil o reinstalas el juego, lo recuperas.', app ? '' : `<p class="sub">${T(NO_APP_TXT())}</p>`);
       btns((app ? [['in', 'gwhite', `${'<svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.3.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>'}<span>${T('Entrar con Google')}</span>`]] : []).concat([['x', 'green', T('Cerrar')]]));
     };
     async function act(a, b) {
@@ -963,7 +965,7 @@
           X.toast(T('¡Listo! Tu progreso se guarda en tu cuenta de Google'), 3000); X.Audio.win && X.Audio.win(); state = null; draw(); refreshG();
         } catch (e) {
           b.disabled = false;
-          msg(e.code === 'CANCEL' ? '' : e.code === 'NO_APP' ? 'Disponible en la app de Android.' : e.status === -1 ? 'Las funciones en línea están desactivadas en Ajustes › Privacidad.' : e.status === 0 ? 'Sin conexión a internet.' : 'No se ha podido entrar con Google. Prueba otra vez.');
+          msg(e.code === 'CANCEL' ? '' : e.code === 'NO_APP' ? NO_APP_TXT() : e.status === -1 ? 'Las funciones en línea están desactivadas en Ajustes › Privacidad.' : e.status === 0 ? 'Sin conexión a internet.' : 'No se ha podido entrar con Google. Prueba otra vez.');
         }
         return;
       }

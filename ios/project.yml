@@ -1,0 +1,30 @@
+# Proyecto de Xcode para iPhone y iPad (se genera con XcodeGen en GitHub: no hace falta un Mac).
+# El juego es el mismo dist/index.html que la app de Android; el flujo .github/workflows/ios.yml lo copia en www/.
+name: RocketRush
+options:
+  bundleIdPrefix: com.lostanarchygames
+  deploymentTarget:
+    iOS: "15.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  RocketRush:
+    type: application
+    platform: iOS
+    sources:
+      - path: RocketRush
+      - path: www
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lostanarchygames.rocketrush
+        PRODUCT_NAME: RocketRush
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: RocketRush/Info.plist
+        CODE_SIGN_STYLE: Automatic

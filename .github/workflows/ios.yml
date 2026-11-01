@@ -1,0 +1,77 @@
+name: Compilar iOS
+
+# App de iPhone y iPad (carpeta ios/). No toca la de Android: usa el mismo juego (dist/index.html) en su propio proyecto.
+# Las máquinas Mac de GitHub gastan 10 veces más minutos que las Linux, así que solo corre al cambiar ios/ o a mano
+# (Actions › Compilar iOS › Run workflow). Compila para el simulador, abre el juego en un iPhone y un iPad virtuales y
+# guarda las capturas. Subir a TestFlight necesita la cuenta de desarrollador de Apple (ver ios/LEEME.md).
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: ['ios/**', '.github/workflows/ios.yml']
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Empaquetar el juego
+        env:
+          APP_VERSION: 1.0.${{ github.run_number }}
+        run: |
+          node tools/build.js
+          mkdir -p ios/www
+          cp dist/index.html ios/www/index.html
+
+      - name: Generar el proyecto de Xcode
+        working-directory: ios
+        run: |
+          brew install xcodegen > /dev/null
+          xcodegen generate
+
+      - name: Compilar para el simulador
+        working-directory: ios
+        run: |
+          xcodebuild -project RocketRush.xcodeproj -scheme RocketRush -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION=${{ github.run_number }} | tail -n 30
+          test -d build/Build/Products/Debug-iphonesimulator/RocketRush.app
+
+      - name: Abrir el juego en un iPhone y un iPad virtuales
+        working-directory: ios
+        run: |
+          APP=build/Build/Products/Debug-iphonesimulator/RocketRush.app
+          mkdir -p capturas
+          xcrun simctl list devices available | grep -E "iPhone|iPad" | head -n 40
+          for name in "iPhone 16 Pro" "iPad Pro 13-inch (M4)"; do
+            udid=$(xcrun simctl list devices available | grep -F "$name (" | head -n 1 | grep -oE '[0-9A-F-]{36}')
+            if [ -z "$udid" ]; then
+              kind=$(echo "$name" | cut -d' ' -f1)
+              udid=$(xcrun simctl list devices available | grep -E "^ +$kind" | head -n 1 | grep -oE '[0-9A-F-]{36}')
+            fi
+            echo "== $name → $udid"
+            xcrun simctl boot "$udid" || true
+            xcrun simctl bootstatus "$udid" -b
+            xcrun simctl install "$udid" "$APP"
+            xcrun simctl launch "$udid" com.lostanarchygames.rocketrush
+            sleep 25
+            file=$(echo "$name" | tr ' ()' '___')
+            xcrun simctl io "$udid" screenshot "capturas/$file.png"
+            xcrun simctl shutdown "$udid" || true
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iOS-capturas-1.0.${{ github.run_number }}
+          path: ios/capturas/*.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iOS-simulador-1.0.${{ github.run_number }}
+          path: ios/build/Build/Products/Debug-iphonesimulator/RocketRush.app
