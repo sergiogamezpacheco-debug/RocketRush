@@ -28,7 +28,7 @@ with sync_playwright() as p:
     wait_step(6); print('paso', st(), '· disparos', pg.evaluate("() => ChromaGame.G.sim.shots")); pg.screenshot(path=OUT + 'tut6.png')
     # vuelve al mapa: se explican el nivel de jugador y los modos
     pg.evaluate("() => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); RRGame.goMap(); }")
-    for n in (7, 8, 9):
+    for n in (7, 8, 9, 10):
         wait_step(n); print('paso', st()); pg.screenshot(path=OUT + f'tut{n}.png'); pg.click('#tut .tu-bub')
     pg.wait_for_timeout(500)
     print('tutorial terminado:', pg.evaluate("() => RRGame.save.tut.main"), '· visible', pg.evaluate("() => Tutorial.visible"))

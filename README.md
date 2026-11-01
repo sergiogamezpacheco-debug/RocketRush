@@ -56,6 +56,34 @@ Durante la partida, de vez en cuando cruza un pájaro rápido por detrás de la 
 - **Pase**: temporadas de 28 días con 30 niveles que se suben con estrellas. La pista gratis da monedas, potenciadores, gemas y una bola dorada. La pista Pro cuesta 150 gemas (≈ 4,99 €) y da mucho más, incluidos 3 cañones exclusivos. Al acabar la temporada se entrega lo ganado sin reclamar y el pase empieza de cero.
 - **Tienda de gemas**: 30 (0,99 €), 150 (4,99 €) y 330 (9,99 €). Son compras de prueba en el prototipo; en Google Play irán con Play Billing.
 
+## Cañones y bolas: mejoras, cañones con más fuerza, aspectos y «Temporales»
+
+Todo está en `src/cannons.js` (catálogo, cómo se dibuja cada cañón y cada bola, miniaturas de la tienda y la fuerza).
+
+- **Tienda**: pestañas nuevas **⏳ Temporales** (la primera) y **🎨 Cañones**. Las pestañas se deslizan de lado.
+- **Mejoras** (con monedas, sirven para cualquier cañón; cada nivel añade piezas al cañón normal):
+  2 Aros reforzados (1.000, +10 % de fuerza) · 3 Mira telescópica (2.500, +10 % y la guía de tiro sigue un 40 % más allá de la diana)
+  · 4 Tubos de presión (5.000, +20 % y guía larga) · 5 Turbo (10.000, +35 %, guía larga y los combos dan +25 % de puntos).
+- **Cañones con más fuerza** (con gemas): Doble (150, +25 %) · Mortero Pesado (200, bola un 50 % más pesada, mismo tiro)
+  · Vapor (250, +40 %) · Riel (350, +70 %) · Lanzacohetes (400, +100 % y una pequeña explosión al chocar que empuja los bloques, sin reventarlos).
+  La fuerza total es cañón × mejora. En la física: una parte va en la velocidad (tiro más rápido y recto, como mucho ×1,5)
+  y el resto en el peso de la bola, así el empujón sale multiplicado por esa fuerza. La guía de tiro dibuja el tiro real.
+- **Liga de clubes**: sin bonus (todos los cañones tiran con la fuerza normal y sin guía larga); en la expedición y el jefe del club sí cuentan.
+- **20 aspectos de cañón nuevos** (además de los de antes: Clásico, Real, Hielo, Arcoíris, Bastón, Calabaza y Fuego):
+  comunes con monedas (Cobre, Camuflaje, Chicle, Sandía, Tigre), raros y épicos con gemas (Pirata, Neón, Cubi, Samurái,
+  Galaxia, Dragón, Submarino, Fantasma, Arcade), legendarios que solo salen en «Temporales» (Diamante, Volcán, Tesoro,
+  Holográfico) y los del Pase Pro (Robot y Bosque Encantado). Con un cañón fuerte y un aspecto que no sea el Clásico, el cañón se pinta con ese aspecto.
+- **12 aspectos de bola**: cada bola conserva su color de juego (rojo, azul, verde, amarillo y morado); solo cambia el dibujo.
+  Gominola (la de siempre) · Pelota de playa, Balón, Bola de billar (monedas) · Canica, Planeta, Carita, Frutas, Eléctrica (gemas)
+  · Gema y Píxel (legendarias de «Temporales») · Huevo de dragón (Pase Pro, nivel 20). Las bolas especiales no cambian.
+- **Temporales**: cada lunes cambian solos 2 cañones legendarios y 1 bola legendaria (cuenta atrás en la tienda);
+  hay 2 ofertas del día con un 30 % menos (lo que aún no tienes); y la primera semana de cada temporada sale una semana el cañón
+  del Pase Pro de la anterior (300 gemas). Desde el panel (Eventos › Tienda · Temporales) se pueden elegir a mano (`live.tmp`).
+- **Pase Pro**: el nivel 30 da el cañón de la temporada (temporada 1: Arcoíris, 2: Robot, 3: Bosque Encantado, y vuelta a empezar)
+  y el nivel 20 el Huevo de dragón.
+- Guardado: `save.skins` (aspectos del cañón), `save.can = { lv, own, eq }` (nivel de mejora y cañones) y `save.bskin = { own, eq }` (bolas).
+- Prueba: `python3 tools/cannonflow.py` (tienda, compras, mejoras, física de cada cañón, liga sin bonus y Pase).
+
 ## Racha diaria
 
 - Un premio por cada día que entras y lo recoges, y un cofre cada 5 días: madera, plata, oro, cristal, épico y legendario (día 30, con el **Cañón de Fuego**, exclusivo de la racha). A partir del día 30 hay un cofre legendario cada 5 días.

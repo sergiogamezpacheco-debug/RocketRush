@@ -23,7 +23,7 @@ with sync_playwright() as p:
     pg.add_init_script("window.RR_AGE = 30; window.RR_LIVE_OFF = true; localStorage.setItem('rocketrush.lang','es')")
     pg.route('**/*googleapis.com/**', fs.handle)
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(2500)
-    pg.evaluate("() => { ChromaGame.manual(true); document.getElementById('daily').classList.remove('on'); const s = ChromaGame.save(); s.coins = 1200; RRGame.goMap(); }")
+    pg.evaluate("() => { ChromaGame.manual(true); document.getElementById('daily').classList.remove('on'); const s = ChromaGame.save(); s.coins = 6200; s.gems = 60; RRGame.goMap(); }")
     print('semana del club:', pg.evaluate("() => Club.time()"))
     pg.click('#navClub'); pg.wait_for_timeout(1200)
     print('sin club:', pg.evaluate("() => [document.getElementById('club').classList.contains('on'), document.querySelectorAll('.klfound').length, [...document.querySelectorAll('.klfound b')].map(e=>e.textContent)]"))

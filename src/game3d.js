@@ -18,7 +18,7 @@
 
   // ---------------- guardado ----------------
   const SAVE_KEY = 'chromacrash3d.v1';
-  const DEFAULT_SAVE = () => ({ unlocked: 1, stars: {}, best: {}, coins: 300, boosters: { bomb: 2, rainbow: 1, extra: 1, golden: 0 }, gems: 0, gemDry: 0, gemRoll: null, bonusGemRoll: {}, pass: null, skins: { owned: ['classic'], equip: 'classic' }, streak: 0, sound: true, vibe: true, music: true, adsRemoved: false, starter: false, played: 0, lastInter: 0 });
+  const DEFAULT_SAVE = () => ({ unlocked: 1, stars: {}, best: {}, coins: 300, boosters: { bomb: 2, rainbow: 1, extra: 1, golden: 0 }, gems: 0, gemDry: 0, gemRoll: null, bonusGemRoll: {}, pass: null, skins: { owned: ['classic'], equip: 'classic' }, bskin: { own: ['clasica'], eq: 'clasica' }, can: { lv: 1, own: ['base'], eq: 'base' }, streak: 0, sound: true, vibe: true, music: true, adsRemoved: false, starter: false, played: 0, lastInter: 0 });
   let save;
   try { save = Object.assign(DEFAULT_SAVE(), JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) { save = DEFAULT_SAVE(); }
   // partidas antiguas: los niveles extra eran 101-110; ahora son 10001-10100 (101-1000 son niveles normales)
@@ -1049,31 +1049,14 @@
   // ---------------- cañón en primer plano ----------------
   const cannonG = new THREE.Group(); scene.add(cannonG);
   const barrelPivot = new THREE.Group(); cannonG.add(barrelPivot);
-  const cannonMat = new THREE.MeshPhysicalMaterial({ color: 0x3a2f6e, roughness: 0.35, metalness: 0.3, clearcoat: 0.6 });
-  const goldMat = new THREE.MeshStandardMaterial({ color: 0xffc83d, metalness: 0.85, roughness: 0.25 });
-  const woodMat = new THREE.MeshStandardMaterial({ color: 0x9a5f32, roughness: 0.75 });
-  let barrelBand, muzzleBall;
-  {
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.46, 2.0, 32, 1, true), cannonMat);
-    barrel.rotation.x = Math.PI / 2; barrel.position.z = -0.6; barrelPivot.add(barrel);
-    const back = new THREE.Mesh(new THREE.SphereGeometry(0.46, 24, 16), cannonMat); back.position.z = 0.4; barrelPivot.add(back);
-    [-1.45, -0.2, 0.25].forEach(z => { const r = new THREE.Mesh(new THREE.TorusGeometry(z < -1 ? 0.38 : 0.47, 0.07, 10, 32), goldMat); r.position.z = z; barrelPivot.add(r); });
-    barrelBand = new THREE.Mesh(new THREE.CylinderGeometry(0.43, 0.44, 0.22, 32, 1, true), new THREE.MeshStandardMaterial({ color: 0xff4f6d, roughness: 0.4 }));
-    barrelBand.rotation.x = Math.PI / 2; barrelBand.position.z = -0.75; barrelPivot.add(barrelBand);
-    muzzleBall = new THREE.Mesh(new THREE.SphereGeometry(0.3, 24, 16), jelly.r);
-    muzzleBall.position.z = -1.45; barrelPivot.add(muzzleBall);
-    const carriage = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.5, 1.6), woodMat); carriage.position.set(0, -0.55, 0.15); cannonG.add(carriage);
-    [-0.72, 0.72].forEach(x => {
-      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.16, 28), woodMat); w.rotation.z = Math.PI / 2; w.position.set(x, -0.62, 0.15); cannonG.add(w);
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.2, 16), goldMat); hub.rotation.z = Math.PI / 2; hub.position.set(x * 1.03, -0.62, 0.15); cannonG.add(hub);
-    });
-    cannonG.traverse(o => { if (o.isMesh) o.castShadow = false; });
-    cannonG.scale.setScalar(0.62);
-  }
+  // el cañón lo monta cannons.js (aspecto + modelo + nivel de mejora); aquí solo quedan los grupos y la bola cargada
+  let cannonOut = null;
+  Cannons.hooks.tex = k => k === 'fire' ? fireTex : k === 'rainbow' ? rainbowTex : k === 'cane' ? (window.Christmas ? window.Christmas.caneTex : null) : null;
+  cannonG.scale.setScalar(0.62);
   barrelPivot.position.y = 0.0;
 
   // ---------------- trayectoria y diana ----------------
-  const aimDots = new THREE.InstancedMesh(new THREE.SphereGeometry(0.07, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }), 26);
+  const aimDots = new THREE.InstancedMesh(new THREE.SphereGeometry(0.07, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }), 36);
   aimDots.visible = false; aimDots.frustumCulled = false; scene.add(aimDots);
   const reticle = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.4, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthTest: false, side: THREE.DoubleSide }));
   reticle.renderOrder = 10; reticle.visible = false; scene.add(reticle);
@@ -1389,7 +1372,7 @@
   function clearLevelView() {
     for (const m of G.meshes) { if (m) { world.remove(m); if (m.userData.rope) world.remove(m.userData.rope); } }
     G.meshes = [];
-    for (const m of G.ballMeshes.values()) scene.remove(m);
+    for (const m of G.ballMeshes.values()) { scene.remove(m); Cannons.freeBall(m); }
     G.ballMeshes.clear();
     if (G.moverMeshes) { for (const m of G.moverMeshes.values()) scene.remove(m); G.moverMeshes.clear(); }
   }
@@ -1659,7 +1642,7 @@
       const wt = W_TRAIL[b.userData.ball];
       if (Math.random() < 0.6) spawnSprite(b.position.x, b.position.y, b.position.z, wt || 0xffffff, b.userData.r * (wt ? 2 : 1.4), 0.4, wt ? 0.4 : 0.25, { alpha: wt ? 0.6 : 0.35, add: !!wt });
     }
-    for (const [b, m] of G.ballMeshes) if (!live.has(b)) { scene.remove(m); G.ballMeshes.delete(b); }
+    for (const [b, m] of G.ballMeshes) if (!live.has(b)) { scene.remove(m); Cannons.freeBall(m); G.ballMeshes.delete(b); }
   }
   const SPECIAL_MAT = {
     rainbow: new THREE.MeshPhysicalMaterial({ map: rainbowTex, roughness: 0.25, clearcoat: 1 }),
@@ -1928,10 +1911,24 @@
     for (const [id, g] of G.moverMeshes) if (!live.has(id)) { scene.remove(g); G.moverMeshes.delete(id); }
   }
   function ballMaterial(kind) { return jelly[kind] || SPECIAL_MAT[kind] || SPECIAL_MAT.heavy; }
+  const ballGeos = {};
   function makeBallMesh(kind, r) {
-    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 20), ballMaterial(kind));
+    const bs = save.bskin && save.bskin.eq;
+    if (bs && bs !== 'clasica' && COL[kind]) { const g = Cannons.ballMesh(bs, kind, r); if (g) return g; }   // aspecto de bola (mismo color)
+    const m = new THREE.Mesh(ballGeos[r] || (ballGeos[r] = new THREE.SphereGeometry(r, 32, 20)), ballMaterial(kind));
     m.castShadow = true;
     return m;
+  }
+  // la bola cargada en la boca del cañón (con su aspecto) y las piezas del cañón que toman su color
+  function loadMuzzle(k, vis) {
+    if (!cannonOut) return;
+    if (k && G.cannonKind !== k) {
+      G.cannonKind = k;
+      const mat = ballMaterial(k); mat.userData.keep = 1;
+      for (const h of cannonOut.holders) { for (const c of h.children.slice()) { h.remove(c); Cannons.freeBall(c); } h.add(makeBallMesh(k, h.userData.r)); }
+      for (const m of cannonOut.tint) m.material = mat;
+    }
+    for (const h of cannonOut.holders) h.visible = vis;
   }
 
   // ---------------- eventos del simulador ----------------
@@ -2275,11 +2272,14 @@
     const show = G.mode === 'play' && G.aim && sim && sim.canFire();
     aimDots.visible = reticle.visible = !!show;
     if (!show) return;
-    const pts = sim.trajectory(G.aim.x, G.aim.y, G.aim.z, 26);
+    // con la mira telescópica (mejora 3+) la guía sigue un 40 % más allá de la diana, con puntos más pequeños
+    const long = !!(sim.pw && sim.pw.aim), n = long ? 36 : 26;
+    const pts = sim.trajectory(G.aim.x, G.aim.y, G.aim.z, long ? 35 : 26, long ? 1.4 : 1);
     const col = new THREE.Color(COL[sim.queue[0]] || 0xffffff);
-    for (let i = 0; i < 26; i++) {
+    aimDots.count = n;
+    for (let i = 0; i < n; i++) {
       const p = pts[i + 1] || pts[pts.length - 1];
-      const s = i < 2 ? 0 : 0.6 + 0.4 * (1 - i / 26);
+      const s = i < 2 ? 0 : long && i >= 24 ? 0.45 : 0.6 + 0.4 * (1 - Math.min(i, 26) / 26);
       _m.compose(_v.set(p.x, p.y, p.z), _q.identity(), _s.set(s, s, s));
       aimDots.setMatrixAt(i, _m);
     }
@@ -2302,8 +2302,7 @@
     barrelPivot.rotation.x = lerp(barrelPivot.rotation.x, pitch, Math.min(1, dt * 14));
     barrelPivot.position.z = G.recoil * 0.35;
     const k = sim && sim.queue[0];
-    muzzleBall.visible = !!k && sim.canFire();
-    if (k && G.cannonKind !== k) { G.cannonKind = k; muzzleBall.material = ballMaterial(k); barrelBand.material = ballMaterial(k); }
+    loadMuzzle(k, !!k && sim.canFire());
   }
 
   // ---------------- HUD ----------------
@@ -2655,7 +2654,7 @@
     for (const k of boosters || []) { if (k === 'extra') extra += 2; else if (k === 'rocket') G.rocketStart = true; else bl.push(k); }
     const roll = gemRollFor(L);
     G.gemRoll = roll;
-    G.sim = new Sim(L, { boosters: bl, wlv: wlvAll(), viewTest, gems: Math.max(0, roll.n - roll.got), gemSeed: 1 + Math.floor(Math.random() * 1e9) });
+    G.sim = new Sim(L, { boosters: bl, wlv: wlvAll(), viewTest, gems: Math.max(0, roll.n - roll.got), gemSeed: 1 + Math.floor(Math.random() * 1e9), power: cannonPower(L) });
     if (extra) { const cols = G.sim.queue.filter(k => COL[k]); for (let i = 0; i < extra; i++) G.sim.queue.push(cols[i % Math.max(1, cols.length)] || 'heavy'); }
     setTheme(L.world); buildLevelView(); frameCamera();
     if (window.Bosses) { if (L.boss) setTimeout(() => { if (G.level === L) window.Bosses.start(L); }, 0); else window.Bosses.stop(); }
@@ -2922,10 +2921,10 @@
     const rowT = s => TAG[s.id] ? row(s).replace('<div class="shopitem">', `<div class="shopitem hot"><i class="rtag">${TAG[s.id]}</i>`) : row(s);
     const by = ids => items.filter(s => ids.includes(s.id)).map(rowT).join('');
     const hw = hwActive(), xm = xmActive();
-    $('shopTabs').innerHTML = (xm ? `<button data-to="sXm" class="hwtab xmtab" aria-label="Navidad"><span class="xti">${treeSvg()}</span></button>` : '') + (hw ? '<button data-to="sHw" class="hwtab" aria-label="Halloween">🎃</button>' : '') + [['sOff', 'ico ico-fire', 'Ofertas'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
-      .map(([id, ic, t]) => `<button data-to="${id}"><i class="${ic}"></i>${t}</button>`).join('');
+    $('shopTabs').innerHTML = (xm ? `<button data-to="sXm" class="hwtab xmtab" aria-label="Navidad"><span class="xti">${treeSvg()}</span></button>` : '') + (hw ? '<button data-to="sHw" class="hwtab" aria-label="Halloween">🎃</button>' : '') + [['sTmp', 'emo:⏳', 'Temporales'], ['sOff', 'ico ico-fire', 'Ofertas'], ['sCan', 'emo:🎨', 'Cañones'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
+      .map(([id, ic, t]) => `<button data-to="${id}">${ic.startsWith('emo:') ? `<i class="emo">${ic.slice(4)}</i>` : `<i class="${ic}"></i>`}${t}</button>`).join('');
     $('shopTabs').classList.toggle('withhw', hw || xm);
-    $('shopList').innerHTML = (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${feat}${by(['noads'])}` +
+    $('shopList').innerHTML = (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + tmpShopHtml() + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${feat}${by(['noads'])}` + canShopHtml() +
       `<div class="sechead" id="sGem"><span>Gemas · para el Pase Pro</span></div>${by(['g1', 'g2', 'g3'])}` +
       `<div class="sechead" id="sBall"><span>Potenciadores</span></div>${by(['b1', 'b2', 'b3'])}` +
       `<div class="sechead"><span>Bolas de los mundos</span></div>${WB_KEYS.map(wrow).join('')}` +
@@ -2937,6 +2936,7 @@
     };
     $('shopTabs').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { Audio.click(); goTab(b.dataset.to); }));
     $('shopTabs').querySelector('button').classList.add('on');
+    bindCos($('shopList'), to => { const sc = $('shopList').scrollTop; openShop(to); if (!to) $('shopList').scrollTop = sc; });
     $('shopList').querySelectorAll('button[data-hw]').forEach(b => b.addEventListener('click', () => { Audio.init(); hwBuy(b.dataset.hw); }));
     $('shopList').querySelectorAll('button[data-xm]').forEach(b => b.addEventListener('click', () => { Audio.init(); xmBuy(b.dataset.xm); }));
     $('shopList').querySelectorAll('button[data-wb]').forEach(b => b.addEventListener('click', () => {
@@ -2953,8 +2953,144 @@
       openShop();
     }));
     setCoins(); $('shop').classList.add('on');
-    if (focus) goTab({ gems: 'sGem', coins: 'sCoin', balls: 'sBall', hw: 'sHw', xm: 'sXm' }[focus] || 'sOff');
+    if (focus) goTab({ gems: 'sGem', coins: 'sCoin', balls: 'sBall', hw: 'sHw', xm: 'sXm', tmp: 'sTmp', can: 'sCan', bskin: 'sBskin' }[focus] || 'sOff');
   }
+
+  // ---------------- cañones y bolas: mejoras, cañones con más fuerza, aspectos y la pestaña «Temporales» ----------------
+  // save.skins = { owned, equip } (aspectos del cañón) · save.can = { lv, own, eq } (nivel de mejora y cañones) · save.bskin = { own, eq } (bolas)
+  function canSave() {
+    const c = save.can && typeof save.can === 'object' ? save.can : (save.can = {});
+    c.lv = Math.max(1, Math.min(5, c.lv | 0 || 1)); if (!Array.isArray(c.own)) c.own = ['base']; if (!c.own.includes('base')) c.own.unshift('base');
+    if (!Cannons.MODEL[c.eq] || !c.own.includes(c.eq)) c.eq = 'base';
+    return c;
+  }
+  function bSave() {
+    const b = save.bskin && typeof save.bskin === 'object' ? save.bskin : (save.bskin = {});
+    if (!Array.isArray(b.own)) b.own = ['clasica']; if (!b.own.includes('clasica')) b.own.unshift('clasica');
+    if (!Cannons.BALL[b.eq] || !b.own.includes(b.eq)) b.eq = 'clasica';
+    return b;
+  }
+  // fuerza del cañón en una partida: en la liga de clubes todos tiran igual (sin mejoras ni cañones fuertes)
+  function cannonPower(L) { if (L && L.club === 'lg') return null; const c = canSave(); return Cannons.power(c.eq, c.lv); }
+  const COS_RAR = { base: '', common: 'COMÚN', rare: 'RARO', epic: 'ÉPICO', legend: 'LEGENDARIO', pass: 'PASE PRO', event: 'EVENTO', streak: 'RACHA', up: 'MEJORA', model: 'CAÑÓN' };
+  const cosDef = (k, id) => k === 'skin' ? SKINS[id] : k === 'ball' ? Cannons.BALL[id] : k === 'model' ? Cannons.MODEL[id] : null;
+  const cosOwned = (k, id) => k === 'skin' ? save.skins.owned.includes(id) : k === 'ball' ? bSave().own.includes(id) : k === 'model' ? canSave().own.includes(id) : false;
+  const cosOn = (k, id) => k === 'skin' ? save.skins.equip === id : k === 'ball' ? bSave().eq === id : k === 'model' ? canSave().eq === id : false;
+  // «Temporales»: 2 cañones legendarios y 1 bola legendaria que cambian cada lunes, 2 ofertas del día (-30 %) y, la
+  // primera semana de cada temporada, el cañón del Pase Pro de la anterior. El panel puede elegir los de la semana (live.tmp).
+  const WEEK_EPOCH = Date.UTC(2026, 9, 5);                     // un lunes
+  const TMP_PAIRS = [['diamante', 'volcan'], ['tesoro', 'holo'], ['diamante', 'holo'], ['volcan', 'tesoro']];
+  const TMP_BALLS = ['gema', 'pixel'];
+  const PASS_LEFT_GEMS = 300;
+  const hash = n => { n = (n ^ 61) ^ (n >>> 16); n = (n + (n << 3)) | 0; n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); return (n ^ (n >>> 15)) >>> 0; };
+  function tmpNow() {
+    const t = Date.now(), wk = Math.floor((t - WEEK_EPOCH) / (7 * 864e5)), m4 = ((wk % 4) + 4) % 4;
+    let sk = TMP_PAIRS[m4], ball = TMP_BALLS[((wk % 2) + 2) % 2], wEnd = WEEK_EPOCH + (wk + 1) * 7 * 864e5;
+    const lc = liveCfg().tmp;
+    if (lc && lc.on !== false && liveWin(lc)) {
+      const ls = (Array.isArray(lc.sk) ? lc.sk : []).filter(id => SKINS[id]).slice(0, 3); if (ls.length) sk = ls;
+      if (lc.ball === '' || lc.ball === 'none') ball = null; else if (Cannons.BALL[lc.ball]) ball = lc.ball;
+      if (lc.end) wEnd = +lc.end;
+    }
+    const items = sk.map(id => ({ k: 'skin', id, g: SKINS[id].g || 300, tag: 'week' }));
+    if (ball) items.push({ k: 'ball', id: ball, g: Cannons.BALL[ball].g || 200, tag: 'week' });
+    // ofertas del día (lo de la tienda que aún no tienes), iguales para el mismo jugador todo el día
+    const day = dayKey(), dEnd = (day + 1) * 864e5 + new Date().getTimezoneOffset() * 6e4;
+    const pool = [].concat(Cannons.SKINS.filter(x => x.how === 'shop').map(x => ({ k: 'skin', id: x.id })), Cannons.BALLS.filter(x => x.how === 'shop').map(x => ({ k: 'ball', id: x.id })))
+      .filter(q => !cosOwned(q.k, q.id));
+    const seed = hash(day * 7919 + [...(save.pid || 'x')].reduce((a, ch) => a * 31 + ch.charCodeAt(0), 0)), days = [];
+    for (let i = 0; i < 2 && pool.length; i++) {
+      const q = pool.splice(hash(seed + i * 101) % pool.length, 1)[0], d = cosDef(q.k, q.id);
+      days.push(d.c ? Object.assign(q, { c: Math.round(d.c * 0.7 / 50) * 50, was: d.c, tag: 'day' }) : Object.assign(q, { g: Math.round(d.g * 0.7), was: d.g, tag: 'day' }));
+    }
+    // cañón del Pase Pro de la temporada anterior: solo la primera semana de la nueva
+    const si = seasonIndex(), pEnd = SEASON_EPOCH + si * SEASON_DAYS * 864e5 + 7 * 864e5;
+    const pass = si > 0 && t < pEnd ? { k: 'skin', id: PASS_SKIN(si - 1), g: PASS_LEFT_GEMS, tag: 'pass' } : null;
+    return { items, days, pass, wEnd, dEnd, pEnd };
+  }
+  function leftTxt(ms) { ms = Math.max(0, ms); const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60; return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`; }
+  // precio de algo en la tienda ahora mismo (las ofertas del día y los temporales mandan)
+  function cosPrice(k, id) {
+    const T = tmpNow(), hit = [].concat(T.items, T.days, T.pass ? [T.pass] : []).find(q => q.k === k && q.id === id);
+    if (hit) return hit.c ? { c: hit.c } : { g: hit.g };
+    const d = cosDef(k, id); if (!d || (k !== 'model' && d.how !== 'shop')) return null;
+    return d.c ? { c: d.c } : d.g ? { g: d.g } : null;
+  }
+  function cosEquip(k, id) {
+    if (!cosOwned(k, id)) return false;
+    if (k === 'skin') save.skins.equip = id; else if (k === 'ball') bSave().eq = id; else if (k === 'model') canSave().eq = id;
+    persist(); applySkin(); Audio.click(); return true;
+  }
+  function cosBuy(k, id) {
+    const d = cosDef(k, id), pr = cosPrice(k, id);
+    if (!d || !pr || cosOwned(k, id)) return false;
+    if (pr.c && save.coins < pr.c) { toast('No tienes monedas suficientes'); return false; }
+    if (pr.g && (save.gems || 0) < pr.g) { toast(`Te faltan ${pr.g - (save.gems || 0)} gemas`, 2600); return false; }
+    if (pr.c) save.coins -= pr.c; else save.gems -= pr.g;
+    if (k === 'skin') save.skins.owned.push(id); else if (k === 'ball') bSave().own.push(id); else canSave().own.push(id);
+    cosEquip(k, id); setCoins(); Audio.win(); vibe([20, 20, 40]);
+    toast('¡' + d.name + ' es tuyo!', 2400);
+    return true;
+  }
+  function cosUpgrade() {
+    const c = canSave(), nx = Cannons.UPGRADES[c.lv]; if (!nx) return false;
+    if (save.coins < nx.c) { toast('No tienes monedas suficientes'); return false; }
+    save.coins -= nx.c; c.lv++; persist(); applySkin(); setCoins(); Audio.win(); vibe([20, 20, 40]);
+    toast('¡Cañón mejorado: nivel ' + c.lv + '!', 2400);
+    return true;
+  }
+  // tarjetas de la tienda
+  const priceHtml = p => p.c ? `<i class="coin"></i>${p.c.toLocaleString('es-ES')}` : `<i class="gem"></i>${p.g}`;
+  function cosCard(q, extra) {
+    const d = cosDef(q.k, q.id); if (!d) return '';
+    const own = cosOwned(q.k, q.id), on = own && cosOn(q.k, q.id), rar = q.k === 'model' ? (d.id === 'cohete' ? 'legend' : 'model') : d.rar;
+    const pr = own ? null : q.c || q.g ? (q.c ? { c: q.c } : { g: q.g }) : cosPrice(q.k, q.id);
+    const how = { pass: 'Pase Pro', event: 'Evento', streak: 'Racha diaria', temp: '⏳ En Temporales' }[d.how];
+    const btn = on ? '<button class="btn gray" disabled>EN USO</button>' : own ? `<button class="btn green" data-eq="${q.k}:${q.id}">USAR</button>`
+      : pr ? `<button class="btn ${pr.c ? 'gold' : 'green'}" data-buy="${q.k}:${q.id}">${q.was ? `<s>${q.was.toLocaleString('es-ES')}</s>` : ''}${priceHtml(pr)}</button>` : `<span class="chow">${how || ''}</span>`;
+    const ph = q.k === 'ball' ? 'radial-gradient(circle at 35% 30%,#ffd0d8,#ff4f6d 45%,#8a1030 75%,transparent 77%)' : d.css || 'rgba(255,255,255,.15)';
+    return `<div class="cosc r-${rar}${own ? ' own' : ''}${on ? ' on' : ''}">${COS_RAR[rar] ? `<i class="crar">${COS_RAR[rar]}</i>` : ''}${extra || ''}<div class="cth" data-th="${q.k}:${q.id}" style="--ph:${ph}"></div><b>${d.name}</b>${q.k === 'model' ? `<small>${d.desc}</small>` : ''}${btn}</div>`;
+  }
+  function tmpShopHtml() {
+    const T = tmpNow();
+    return `<div class="tmphead" id="sTmp"><b>⏳ Temporales</b><small><span>Legendarios que cambian cada semana</span> · <span>quedan</span> <span class="tmpLeft">${leftTxt(T.wEnd - Date.now())}</span></small></div>` +
+      `<div class="cgrid">${T.items.map(q => cosCard(q, '<i class="ctmp">⏳</i>')).join('')}</div>` +
+      (T.pass ? `<div class="sechead"><span><span>Del Pase Pro anterior</span> · <span class="passLeft">${leftTxt(T.pEnd - Date.now())}</span></span></div><div class="cgrid">${cosCard(T.pass, '<i class="ctmp">⏳</i>')}</div>` : '') +
+      (T.days.length ? `<div class="sechead"><span><span>Ofertas del día · -30 %</span> · <span class="dayLeft">${leftTxt(T.dEnd - Date.now())}</span></span></div><div class="cgrid">${T.days.map(q => cosCard(q, '<i class="ctmp off">-30%</i>')).join('')}</div>` : '');
+  }
+  function canShopHtml() {
+    const c = canSave(), U = Cannons.UPGRADES, cur = U[c.lv - 1], nx = U[c.lv];
+    const pips = U.map((u, i) => `<i class="${i < c.lv ? 'on' : ''}"></i>`).join('');
+    const up = `<div class="upcard"><div class="cth big" data-th="up:base:${c.lv}"></div><div class="uptx"><small>MEJORAS DEL CAÑÓN</small><b>Nivel ${c.lv} · ${cur.name}</b><span class="pips">${pips}</span>` +
+      `<span>${cur.desc}</span>${nx ? `<em>Siguiente: ${nx.name} · ${nx.desc}</em>` : ''}</div>` +
+      (nx ? `<button class="btn gold" data-up="1">MEJORAR<br><span>${priceHtml({ c: nx.c })}</span></button>` : '<button class="btn gray" disabled>NIVEL MÁXIMO</button>') + '</div>';
+    const bs = bSave(), ballsSorted = Cannons.BALLS.slice().sort((a, b) => (bs.own.includes(b.id) ? 1 : 0) - (bs.own.includes(a.id) ? 1 : 0));
+    const skSorted = Cannons.SKINS.slice().sort((a, b) => (save.skins.owned.includes(b.id) ? 1 : 0) - (save.skins.owned.includes(a.id) ? 1 : 0));
+    return `<div class="sechead" id="sCan"><span>Mejoras · sirven para cualquier cañón</span></div>${up}` +
+      `<div class="sechead"><span>Cañones con más fuerza</span></div><div class="cgrid">${Cannons.MODELS.map(m => cosCard({ k: 'model', id: m.id })).join('')}</div>` +
+      '<p class="cnote">En la liga de clubes todos los cañones tiran con la fuerza normal.</p>' +
+      `<div class="sechead"><span>Aspectos del cañón</span></div><div class="cgrid">${skSorted.map(x => cosCard({ k: 'skin', id: x.id })).join('')}</div>` +
+      `<div class="sechead" id="sBskin"><span>Aspectos de las bolas · conservan su color</span></div><div class="cgrid">${ballsSorted.map(x => cosCard({ k: 'ball', id: x.id })).join('')}</div>`;
+  }
+  // miniaturas 3D (se pintan poco a poco) y botones de las tarjetas
+  function bindCos(box, again) {
+    const want = [], els = {};
+    box.querySelectorAll('.cth[data-th]').forEach(el => {
+      const [k, id, lv] = el.dataset.th.split(':'), q = k === 'up' ? { kind: 'model', id: 'base', lv: +lv } : { kind: k, id };
+      const key = Cannons.thumbKey(q); (els[key] = els[key] || []).push(el); want.push(q);
+    });
+    Cannons.thumb(want, (key, url) => { if (url) for (const el of els[key] || []) { el.style.backgroundImage = `url(${url})`; el.classList.add('ok'); } });
+    box.querySelectorAll('[data-buy]').forEach(b => b.addEventListener('click', () => { Audio.init(); const [k, id] = b.dataset.buy.split(':'); if (cosBuy(k, id)) again(); else if (cosPrice(k, id) && cosPrice(k, id).g && (save.gems || 0) < cosPrice(k, id).g) again('gems'); }));
+    box.querySelectorAll('[data-eq]').forEach(b => b.addEventListener('click', () => { Audio.init(); const [k, id] = b.dataset.eq.split(':'); if (cosEquip(k, id)) again(); }));
+    box.querySelectorAll('[data-up]').forEach(b => b.addEventListener('click', () => { Audio.init(); if (cosUpgrade()) again(); }));
+  }
+  setInterval(() => {
+    if (document.hidden || !$('shop').classList.contains('on')) return;
+    const T = tmpNow(), now = Date.now();
+    document.querySelectorAll('.tmpLeft').forEach(el => { el.textContent = leftTxt(T.wEnd - now); });
+    document.querySelectorAll('.dayLeft').forEach(el => { el.textContent = leftTxt(T.dEnd - now); });
+    document.querySelectorAll('.passLeft').forEach(el => { el.textContent = leftTxt(T.pEnd - now); });
+  }, 30000);
 
   // ---------------- pase de temporada ----------------
   // 30 niveles por temporada de 28 días. Se avanza con estrellas. Gratis para todos; Pro con 150 gemas (≈ 4,99 €).
@@ -2963,15 +3099,9 @@
   const PASS_PRO_GEMS = 150;
   const tierCost = t => t <= 10 ? 4 : t <= 20 ? 6 : 8;            // estrellas para llegar al nivel t
   const PASS_NEED = []; { let acc = 0; for (let t = 1; t <= 30; t++) { acc += tierCost(t); PASS_NEED.push(acc); } }
-  const SKINS = {
-    classic: { name: 'Clásico', css: '#3a2f6e', color: 0x3a2f6e, metal: 0.3, rough: 0.35 },
-    royal: { name: 'Cañón Real', css: '#ffc83d', color: 0xffc83d, metal: 0.9, rough: 0.2 },
-    ice: { name: 'Cañón de Hielo', css: '#9fe6ff', color: 0x9fe6ff, metal: 0.1, rough: 0.05 },
-    rainbow: { name: 'Cañón Arcoíris', css: 'conic-gradient(#ff4f6d,#ffd23f,#5fd45a,#3d9bff,#a66bff,#ff4f6d)', color: 0xffffff, metal: 0.2, rough: 0.25, map: true },
-    candycane: { name: 'Cañón Bastón', css: 'repeating-linear-gradient(135deg,#fff 0 8px,#e8203a 8px 16px)', color: 0xffffff, metal: 0.1, rough: 0.3, map: 'cane', glow: 0x2a0008 },
-    pumpkin: { name: 'Cañón Calabaza', css: 'linear-gradient(180deg,#ffb347,#ff7a12 55%,#a83a00)', color: 0xff7a1a, metal: 0.2, rough: 0.4, glow: 0x4a1400 },
-    fire: { name: 'Cañón de Fuego', css: 'linear-gradient(180deg,#ffe066,#ff6a1a 50%,#8a1010)', color: 0xffffff, metal: 0.25, rough: 0.3, map: 'fire', glow: 0x7a1c00 },
-  };
+  const SKINS = Cannons.SKIN;          // aspectos del cañón (cannons.js): nombre, muestra de color, rareza, precio…
+  // cañón del Pase Pro (nivel 30) según la temporada; la siguiente semana sale una semana en «Temporales»
+  const PASS_SKIN = si => ['rainbow', 'robot', 'bosque'][((si % 3) + 3) % 3];
   const R = (o) => o;
   const PASS = [
     [R({ coins: 50 }), R({ skin: 'royal', coins: 100 })],
@@ -2993,7 +3123,7 @@
     [R({ bomb: 1 }), R({ coins: 350 })],
     [R({ coins: 150 }), R({ golden: 1 })],
     [R({ extra: 1 }), R({ bomb: 3 })],
-    [R({ gems: 3 }), R({ gems: 10 })],
+    [R({ gems: 3 }), R({ gems: 10, bskin: 'dragonb' })],
     [R({ coins: 180 }), R({ coins: 400 })],
     [R({ rainbow: 1 }), R({ rainbow: 3 })],
     [R({ coins: 180 }), R({ extra: 4 })],
@@ -3010,6 +3140,7 @@
   function passTier(pts) { let t = 0; while (t < 30 && pts >= PASS_NEED[t]) t++; return t; }
   function grant(r) {
     const out = [];
+    if (r.bskin && !bSave().own.includes(r.bskin) && Cannons.BALL[r.bskin]) { bSave().own.push(r.bskin); out.push('Bolas ' + Cannons.BALL[r.bskin].name); }
     if (r.coins) { save.coins += r.coins; out.push(r.coins + ' monedas'); }
     if (r.gems) { save.gems = (save.gems || 0) + r.gems; out.push(r.gems + ' gemas'); }
     for (const k of ['bomb', 'rainbow', 'extra', 'golden']) if (r[k]) { save.boosters[k] = (save.boosters[k] || 0) + r[k]; out.push(r[k] + ' ' + ({ bomb: r[k] > 1 ? 'bombas' : 'bomba', rainbow: 'arcoíris', extra: '× +2 bolas', golden: r[k] > 1 ? 'bolas doradas' : 'bola dorada' })[k]); }
@@ -3018,8 +3149,9 @@
   }
   function ensureSeason() {
     const si = seasonIndex();
-    if (save.pass && save.pass.season === si) return;
+    if (save.pass && save.pass.season === si) { PASS[29][1].skin = PASS_SKIN(si); return; }
     if (save.pass) {   // fin de temporada: lo ya ganado y sin reclamar se entrega solo
+      PASS[29][1].skin = PASS_SKIN(save.pass.season);
       const p = save.pass, t = passTier(p.pts), got = [];
       for (let i = 0; i < t; i++) {
         if (!p.free.includes(i)) got.push(...grant(PASS[i][0]));
@@ -3028,6 +3160,7 @@
       if (got.length) setTimeout(() => toast('Fin de temporada: te hemos dado lo que no habías reclamado', 3500), 600);
     }
     save.pass = { season: si, pts: 0, free: [], proClaimed: [], pro: false };
+    PASS[29][1].skin = PASS_SKIN(si);
     persist();
   }
   function passClaimable() {
@@ -3039,6 +3172,7 @@
   function rewardHtml(r) {
     const parts = [], txt = [];
     if (r.skin) { parts.push(`<i class="skinsw" style="background:${SKINS[r.skin].css}"></i>`); txt.push(SKINS[r.skin].name); }
+    if (r.bskin) { parts.push('<i class="bskinsw"></i>'); txt.push('Bolas ' + Cannons.BALL[r.bskin].name); }
     if (r.golden) { parts.push('<i class="ball bGolden"></i>'); txt.push(r.golden > 1 ? r.golden + ' bolas doradas' : 'Bola dorada'); }
     if (r.gems) { parts.push('<i class="gem"></i>'); txt.push(r.gems + ' gemas'); }
     if (r.bomb) { parts.push('<i class="ball bBomb"></i>'); txt.push(r.bomb > 1 ? r.bomb + ' bombas' : 'Bomba'); }
@@ -4025,11 +4159,11 @@
   }
   // aspecto del cañón
   function applySkin() {
-    const k = (save.skins && save.skins.equip) || 'classic', sk = SKINS[k] || SKINS.classic;
+    const k = (save.skins && save.skins.equip) || 'classic';
     if (k !== 'classic' && !stats().skin) { stats().skin = 1; persist(); }
-    cannonMat.color.set(sk.color); cannonMat.metalness = sk.metal; cannonMat.roughness = sk.rough;
-    cannonMat.map = sk.map === 'fire' ? fireTex : sk.map === 'cane' ? (window.Christmas ? window.Christmas.caneTex : null) : sk.map ? rainbowTex : null;
-    cannonMat.emissive.set(sk.glow || 0x000000); cannonMat.needsUpdate = true;
+    const cs = canSave();
+    cannonOut = Cannons.build(cannonG, barrelPivot, { skin: SKINS[k] ? k : 'classic', model: cs.eq, lv: cs.lv });
+    G.cannonKind = null;
   }
 
   // ---------------- botones ----------------
@@ -4355,6 +4489,7 @@
     if (G.slowT > 0) { G.slowT -= dt; G.timeScale = 0.35; } else G.timeScale = lerp(G.timeScale, 1, Math.min(1, dt * 3));
     G.shake = Math.max(0, G.shake - dt * 1.6);
     G.recoil = Math.max(0, G.recoil - dt * 4);
+    if (cannonG.visible) Cannons.tick(cannonOut, G.t);
     flashLight.intensity = Math.max(0, flashLight.intensity - dt * 220);
     if (save.calm) { if (flashLight.intensity > 8) flashLight.intensity = 8; if (G.shake > 0.04) G.shake = 0.04; }
     const sim = G.sim;
@@ -4442,10 +4577,12 @@
     $('langPick').hidden = false;
     langButtons($('lpGrid'), () => { $('langPick').hidden = true; langButtons($('sLang')); });
   }
+  Cannons.setEnv(scene.environment);
   ensureSeason(); applySkin(); if (save.lowGfx) applyGfx();
+  setTimeout(() => { if (save.skins && save.skins.equip === 'candycane') applySkin(); }, 0);   // la textura del bastón llega con christmas.js
   goTitle(); setCoins(); scheduleReminder();
   ageGate(); if (save.birthYear) adsStart();
   requestAnimationFrame(() => requestAnimationFrame(autoDailySoon));   // cuenta desde que la portada ya se ve
   requestAnimationFrame(frame);
-  window.ChromaGame = { G, startLevel, tick, manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, LEVELS, goTitle, finishWin };
+  window.ChromaGame = { G, startLevel, tick, manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, LEVELS, goTitle, finishWin, cos: { buy: (k, id) => cosBuy(k, id), equip: (k, id) => cosEquip(k, id), up: () => cosUpgrade(), tmp: () => tmpNow(), apply: applySkin, out: () => cannonOut } };
 })();

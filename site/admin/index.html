@@ -301,6 +301,8 @@ const sec = (title, html) => { const s = document.createElement('section'); s.in
 const val = (root, n) => { const el = root.querySelector(`[name="${n}"]`); return el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined; };
 const num = (root, n) => Math.max(0, Math.round(+val(root, n) || 0));
 
+// cañones que pueden salir en «Temporales» (los legendarios y los del Pase Pro)
+const TMP_SK = [['diamante', 'Diamante'], ['volcan', 'Volcán'], ['tesoro', 'Tesoro'], ['holo', 'Holográfico'], ['robot', 'Robot (Pase Pro)'], ['bosque', 'Bosque Encantado (Pase Pro)']];
 const KIND = { coins: ['🪙', 'Monedas'], xp: ['⭐', 'Experiencia'], candy: ['🍬', 'Caramelos'] };
 function nowItems() {
   const out = [], t = Date.now(), d = draft, live = o => o && (!o.start || t >= o.start) && (!o.end || t < o.end);
@@ -308,6 +310,7 @@ function nowItems() {
   out.push(hwOn ? `🎃 Halloween · quedan ${left((hw.end || HW_DEFAULT_END) - t)}` : '🎃 Halloween apagado');
   const xm = d.xm || {}, xs = xm.start != null ? xm.start : XM_DEFAULT_START, xe = xm.end || XM_DEFAULT_END, xmOn = xm.on !== false && t >= xs && t < xe;
   out.push(xmOn ? `🎄 Navidad · quedan ${left(xe - t)}` : xm.on !== false && t < xs ? `🎄 Navidad empieza en ${left(xs - t)}` : '🎄 Navidad apagada');
+  if (d.tmp && d.tmp.on && live(d.tmp)) out.push('⏳ Temporales elegidos a mano');
   for (const b of d.boosts || []) if (live(b)) out.push(`${(KIND[b.kind] || ['🔥'])[0]} x${b.mult} ${(KIND[b.kind] || ['', b.kind])[1].toLowerCase()}`);
   for (const g of d.gifts || []) if (live(g)) out.push('🎁 ' + (g.title || 'Regalo'));
   for (const n of d.news || []) if (live(n)) out.push('📣 ' + (n.title || 'Aviso'));
@@ -351,6 +354,14 @@ function renderEvents() {
       <div class="grid two"><label class="fld"><span>Empieza</span><input type="datetime-local" name="start" value="${toInput(xm.start)}"></label>
         <label class="fld"><span>Termina</span><input type="datetime-local" name="end" value="${toInput(xm.end)}"></label></div>
       <div class="row"><button class="btn sm" data-x="xmNow">Empezar ya</button><button class="btn sm" data-x="xmExt">+7 días</button><button class="btn sm" data-x="xmDef">Fechas originales (1 dic – 6 ene)</button></div></div>
+    <div class="card" id="tmpCard"><h3>⏳ Tienda · Temporales <span class="grow"></span>${draft.tmp && draft.tmp.on ? pill(draft.tmp) : '<span class="pill on">Automático</span>'}</h3>
+      <p class="hint">Sin tocar nada, cada lunes cambian solos: 2 cañones legendarios (Diamante, Volcán, Tesoro, Holográfico) y 1 bola legendaria (Gema o Píxel). Aquí puedes elegir los de una semana (o de unas fechas). Las 2 ofertas del día (-30 %) y el cañón del Pase Pro anterior van siempre solos.</p>
+      <label class="chk"><input type="checkbox" name="on" ${draft.tmp && draft.tmp.on ? 'checked' : ''}> Elegir a mano</label>
+      <div class="grid three"><label class="fld"><span>Cañón 1</span><select name="sk1">${TMP_SK.map(([v, n]) => `<option value="${v}" ${((draft.tmp || {}).sk || [])[0] === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label class="fld"><span>Cañón 2</span><select name="sk2"><option value="">(ninguno)</option>${TMP_SK.map(([v, n]) => `<option value="${v}" ${((draft.tmp || {}).sk || [])[1] === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label class="fld"><span>Bola</span><select name="ball">${[['gema', 'Gema'], ['pixel', 'Píxel'], ['none', '(ninguna)']].map(([v, n]) => `<option value="${v}" ${(draft.tmp || {}).ball === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div>
+      <div class="grid two"><label class="fld"><span>Desde</span><input type="datetime-local" name="start" value="${toInput((draft.tmp || {}).start)}"></label><label class="fld"><span>Hasta (la cuenta atrás de la tienda)</span><input type="datetime-local" name="end" value="${toInput((draft.tmp || {}).end)}"></label></div>
+      <div class="row"><button class="btn sm" data-x="tmpWeek">Esta semana (hasta el lunes)</button></div></div>
     <div class="card"><h3>🔥 Bonificaciones <span class="grow"></span><span class="pill off">${(draft.boosts || []).length}</span></h3>
       <p class="hint">Multiplican lo que se gana al superar un nivel. En la portada sale un cartel con la cuenta atrás.</p>
       <div id="bList"></div></div>
@@ -367,6 +378,9 @@ function renderEvents() {
   const xc = s.querySelector('#xmCard');
   const xmSave = () => { draft.xm = { on: val(xc, 'on'), start: fromInput(val(xc, 'start')), end: fromInput(val(xc, 'end')) || XM_DEFAULT_END }; touch(); };
   xc.addEventListener('change', () => { xmSave(); render(); });
+  const tc = s.querySelector('#tmpCard');
+  const tmpSave = () => { draft.tmp = { on: val(tc, 'on'), sk: [val(tc, 'sk1'), val(tc, 'sk2')].filter(Boolean), ball: val(tc, 'ball'), start: fromInput(val(tc, 'start')), end: fromInput(val(tc, 'end')) }; touch(); };
+  tc.addEventListener('change', () => { tmpSave(); render(); });
   const bl = s.querySelector('#bList');
   bl.innerHTML = (draft.boosts || []).map((b, i) => `<div class="item"><div class="ic">${(KIND[b.kind] || ['🔥'])[0]}</div><div class="bd"><b>x${b.mult} ${esc((KIND[b.kind] || ['', b.kind])[1].toLowerCase())}${b.title ? ' · ' + esc(b.title) : ''} ${pill(b)}</b><small>${esc(when(b))}</small></div>
     <div class="ac"><button class="btn sm bad" data-del="${i}">Quitar</button></div></div>`).join('') || '<div class="empty">No hay ninguna.</div>';
@@ -375,6 +389,7 @@ function renderEvents() {
   s.addEventListener('click', e => {
     const x = e.target.closest('[data-x]'); if (!x) return;
     const set = (n, v) => { bf.querySelector(`[name="${n}"]`).value = v; };
+    if (x.dataset.x === 'tmpWeek') { tc.querySelector('[name=on]').checked = true; tc.querySelector('[name=start]').value = toInput(Date.now() - 60000); tc.querySelector('[name=end]').value = toInput(nextAt(1, 0)); tmpSave(); render(); }
     if (x.dataset.x === 'xmNow') { xc.querySelector('[name=start]').value = toInput(Date.now() - 60000); xc.querySelector('[name=on]').checked = true; xmSave(); render(); }
     if (x.dataset.x === 'xmExt') { xc.querySelector('[name=end]').value = toInput(Math.max(Date.now(), fromInput(val(xc, 'end')) || XM_DEFAULT_END) + 7 * 864e5); xmSave(); render(); }
     if (x.dataset.x === 'xmDef') { xc.querySelector('[name=start]').value = toInput(XM_DEFAULT_START); xc.querySelector('[name=end]').value = toInput(XM_DEFAULT_END); xmSave(); render(); }

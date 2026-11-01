@@ -131,6 +131,8 @@
       this.queue = level.balls.split('').map(ch => BALL_CODES[ch]);
       if (opts.boosters) for (const k of opts.boosters) this.queue.unshift(k);
       this.wlv = opts.wlv || {};
+      // fuerza del cañón (mejoras y cañones con más fuerza): { speed, mass, boom, combo } · sin nada, como siempre
+      this.pw = opts.power && opts.power.f > 1 ? opts.power : null;
       this.balls = []; this.blocks = []; this.pending = [];
       this.rand = rng(level.id * 7919 + 13);
       this.state = 'settle'; this.silent = true; this.armed = false;
@@ -309,6 +311,7 @@
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       // cerca (la estructura): tiro tenso; lejos (pájaro, barco): parábola alta que pasa por encima
       let T = dist <= 19 ? Math.max(0.42, Math.min(0.95, dist / 17)) : Math.min(2.8, 0.95 + (dist - 19) / 20);
+      if (this.pw && this.pw.speed > 1) T = Math.max(0.34, T / this.pw.speed);   // cañón con más fuerza: tiro más rápido y recto
       // tiros al mar (el velero, por detrás de la estructura): la parábola sube lo justo para pasar por encima
       const sil = this.silhouette();
       if (dist > 19 && tz < sil.front - 1) {
@@ -317,10 +320,10 @@
       }
       return { m, T, vx: dx / T, vy: dy / T - 0.5 * C.G * T, vz: dz / T };
     }
-    trajectory(tx, ty, tz, n) {
+    trajectory(tx, ty, tz, n, ext) {
       const L = this.launch(tx, ty, tz), pts = [];
       for (let i = 0; i <= n; i++) {
-        const t = (i / n) * L.T;
+        const t = (i / n) * L.T * (ext || 1);        // ext > 1: la guía sigue más allá de la diana (mira telescópica)
         pts.push({ x: L.m.x + L.vx * t + 0.5 * this.wind * t * t, y: L.m.y + L.vy * t + 0.5 * C.G * t * t, z: L.m.z + L.vz * t });
       }
       return pts;
@@ -342,7 +345,7 @@
       const W = WBALLS[kind];
       const r = heavy ? 0.42 : kind === 'golden' ? 0.4 : W ? W.r : C.BALL_R;
       const dens = heavy || kind === 'w1' || kind === 'w4' || kind === 'w7' ? 12 : 3.4;
-      const b = new CANNON.Body({ mass: dens * (4 / 3) * Math.PI * r * r * r, material: new CANNON.Material({ friction: 0.4, restitution: 0.3 }) });
+      const b = new CANNON.Body({ mass: dens * (4 / 3) * Math.PI * r * r * r * (this.pw ? this.pw.mass : 1), material: new CANNON.Material({ friction: 0.4, restitution: 0.3 }) });
       b.addShape(new CANNON.Sphere(r));
       b.position.set(L.m.x, L.m.y, L.m.z);
       b.velocity.set(L.vx, L.vy, L.vz);
@@ -409,6 +412,7 @@
     ballHit(ball, other, v, px, py, pz) {
       const d = ball.userData, od = other.userData;
       if (d.dead) return;
+      if (this.pw && this.pw.boom && !d.boomed && od.kind !== 'island') { d.boomed = true; this.blast(px, py, pz); }
       if (d.ball === 'golden') { this.goldenHit(ball, other); return; }
       if (WBALLS[d.ball]) { this.worldBallHit(ball, other, v, px, py, pz); return; }
       if (d.ball === 'bomb' && od.kind !== 'island' || d.ball === 'bomb' && v > 2) { this.explode(ball.position.x, ball.position.y, ball.position.z, C.BOMB_R, true); this.killBall(ball, false); return; }
@@ -621,7 +625,8 @@
       this.popped++; this.shotPops++;
       this.takeGem(b);
       if (d.kind === 'gold') { this.coins += 10; this.emit({ type: 'coin', x: b.position.x, y: b.position.y, z: b.position.z, n: 10 }); }
-      const pts = (d.kind === 'gold' ? 25 : 10) * this.chain;
+      let pts = (d.kind === 'gold' ? 25 : 10) * this.chain;
+      if (this.pw && this.pw.combo && this.chain > 1) pts = Math.round(pts * 1.25);   // Turbo: los combos dan +25 %
       this.score += pts;
       this.emit({ type: 'pop', id: d.id, x: b.position.x, y: b.position.y, z: b.position.z, c: d.c, chain: this.chain, pts, w: d.w, h: d.h, d: d.d });
       this.wakeAll();
@@ -1018,6 +1023,17 @@
         this.emit({ type: 'gone', id: d.id });
         this.explode(b.position.x, b.position.y, b.position.z, C.TNT_R, false);
       });
+    }
+    // pequeña explosión del lanzacohetes: solo empuja los bloques de alrededor (no revienta nada)
+    blast(x, y, z) {
+      const R = 1.6;
+      this.emit({ type: 'blast', x, y, z });
+      for (const b of this.liveBlocks()) {
+        const dx = b.position.x - x, dy = b.position.y - y, dz = b.position.z - z, dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist > R) continue;
+        const f = 5 * (1 - dist / R), n = Math.max(dist, 1e-3);
+        b.wakeUp(); b.velocity.x += dx / n * f; b.velocity.y += dy / n * f + 1; b.velocity.z += dz / n * f;
+      }
     }
     explode(x, y, z, R, isBomb) {
       this.emit({ type: 'explode', x, y, z, r: R, bomb: isBomb });

@@ -64,7 +64,7 @@
   }
   const TIPS = {
     candy: { when: () => playReady() && X.G.sim && X.G.sim.state === 'play' && X.G.candies && X.G.candies.length > 0 && X.hw && X.hw.active(), rect: candyRect, point: true, title: 'Bloques de caramelo', text: 'Durante Halloween, los bloques con rayas llevan caramelos: el del bastón da 2 y el del envoltorio, 1. Si revientan o se caen, son tuyos. Gástalos en la tienda de Halloween.' },
-    shop: { when: () => on('shop'), target: () => ['#shopTabs'], title: 'La tienda', text: 'Compra gemas, monedas y potenciadores. Durante los eventos aparece un apartado especial con sus propios premios.' },
+    shop: { when: () => on('shop'), target: () => ['#shopTabs'], title: 'La tienda', text: 'Compra gemas, monedas, potenciadores, mejoras y aspectos para el cañón y las bolas. En «Temporales» hay legendarios que cambian cada semana.' },
     pass: { when: () => on('pass') && !dimOpen(), target: () => ['#pass .passhead'], title: 'Pase de temporada', text: 'Cada estrella que ganas suma al pase y desbloquea premios. Con el Pase Pro te llevas también los de la columna dorada.' },
     missions: { when: () => on('missions') && !dimOpen(), target: () => ['#misList .mcard'], title: 'Misiones', text: 'Cumple misiones para ganar experiencia, monedas y gemas. Cuando una esté lista, toca COBRAR.' },
     social: { when: () => on('social') && !dimOpen(), target: () => ['#socTabs'], title: 'Amigos', text: 'Comparte tu código para añadir amigos, mira las clasificaciones y elige tu nombre y avatar en el perfil.' },
