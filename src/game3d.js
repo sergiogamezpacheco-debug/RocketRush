@@ -52,7 +52,7 @@
     let ac = null, master = null, sfx = null, mus = null, noiseBuf = null, musicOn = false, musicTimer = null, musicStyle = 'normal';
     let popRun = 0, popT = 0;
     function init() {
-      if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+      if (ac) { if (ac.state !== 'running' && ac.state !== 'closed' && ac.resume) ac.resume().catch(() => {}); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
       ac = new AC();
@@ -62,9 +62,12 @@
       noiseBuf = ac.createBuffer(1, ac.sampleRate * 1.2, ac.sampleRate);
       const d = noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      if (save.music) startMusic();
+      // la música arranca cuando el audio está de verdad en marcha (en la app, al abrir; en el navegador, al primer toque)
+      ac.onstatechange = () => { if (ac.state === 'running' && save.music) startMusic(); };
+      if (ac.state === 'running' && save.music) startMusic();
+      else if (ac.state === 'suspended' && ac.resume) ac.resume().catch(() => {});
     }
-    const ok = () => ac && save.sound;
+    const ok = () => ac && save.sound && ac.state === 'running';
     function tone(freq, dur, type, vol, slide, when, dest) {
       const t = ac.currentTime + (when || 0);
       const o = ac.createOscillator(), g = ac.createGain();
@@ -143,7 +146,7 @@
     };
     // música generativa suave (4 acordes en bucle)
     function startMusic() {
-      if (!ac || musicOn) return;
+      if (!ac || musicOn || ac.state !== 'running') return;
       musicOn = true;
       if (musicStyle === 'spooky') { spookyMusic(); return; }
       if (musicStyle === 'xmas') { xmasMusic(); return; }
@@ -4470,7 +4473,7 @@
     return false;
   };
   window.ChromaPause = () => { if (G.mode === 'play' && G.sim && G.sim.state === 'play') { G.paused = true; refreshToggles(); show('pause'); } Audio.stopMusic(); };
-  window.ChromaResume = () => { if (save.music) Audio.startMusic(); autoDailySoon(); };
+  window.ChromaResume = () => { Audio.init(); if (save.music) Audio.startMusic(); autoDailySoon(); };
 
   // ---------------- bucle ----------------
   let last = performance.now();
@@ -4595,6 +4598,11 @@
   ensureSeason(); applySkin(); if (save.lowGfx) applyGfx();
   setTimeout(() => { if (save.skins && save.skins.equip === 'candycane') applySkin(); }, 0);   // la textura del bastón llega con christmas.js
   goTitle(); setCoins(); scheduleReminder();
+  // sonido desde la portada: en la app (Android e iPhone) el audio puede empezar sin tocar nada; si el navegador lo
+  // bloquea, se pone en marcha con el primer toque en cualquier parte de la pantalla (no hace falta pulsar JUGAR)
+  Audio.init();
+  const firstTouch = () => { Audio.init(); for (const ev of ['pointerdown', 'touchstart', 'keydown']) document.removeEventListener(ev, firstTouch, true); };
+  for (const ev of ['pointerdown', 'touchstart', 'keydown']) document.addEventListener(ev, firstTouch, { capture: true, passive: true });
   ageGate(); if (save.birthYear) adsStart();
   requestAnimationFrame(() => requestAnimationFrame(autoDailySoon));   // cuenta desde que la portada ya se ve
   requestAnimationFrame(frame);

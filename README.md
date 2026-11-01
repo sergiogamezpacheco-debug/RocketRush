@@ -342,6 +342,13 @@ El aviso del viento se reescribía en cada fotograma, igual que la puntuación, 
 - **Portada**: la bola dorada ya no se lanza al centro (hay estructuras huecas por dentro); apunta al bloque de delante más cercano al centro y a media altura, así que siempre impacta.
 - **Misiones** (difíciles): «Derriba al pájaro 3 veces» (luego 15 y 40) y «Derriba el barco 10 veces» (luego 30 y 75; cuenta también lo que cruza en su lugar en cada paisaje: globo, teleférico, mono, dragón u ovni).
 
+## Sonido desde la portada
+
+La música y los sonidos empiezan al abrir el juego, en la portada, sin tener que pulsar JUGAR. En la app de Android
+(y en la de iPhone) el audio puede arrancar solo. En un navegador, que no deja sonar nada hasta que se toca la pantalla,
+empieza con el primer toque en cualquier parte. Mientras el audio no está en marcha no se acumulan notas, así que no hay
+un golpe de sonido al empezar.
+
 ## Idiomas
 
 Español, inglés, portugués, francés, alemán e italiano. La primera vez que se abre el juego sale una ventana para elegir el idioma (con el del móvil marcado) y se puede cambiar en **Ajustes**.
