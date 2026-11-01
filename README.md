@@ -138,6 +138,10 @@ Pruebas: `node tools/mechanics.js` (reglas de los bloques nuevos y de los objeto
   `testers/{uid}` y el juego, al sincronizar, enseña el botón con la nota «Eres probador». Quitarlo en el panel lo devuelve a
   su progreso normal. Las compras de los probadores se prueban con los «testers de licencias» de Play Console (no cobran).
 - Prueba: `tools/namesflow.py dist/index.html` (y con una versión `--release`).
+- **Herramientas de prueba** (en Ajustes, debajo de «Modo prueba»; solo en la versión de pruebas o para probadores): **+500 gemas**, **+10.000 monedas**,
+  **Compras simuladas** (la tienda de gemas, monedas y ofertas da lo comprado sin pasar por Google Play ni cobrar) y **Quitar aspectos**
+  (deja el cañón, las mejoras y las bolas como al principio para volver a comprarlos).
+
 ## Bolas de los mundos
 
 Cada uno de los 10 primeros mundos tiene su bola especial, con su diseño y su superpoder. Se abre al desbloquear el mundo:

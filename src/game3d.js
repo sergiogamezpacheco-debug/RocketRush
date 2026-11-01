@@ -2894,7 +2894,10 @@
       if (ch) persist();
     } else if (m.type === 'error' && m.code !== 1) toast('No se ha podido completar la compra. No se te ha cobrado nada.', 2800);
   };
+  // compras simuladas (modo prueba o probador, botón en Ajustes): no pasan por Google Play ni se cobra nada
+  const fakePay = () => testOn() && !!save.fakePay;
   function iapBuy(it) {
+    if (fakePay()) { it.grant(); persist(); setCoins(); Audio.coin(); toast('Compra simulada hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
     if (payNative()) {
       if (!iap.prices[it.id]) { iapQuery(); toast('La tienda de Google Play no responde. Comprueba la conexión y vuelve a probar.', 2800); return; }
       window.ChromaAndroid.billingBuy(it.id); return;
@@ -2904,7 +2907,7 @@
   }
   function openShop(focus) {
     iapQuery();
-    $('shopNote').textContent = payNative() ? 'Pagos seguros con Google Play.' : TEST_MODE ? 'Compras de prueba: no se cobra nada.' : IOS ? 'Las compras llegarán pronto a la app de iPhone y iPad.' : 'Las compras solo están disponibles en la app de Android.';
+    $('shopNote').textContent = fakePay() ? 'Compras simuladas: no se cobra nada.' : payNative() ? 'Pagos seguros con Google Play.' : TEST_MODE ? 'Compras de prueba: no se cobra nada.' : IOS ? 'Las compras llegarán pronto a la app de iPhone y iPad.' : 'Las compras solo están disponibles en la app de Android.';
     const items = SHOP.filter(s => !(s.once && save.starter) && !(s.id === 'noads' && save.adsRemoved));
     const SIC = { g1: '<i class="gem"></i>', g2: '<i class="gems2"></i>', g3: '<i class="chest crystal"></i>', starter: '<i class="chest gold"></i>', c1: '<i class="coin"></i>', c2: '<i class="chest wood"></i>', b1: '<i class="ball bBomb"></i>', b2: '<i class="ball bRainbow"></i>', b3: '<i class="ball bPlus2"></i>', b4: '<span style="display:inline-block;width:34px;height:34px">' + ROCKET_SVG.replace(/width="44" height="44"/, 'width="34" height="34"') + '</span>' };
     const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}</b><span>${s.desc}</span></div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : iapPrice(s)}</button></div>`;
@@ -4215,6 +4218,15 @@
   on('btnSetT', () => { refreshToggles(); $('settings').classList.add('on'); });
   on('sClose', () => $('settings').classList.remove('on'));
   on('sTest', toggleTest);
+  // herramientas de prueba: gemas y monedas gratis, compras simuladas y quitar lo comprado del cañón para volver a probarlo
+  on('sTGems', () => { if (!testOn()) return; save.gems = (save.gems || 0) + 500; persist(); setCoins(); Audio.coin(); toast('+500 gemas de prueba'); });
+  on('sTCoins', () => { if (!testOn()) return; save.coins += 10000; persist(); setCoins(); Audio.coin(); toast('+10.000 monedas de prueba'); });
+  on('sTPay', () => { if (!testOn()) return; save.fakePay = !save.fakePay; persist(); refreshTest(); toast(save.fakePay ? 'Compras simuladas: la tienda no pasa por Google Play' : 'Compras con Google Play'); });
+  on('sTReset', () => {
+    if (!testOn()) return;
+    save.skins = { owned: ['classic'], equip: 'classic' }; save.can = { lv: 1, own: ['base'], eq: 'base' }; save.bskin = { own: ['clasica'], eq: 'clasica' };
+    persist(); applySkin(); toast('Cañones, mejoras y bolas quitados: puedes volver a comprarlos');
+  });
   // configuración en directo: ventana de avisos y código regalo
   on('lbX', liveClose);
   on('sCode', openRedeem);
@@ -4401,8 +4413,9 @@
   on('pVibe', () => toggle('vibe')); on('sVibe', () => toggle('vibe'));
   on('pMusic', () => toggle('music')); on('sMusic', () => toggle('music'));
   function refreshTest() {
-    $('sTest').hidden = !testOn(); $('sTestNote').hidden = !testOn();
+    $('sTest').hidden = !testOn(); $('sTestNote').hidden = !testOn(); $('sTestRow').hidden = !testOn(); $('sTestRow2').hidden = !testOn();
     if (!testOn()) return;
+    $('sTPay').textContent = 'Compras simuladas: ' + (save.fakePay ? 'sí' : 'no');
     $('sTestNote').textContent = TEST_MODE ? 'Solo para probar. Se quita al publicar el juego.' : 'Eres probador (activado desde el panel). Nadie más ve este botón.';
     $('sTest').textContent = save.testAll ? 'Modo prueba: volver a mi progreso' : 'Modo prueba: desbloquear todo';
   }
