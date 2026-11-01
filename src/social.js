@@ -262,7 +262,10 @@
     await token();
     await ensureCode();
     const p = prof();
-    const data = { name: myName(), avatar: p.avatar, code: X.myCode(), lang: window.I18N ? I18N.lang : 'es', country: p.country || '', stats: myStats() };
+    // la app de pruebas (y quien tiene todo desbloqueado con el modo prueba) no cuenta en las clasificaciones: estadísticas a cero
+    const noRank = (X.testBuild && !window.RR_RANK_TEST) || X.save.testAll, st = myStats();   // RR_RANK_TEST: pruebas automáticas
+    if (noRank) for (const k in st) st[k] = 0;
+    const data = { name: myName(), avatar: p.avatar, code: X.myCode(), lang: window.I18N ? I18N.lang : 'es', country: p.country || '', stats: st };
     const key = auth.uid + JSON.stringify(data);
     if (!force && key === lastPushed) return;
     data.updatedAt = new Date();

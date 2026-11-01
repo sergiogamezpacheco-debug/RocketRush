@@ -23,9 +23,6 @@ android {
         // en GitHub Actions cada compilación lleva un número mayor (así el móvil la reconoce como actualización)
         versionCode 10 + (System.getenv("GITHUB_RUN_NUMBER") ?: "0").toInteger()
         versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
-        manifestPlaceholders = [admobAppId: admobApp]
-        resValue 'string', 'admob_rewarded', admobRewarded
-        resValue 'string', 'admob_interstitial', admobInter
     }
 
     signingConfigs {
@@ -47,12 +44,22 @@ android {
     }
 
     buildTypes {
+        // App de pruebas (la APK de cada cambio): se instala al lado de la de Google Play sin pisarla
+        // (otro identificador y otro nombre e icono con la cinta PRUEBAS). Lleva el modo prueba y siempre
+        // los anuncios de prueba de Google, para no tocar nunca los anuncios reales.
         debug {
             signingConfig signingConfigs.pruebas
+            applicationIdSuffix '.pruebas'
+            manifestPlaceholders = [admobAppId: 'ca-app-pub-3940256099942544~3347511713', appLabel: 'RR Pruebas']
+            resValue 'string', 'admob_rewarded', 'ca-app-pub-3940256099942544/5224354917'
+            resValue 'string', 'admob_interstitial', 'ca-app-pub-3940256099942544/1033173712'
         }
         release {
             minifyEnabled false
             if (upload) signingConfig signingConfigs.subida
+            manifestPlaceholders = [admobAppId: admobApp, appLabel: 'Rocket Rush']
+            resValue 'string', 'admob_rewarded', admobRewarded
+            resValue 'string', 'admob_interstitial', admobInter
         }
     }
 
@@ -66,7 +73,7 @@ android {
 
 // nombre del archivo: RocketRush-1.0.N.apk
 android.applicationVariants.all { variant ->
-    variant.outputs.all { outputFileName = "RocketRush-${variant.versionName}.apk" }
+    variant.outputs.all { outputFileName = (variant.buildType.name == 'debug' ? "RocketRush-Pruebas-" : "RocketRush-") + "${variant.versionName}.apk" }
 }
 
 dependencies {

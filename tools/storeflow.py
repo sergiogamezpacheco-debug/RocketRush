@@ -25,7 +25,7 @@ with sync_playwright() as p:
     ctx = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=1, is_mobile=True, has_touch=True)
     pg = ctx.new_page()
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.add_init_script("window.RR_LIVE_OFF = true; localStorage.setItem('rocketrush.lang','es');" + BRIDGE)
+    pg.add_init_script("window.RR_LIVE_OFF = true; window.RR_REAL_PAY = true; localStorage.setItem('rocketrush.lang','es');" + BRIDGE)
     # Firebase simulado: cuenta anónima y borrados
     hits = []
     def fb(route):

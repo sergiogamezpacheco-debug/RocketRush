@@ -39,6 +39,7 @@ jobs:
         with:
           gradle-version: '8.13'
 
+      # App de pruebas («RR Pruebas»): se instala al lado de la de Google Play, con el modo prueba y anuncios de prueba
       - name: Compilar APK de prueba
         working-directory: android
         env:
@@ -49,5 +50,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: RocketRush-1.0.${{ github.run_number }}
+          name: RocketRush-Pruebas-1.0.${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/*.apk

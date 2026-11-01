@@ -2899,7 +2899,8 @@
     } else if (m.type === 'error' && m.code !== 1) toast('No se ha podido completar la compra. No se te ha cobrado nada.', 2800);
   };
   // compras simuladas (modo prueba o probador, botón en Ajustes): no pasan por Google Play ni se cobra nada
-  const fakePay = () => testOn() && !!save.fakePay;
+  // solo en la app de pruebas (TEST_MODE); por defecto, activadas (esa app no está en Google Play)
+  const fakePay = () => TEST_MODE && save.fakePay !== false && !window.RR_REAL_PAY;   // RR_REAL_PAY: pruebas de Google Play simulado
   function iapBuy(it) {
     if (fakePay()) { it.grant(); persist(); setCoins(); Audio.coin(); toast('Compra simulada hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
     if (payNative()) {
@@ -4300,11 +4301,11 @@
   on('sClose', () => $('settings').classList.remove('on'));
   on('sTest', toggleTest);
   // herramientas de prueba: gemas y monedas gratis, compras simuladas y quitar lo comprado del cañón para volver a probarlo
-  on('sTGems', () => { if (!testOn()) return; save.gems = (save.gems || 0) + 500; persist(); setCoins(); Audio.coin(); toast('+500 gemas de prueba'); });
-  on('sTCoins', () => { if (!testOn()) return; save.coins += 10000; persist(); setCoins(); Audio.coin(); toast('+10.000 monedas de prueba'); });
-  on('sTPay', () => { if (!testOn()) return; save.fakePay = !save.fakePay; persist(); refreshTest(); toast(save.fakePay ? 'Compras simuladas: la tienda no pasa por Google Play' : 'Compras con Google Play'); });
+  on('sTGems', () => { if (!TEST_MODE) return; save.gems = (save.gems || 0) + 500; persist(); setCoins(); Audio.coin(); toast('+500 gemas de prueba'); });
+  on('sTCoins', () => { if (!TEST_MODE) return; save.coins += 10000; persist(); setCoins(); Audio.coin(); toast('+10.000 monedas de prueba'); });
+  on('sTPay', () => { if (!TEST_MODE) return; save.fakePay = !fakePay(); persist(); refreshTest(); toast(save.fakePay ? 'Compras simuladas: la tienda no pasa por Google Play' : 'Compras con Google Play'); });
   on('sTReset', () => {
-    if (!testOn()) return;
+    if (!TEST_MODE) return;
     save.skins = { owned: ['classic'], equip: 'classic' }; save.can = { lv: 1, own: ['base'], eq: 'base' }; save.bskin = { own: ['clasica'], eq: 'clasica' };
     persist(); applySkin(); toast('Cañones, mejoras y bolas quitados: puedes volver a comprarlos');
   });
@@ -4494,9 +4495,9 @@
   on('pVibe', () => toggle('vibe')); on('sVibe', () => toggle('vibe'));
   on('pMusic', () => toggle('music')); on('sMusic', () => toggle('music'));
   function refreshTest() {
-    $('sTest').hidden = !testOn(); $('sTestNote').hidden = !testOn(); $('sTestRow').hidden = !testOn(); $('sTestRow2').hidden = !testOn();
+    $('sTest').hidden = !testOn(); $('sTestNote').hidden = !testOn(); $('sTestRow').hidden = !TEST_MODE; $('sTestRow2').hidden = !TEST_MODE;   // gemas, monedas y compras simuladas: solo en la app de pruebas
     if (!testOn()) return;
-    $('sTPay').textContent = 'Compras simuladas: ' + (save.fakePay ? 'sí' : 'no');
+    $('sTPay').textContent = 'Compras simuladas: ' + (fakePay() ? 'sí' : 'no');
     $('sTestNote').textContent = TEST_MODE ? 'Solo para probar. Se quita al publicar el juego.' : 'Eres probador (activado desde el panel). Nadie más ve este botón.';
     $('sTest').textContent = save.testAll ? 'Modo prueba: volver a mi progreso' : 'Modo prueba: desbloquear todo';
   }
@@ -4652,7 +4653,7 @@
   }
 
   // los jefes (bosses.js) usan estas piezas del juego
-  window.RRGame = { cubiFrames, openShop, goMap, mountCol, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
+  window.RRGame = { testBuild: TEST_MODE, cubiFrames, openShop, goMap, mountCol, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
     stats, plState, starsTotal, countLv, LEVELS, myCode, openPre: id => openPre(id), setTester, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,

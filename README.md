@@ -148,6 +148,14 @@ Pruebas: `node tools/mechanics.js` (reglas de los bloques nuevos y de los objeto
   **Compras simuladas** (la tienda de gemas, monedas y ofertas da lo comprado sin pasar por Google Play ni cobrar) y **Quitar aspectos**
   (deja el cañón, las mejoras y las bolas como al principio para volver a comprarlos).
 
+- **App de pruebas «RR Pruebas»** (la APK de cada cambio, Actions › Compilar APK › `RocketRush-Pruebas-1.0.N`): se instala al lado
+  de la de Google Play sin pisarla (identificador `com.lostanarchygames.rocketrush.pruebas`, icono con la cinta PRUEBAS).
+  Lleva el modo prueba, las herramientas de gemas y monedas, compras simuladas por defecto y siempre los anuncios de prueba de Google.
+  Sus partidas no cuentan en las clasificaciones (sube las estadísticas a cero) y no tiene entrar con Google.
+- **Versión pública** (la de Google Play, también para los probadores de la prueba cerrada): a quien se marque como probador en el
+  panel solo le sale «Modo prueba: desbloquear todo» (y mientras lo tiene puesto tampoco cuenta en las clasificaciones).
+- Para probar algo nuevo antes de publicarlo: se prueba en «RR Pruebas»; si va bien, Actions › «Versión para Google Play (AAB)».
+
 ## Bolas de los mundos
 
 Cada uno de los 10 primeros mundos tiene su bola especial, con su diseño y su superpoder. Se abre al desbloquear el mundo:
