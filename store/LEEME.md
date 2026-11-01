@@ -13,8 +13,8 @@ Idiomas: `es` (español, España — idioma principal), `en` (inglés, EE. UU.),
 `de` (alemán) e `it` (italiano). En Play Console: «Gestionar traducciones › Añadir traducciones propias» y en cada idioma
 se pegan sus textos y se suben sus imágenes.
 
-Orden de las capturas: 1 apunta y derriba · 2 jefes · 3 cofre abriéndose · 4 club · 5 combos · 6 jefe colosal del club ·
-7 premios del cofre · 8 mapa de mundos.
+Orden de las capturas: 1 apunta y derriba · 2 cañones (tienda) · 3 jefes · 4 cofre abriéndose · 5 cañón y bolas personalizados ·
+6 club · 7 jefe colosal del club · 8 mapa de mundos.
 
-Para volver a generarlo todo: `node tools/build.js`, `python3 tools/storeshots.py <idioma>`,
+Para volver a generarlo todo: `node tools/build.js`, `python3 tools/storeshots.py <idioma>` (o solo algunas: `python3 tools/storeshots.py <idioma> cannons,skinplay`),
 `python3 tools/storelogo.py <idioma>` y `python3 tools/storeart.py final C C`.

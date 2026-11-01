@@ -240,6 +240,45 @@
   ];
   const MODEL = {}; for (const m of MODELS) MODEL[m.id] = m;
 
+  // ---------------- juntar piezas (menos llamadas de dibujo en móviles modestos) ----------------
+  // Las piezas fijas con el mismo material se funden en una sola malla: el cañón de nivel 5 pasa de ~40 dibujos a ~10.
+  function mergeGeos(items) {
+    const geos = items.map(([g, m]) => {
+      const c = g.clone(); c.applyMatrix4(m);
+      if (!c.index) { const n = c.attributes.position.count, a = new Uint32Array(n); for (let i = 0; i < n; i++) a[i] = i; c.setIndex(new T.BufferAttribute(a, 1)); }
+      return c;
+    });
+    const hasUv = geos.every(g => g.attributes.uv);
+    let nv = 0, ni = 0; for (const g of geos) { nv += g.attributes.position.count; ni += g.index.count; }
+    const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), uv = hasUv ? new Float32Array(nv * 2) : null, idx = new Uint32Array(ni);
+    let vo = 0, io = 0;
+    for (const g of geos) {
+      pos.set(g.attributes.position.array, vo * 3); nor.set(g.attributes.normal.array, vo * 3); if (uv) uv.set(g.attributes.uv.array, vo * 2);
+      const ia = g.index.array; for (let i = 0; i < ia.length; i++) idx[io + i] = ia[i] + vo;
+      vo += g.attributes.position.count; io += ia.length; g.dispose();
+    }
+    const out = new T.BufferGeometry();
+    out.setAttribute('position', new T.BufferAttribute(pos, 3)); out.setAttribute('normal', new T.BufferAttribute(nor, 3));
+    if (uv) out.setAttribute('uv', new T.BufferAttribute(uv, 2));
+    out.setIndex(new T.BufferAttribute(idx, 1)); out.computeBoundingSphere();
+    return out;
+  }
+  function mergeStatic(parent, skip) {
+    const by = new Map();
+    for (const o of parent.children) {
+      if (!o.isMesh || o.isInstancedMesh || o.children.length || skip.has(o)) continue;
+      const a = o.geometry.attributes; if (!a.position || !a.normal || a.position.isInterleavedBufferAttribute) continue;
+      if (!by.has(o.material)) by.set(o.material, []);
+      by.get(o.material).push(o);
+    }
+    for (const [mat, list] of by) {
+      if (list.length < 2) continue;
+      const geo = mergeGeos(list.map(o => { o.updateMatrix(); return [o.geometry, o.matrix]; }));
+      for (const o of list) { parent.remove(o); if (!o.geometry.userData.keep) o.geometry.dispose(); }
+      parent.add(new T.Mesh(geo, mat));
+    }
+  }
+
   // ---------------- montar el cañón ----------------
   function dispose(o) {
     if (o.userData && o.userData.ball) return;   // la bola cargada la pone el juego (geometría y material compartidos)
@@ -263,6 +302,8 @@
     const out = { holders: [], tint: [], model: md.id };
     md.make(piv, root, k, { lv: o.lv || 1, spokes: sk.spokes }, out);
     if (sk.x && md.id === 'base') sk.x(piv, root, k);       // adornos del aspecto (en el cañón normal)
+    const skip = new Set([].concat(out.tint, out.puff || [], out.flame ? [out.flame] : []));
+    mergeStatic(piv, skip); mergeStatic(root, skip);
     root.traverse(x => { if (x.isMesh) x.castShadow = false; });
     return out;
   }
@@ -293,10 +334,12 @@
     { id: 'playa', name: 'Pelota de playa', rar: 'common', how: 'shop', c: 1500, desc: 'Gajos de su color y blanco',
       mk: c => one(sph(), texM('playa', c, (x, w, h, c) => { for (let i = 0; i < 6; i++) { x.fillStyle = i % 2 ? '#ffffff' : css(c); x.fillRect(i * w / 6, 0, w / 6 + 1, h); } x.fillStyle = '#fff'; x.fillRect(0, 0, w, 14); x.fillRect(0, h - 14, w, 14); })) },
     { id: 'futbol', name: 'Balón', rar: 'common', how: 'shop', c: 2000, desc: 'Parches oscuros de su color',
-      mk: c => { const g = grp(one(sph(), jellyM(c))), k = mat('fb' + c, () => new T.MeshPhysicalMaterial({ color: dark(c, 0.45), roughness: 0.4, clearcoat: 0.6 })), pg = geo('pent', () => new T.CircleGeometry(0.2, 5));
-        const ico = new T.IcosahedronGeometry(0.86, 0), pos = ico.attributes.position, seen = [];
-        for (let i = 0; i < pos.count; i++) { const v = new T.Vector3().fromBufferAttribute(pos, i).normalize(); if (seen.some(u => u.distanceTo(v) < 0.1)) continue; seen.push(v); const pt = one(pg, k); pt.position.copy(v).multiplyScalar(0.855); pt.lookAt(v.clone().multiplyScalar(2)); g.add(pt); }
-        ico.dispose(); return g; } },
+      mk: c => { const k = mat('fb' + c, () => new T.MeshPhysicalMaterial({ color: dark(c, 0.45), roughness: 0.4, clearcoat: 0.6 }));
+        const patches = geo('fbpatches', () => {        // 12 parches pentagonales en una sola geometría
+          const ico = new T.IcosahedronGeometry(0.86, 0), pos = ico.attributes.position, seen = [], items = [], pg = new T.CircleGeometry(0.2, 5), o = new T.Object3D();
+          for (let i = 0; i < pos.count; i++) { const v = new T.Vector3().fromBufferAttribute(pos, i).normalize(); if (seen.some(u => u.distanceTo(v) < 0.1)) continue; seen.push(v); o.position.copy(v).multiplyScalar(0.855); o.lookAt(v.clone().multiplyScalar(2)); o.updateMatrix(); items.push([pg, o.matrix.clone()]); }
+          const g = mergeGeos(items); ico.dispose(); pg.dispose(); return g; });
+        return grp(one(sph(), jellyM(c)), one(patches, k)); } },
     { id: 'billar', name: 'Bola de billar', rar: 'common', how: 'shop', c: 2500, desc: 'Círculo blanco con número',
       mk: c => { const n = { r: 3, b: 2, g: 6, y: 1, p: 4 }[c]; return one(sph(), texM('billar', c, (x, w, h, c) => { x.fillStyle = css(c); x.fillRect(0, 0, w, h); for (const u of [0, 0.25, 0.5, 0.75, 1]) { x.fillStyle = '#fff'; x.beginPath(); x.ellipse(w * u, h / 2, 30, 46, 0, 0, 7); x.fill(); if (u) { x.fillStyle = '#111'; x.font = 'bold 50px Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(n, w * u, h / 2 + 2); } } }, { roughness: 0.08, clearcoat: 1 })); } },
     { id: 'canica', name: 'Canica', rar: 'rare', how: 'shop', g: 40, desc: 'Cristal con remolino de su color',
@@ -306,9 +349,11 @@
       mk: c => { const ring = one(geo('pring', () => new T.RingGeometry(0.95, 1.2, 40)), mat('pr' + c, () => new T.MeshStandardMaterial({ color: light(c, 0.55), side: T.DoubleSide, transparent: true, opacity: 0.9 }))); ring.rotation.x = Math.PI / 2.3;
         return grp(one(sph(0.74), texM('planeta', c, (x, w, h, c) => { for (let i = 0; i < 9; i++) { x.fillStyle = i % 2 ? css(c) : light(c, 0.35); x.fillRect(0, i * h / 9, w, h / 9 + 1); } })), ring); } },
     { id: 'carita', name: 'Carita', rar: 'rare', how: 'shop', g: 50, desc: 'Con ojos y sonrisa',
-      mk: c => { const g = grp(one(sph(), jellyM(c))), w = mat('cw', () => new T.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.2 })), k = mat('ck', () => new T.MeshBasicMaterial({ color: 0x1d1440 }));
-        [-1, 1].forEach(sx => { const e = one(geo('eye', () => new T.SphereGeometry(0.17, 14, 10)), w); e.position.set(sx * 0.27, 0.2, 0.72); g.add(e); const p = one(geo('pup', () => new T.SphereGeometry(0.09, 10, 8)), k); p.position.set(sx * 0.27, 0.2, 0.87); g.add(p); });
-        const m = one(geo('smile', () => new T.TorusGeometry(0.17, 0.035, 8, 20, Math.PI)), k); m.position.set(0, -0.15, 0.8); m.rotation.z = Math.PI; g.add(m); return g; } },
+      mk: c => { const w = mat('cw', () => new T.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.2 })), k = mat('ck', () => new T.MeshBasicMaterial({ color: 0x1d1440 }));
+        const at = (x, y, z, rz) => { const o = new T.Object3D(); o.position.set(x, y, z); o.rotation.z = rz || 0; o.updateMatrix(); return o.matrix; };
+        const eyes = geo('eyes', () => { const e = new T.SphereGeometry(0.17, 14, 10), g = mergeGeos([[e, at(-0.27, 0.2, 0.72)], [e, at(0.27, 0.2, 0.72)]]); e.dispose(); return g; });
+        const face = geo('face', () => { const p = new T.SphereGeometry(0.09, 10, 8), sm = new T.TorusGeometry(0.17, 0.035, 8, 20, Math.PI), g = mergeGeos([[p, at(-0.27, 0.2, 0.87)], [p, at(0.27, 0.2, 0.87)], [sm, at(0, -0.15, 0.8, Math.PI)]]); p.dispose(); sm.dispose(); return g; });
+        return grp(one(sph(), jellyM(c)), one(eyes, w), one(face, k)); } },
     { id: 'frutas', name: 'Frutas', rar: 'epic', how: 'shop', g: 80, desc: 'Fresa, arándano, lima, limón y uva',
       mk: c => { const leaf = mat('leaf', () => new T.MeshPhysicalMaterial({ color: 0x2f9a3a, roughness: 0.5 })), g = new T.Group();
         if (c === 'r') g.add(one(sph(), texM('fresa', c, (x, w, h) => { x.fillStyle = css('r'); x.fillRect(0, 0, w, h); x.fillStyle = '#ffe680'; for (let i = 0; i < 70; i++) { x.beginPath(); x.ellipse((i * 53) % w, (i * 37) % h, 3, 5, 0, 0, 7); x.fill(); } })));

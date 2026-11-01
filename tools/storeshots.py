@@ -77,4 +77,15 @@ with sync_playwright() as p:
             if pg.evaluate("() => !!document.querySelector('#cStage .ok')"): break
             until(lambda: hint() != '', 6000); pg.mouse.click(180, 330); pg.wait_for_timeout(700)
         pg.wait_for_timeout(800); pg.screenshot(path=OUT + 'chest2.png')
+    # cañones: la tienda en la pestaña Cañones (mejoras, cañones con más fuerza y aspectos)
+    if want('cannons'):
+        E("const s = ChromaGame.save(); s.gems = 420; s.coins = 8600; s.skins = { owned: ['classic','cobre','pirata','galaxia','dragon','volcan','royal'], equip: 'galaxia' }; s.can = { lv: 4, own: ['base','doble','riel'], eq: 'base' }; s.bskin = { own: ['clasica','playa','planeta','canica'], eq: 'planeta' }; ChromaGame.cos.apply();")
+        E("document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); RRGame.openShop('can');"); pg.wait_for_timeout(9000)
+        E("document.getElementById('shopNote').style.visibility = 'hidden'; const L = document.getElementById('shopList'), el = document.getElementById('sBskin').previousElementSibling.previousElementSibling; const c4 = el.nextElementSibling.children[3]; L.scrollTop = c4.offsetTop - L.offsetTop - 10;"); pg.wait_for_timeout(600)
+        pg.screenshot(path=OUT + 'cannons.png')
+        E("document.getElementById('shop').classList.remove('on')")
+    # partida con un cañón personalizado (Volcán con mejora 5) y bolas Planeta
+    if want('skinplay'):
+        E("const s = ChromaGame.save(); s.skins.owned.push('galaxia'); s.skins.equip = 'galaxia'; s.can = { lv: 5, own: ['base'], eq: 'base' }; s.bskin = { own: ['clasica','planeta'], eq: 'planeta' }; ChromaGame.cos.apply();")
+        level(57, 1, 10, 'skinplay')
     print('errores', errs[:5]); b.close()
