@@ -1128,9 +1128,10 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 @media (max-width:370px){.upcard{gap:6px;padding:7px}.upcard .uptx b{font-size:13.5px}.upcard .uptx span{font-size:10.5px}.upcard .uptx em{font-size:9.5px}.upcard .btn{font-size:11.5px;padding:5px 6px}}
 
 /* ---------- estelas, maestría y regalos entre amigos ---------- */
-.cth.trailpv{position:relative;background:radial-gradient(circle at 78% 50%,#fff 0 9%,#ffe27a 10% 15%,transparent 16%),linear-gradient(90deg,transparent 4%,var(--tr) 30% 72%,transparent 76%) center/100% 26% no-repeat;border-radius:12px;background-color:rgba(20,8,60,.35)}
-.cosc .cth.trailpv,.colit .cth.trailpv,.lslot .cth.trailpv{background-size:auto,100% 26%}
-.trailsw{display:inline-block;width:30px;height:14px;border-radius:8px;vertical-align:middle;background:linear-gradient(90deg,transparent,var(--tr) 40%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.4);margin-right:3px}
+.cth.trailpv{position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 50%,rgba(255,255,255,.12),rgba(20,8,60,.45) 70%)!important}
+.cth.trailpv::before{content:'';position:absolute;left:4%;right:24%;top:36%;height:28%;border-radius:10px;background:var(--tr);-webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%)}
+.cth.trailpv::after{content:'';position:absolute;right:9%;top:50%;width:24%;aspect-ratio:1;transform:translateY(-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 10%,#ff8a9a 28%,#d6203a 72%,#8a1020);box-shadow:0 0 6px rgba(255,255,255,.5)}
+.trailsw{display:inline-block;width:30px;height:14px;border-radius:8px;vertical-align:middle;background:var(--tr);-webkit-mask-image:linear-gradient(90deg,transparent,#000 50%);mask-image:linear-gradient(90deg,transparent,#000 50%);margin-right:3px}
 .mastery{display:flex;flex-direction:column;gap:3px;margin:6px 2px;font-size:11.5px;font-weight:800;color:#e9e3ff}
 .mastery i{display:block;height:8px;border-radius:6px;background:rgba(0,0,0,.35);overflow:hidden}.mastery i b{display:block;height:100%;background:linear-gradient(90deg,#ffd23f,#ff7a1a)}
 .sgift{font:inherit;font-size:17px;line-height:1;width:36px;height:34px;border:0;border-radius:11px;cursor:pointer;background:linear-gradient(160deg,#9cf28a,#2fb04a);box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 3px 0 #145a24}
