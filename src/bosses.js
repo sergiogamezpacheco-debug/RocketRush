@@ -495,6 +495,7 @@
     for (const b of sim.blocks) if (b.material) { b.material.friction = 1; b.linearDamping = Math.max(b.linearDamping, 0.08); }
     // sitio de cada núcleo dentro del cuerpo (relativo a la losa, que camina)
     const px0 = S.plat ? S.plat.position.x : 0;
+    S.px0 = px0; sim.carrierDX = 0;                  // lo que ha caminado la losa: sus bloques no cuentan como «movidos»
     S.home = {}; S.rest = {};
     for (const id of S.cores) { const b = sim.blocks[id]; S.home[id] = { x: b.position.x - px0, y: b.position.y, z: b.position.z }; S.rest[id] = 0; }
   }
@@ -535,8 +536,10 @@
     if (S.stun > 0) S.stun -= dt;
     const moving = S.stun <= 0 && !S.done && S.introT <= 0;
     if (S.plat) {
-      const vx = moving ? 1.15 * 0.6 * (1 + 0.6 * S.d) * Math.cos((S.walk += dt * (1 + 0.6 * S.d)) * 0.6) : 0;
+      const vx = moving ? 0.95 * 0.6 * (1 + 0.6 * S.d)   // camina ±0,95: todo el gólem se queda dentro de la vista
+         * Math.cos((S.walk += dt * (1 + 0.6 * S.d)) * 0.6) : 0;
       for (const p of S.plats) p.velocity.set(vx, 0, 0);
+      sim.carrierDX = S.plat.position.x - S.px0;
       S.slab.position.copy(S.plat.position);
     }
     if (coreMat) coreMat.emissiveIntensity = 1.4 + Math.sin(S.t * (4 + S.charge * 10)) * 0.6 + S.charge * 1.5;

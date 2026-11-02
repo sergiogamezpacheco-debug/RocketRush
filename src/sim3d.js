@@ -554,7 +554,7 @@
         if (!d.alive || d.destroyed || d.popping) continue;
         if (!d.home) d.home = { x: b.position.x, y: b.position.y, z: b.position.z };
         const p = b.position;
-        const moved = Math.hypot(p.x - d.home.x, p.y - d.home.y, p.z - d.home.z) > 0.6;
+        const moved = Math.hypot(p.x - d.home.x - (this.carrierDX || 0), p.y - d.home.y, p.z - d.home.z) > 0.6;   // carrierDX: lo que ha caminado el jefe
         const still = b.sleepState === CANNON.Body.SLEEPING || b.velocity.lengthSquared() < 0.25;
         if (!moved || !still || this.viewTest(p)) { d.hiddenT = 0; continue; }
         d.hiddenT = (d.hiddenT || 0) + dt;

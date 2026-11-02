@@ -127,6 +127,14 @@ Pruebas: `node tools/mechanics.js` (reglas de los bloques nuevos y de los objeto
 - **Niveles extra**: uno por mundo (100 en total). Ahora usan los números 10001-10100; las partidas guardadas antiguas se convierten solas.
 - El mapa solo pinta los mundos abiertos y el siguiente, para que siga siendo ligero.
 
+## Gólem: ya no pierde bloques al caminar
+
+- Un bloque que se mueve y se queda quieto donde no se ve se echa de la isla con «¡FUERA!» (`sweepHidden`). Al caminar el gólem,
+  sus bloques contaban como «movidos» y se los llevaba esa regla (sobre todo las patas, tapadas por la bandeja). Ahora se mide
+  lo que se ha movido cada bloque descontando lo que ha caminado el jefe (`sim.carrierDX`).
+- El gólem camina ±0,95 (antes ±1,15): así no se sale ningún bloque por los lados de la pantalla. Es el único jefe que se desplaza
+  de lado (el barco solo se balancea y la máscara del faraón no lleva bloques).
+
 ## Motivos para volver (cofre gratis, bienvenida, mini-eventos, logros, desafío, regalos y estelas)
 
 Casi todo está en `src/retencion.js`, que se engancha al juego con `window.Retencion` (game3d.js lo llama en la portada, al
