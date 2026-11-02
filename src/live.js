@@ -7,7 +7,7 @@
 //   gifts: [{ id, title, coins, gems, bomb, rainbow, golden, start, end }]  regalo para todos (una vez por jugador)
 //   tmp: { on, sk: [ids], ball, start, end }     tienda «Temporales» elegida a mano (si no, cambia sola cada lunes)
 //   mini: { on, theme, start, end }               mini-evento de 3 días (sin esto: el último fin de semana del mes; on:false lo apaga)
-//   ads: { from, gapMin, off }                     anuncios entre niveles: desde qué nivel y cada cuántos minutos
+//   ads: { from, every, gapMin, off }              anuncios entre niveles: desde qué nivel, uno cada «every» partidas (5) y mínimo de minutos entre dos (1)
 //   maint: { on, msg }                             aviso de mantenimiento (las funciones en línea se pausan)
 //   update: { min, force, msg }                    versión mínima (número de compilación): pide actualizar
 // Se lee sin cuenta y se guarda en el móvil: sin conexión se usa la última que llegó.

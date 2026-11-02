@@ -2655,7 +2655,7 @@
   function startLevel(id, boosters) {
     refundGolden();
     const L = byId(id);
-    G.level = L; G.demo = false;
+    G.level = L; G.demo = false; G.interCounted = false;
     const bl = []; let extra = 0;
     G.rocketStart = false;
     for (const k of boosters || []) { if (k === 'extra') extra += 2; else if (k === 'rocket') G.rocketStart = true; else bl.push(k); }
@@ -2687,6 +2687,7 @@
   }
 
   function finishWin() {
+    if (!G.interCounted) { G.interCounted = true; save.interN = (save.interN || 0) + 1; }   // partidas terminadas desde el último anuncio entre niveles
     const sim = G.sim, L = G.level;
     G.winShown = true;
     G.saveBefore = JSON.parse(JSON.stringify(save));   // por si el jugador sigue jugando con +3 bolas
@@ -2765,6 +2766,7 @@
   // fases de monetización: 1-9 luna de miel (regalo), desde el 10 anuncio o monedas
   const HONEYMOON = Levels.HARD[0] - 1;   // antes del primer nivel difícil, perder regala bolas
   function showLose() {
+    if (!G.interCounted) { G.interCounted = true; save.interN = (save.interN || 0) + 1; }
     const sim = G.sim, L = G.level;
     if (L.weekly) RH('lose', { L, score: sim.score });
     if (L.club === 'boss' && window.Club && !G.clubLoseDone) { G.clubLoseDone = true; const t = window.Club.onEnd(L, { win: false }); if (t) setTimeout(() => toast(t, 2600), 600); }
@@ -2797,8 +2799,12 @@
   function showRewarded(cb0) {
     const cb = ok => { if (ok) { stats().ads++; persist(); } cb0(ok); };
     if (window.ChromaAndroid && window.ChromaAndroid.showRewarded) { window.__rewardCb = cb; window.ChromaAndroid.showRewarded(); return; }
+    fakeAd(8, cb);
+  }
+  // anuncio simulado (navegador y app sin AdMob): cuenta atrás de «secs» segundos
+  function fakeAd(secs, cb) {
     const el = $('ad'); el.classList.add('on'); Audio.stopMusic();
-    let n = 3; $('adCnt').textContent = n;
+    let n = secs; $('adCnt').textContent = n;
     const iv = setInterval(() => {
       n--; $('adCnt').textContent = n > 0 ? n : '✓';
       if (n <= 0) { clearInterval(iv); setTimeout(() => { el.classList.remove('on'); if (save.music) Audio.startMusic(); cb(true); }, 300); }
@@ -2809,11 +2815,11 @@
     if (why === 'noad') toast('No hay anuncios disponibles ahora mismo. Prueba en un momento.', 2600);
     if (cb) cb(!!ok);
   };
-  // anuncio entre niveles (intersticial): en la app es uno de verdad; en el navegador, el simulado de 3 segundos
+  // anuncio entre niveles (intersticial): en la app es uno de verdad (corto); en el navegador, el simulado de 5 segundos
   function showInterstitial(next) {
     const A = window.ChromaAndroid;
     if (A && A.showInterstitial) { window.onChromaInterstitial = () => { window.onChromaInterstitial = null; next(); }; A.showInterstitial(); return; }
-    showRewarded(() => next());
+    fakeAd(5, () => next());
   }
   // muesca y barras del sistema (Android 15+ dibuja de borde a borde): margen en píxeles CSS
   window.ChromaInsets = (t0, r0, b0, l0) => {
@@ -4523,14 +4529,14 @@
     centerText('+3 BOLAS', '#fff', 32);
   }));
   const paidReplay = L => L.bonus && save.bonusDone && save.bonusDone[L.id];
-  on('winRetry', () => { if (G.level.weekly) { hideAll(); goMap(); RH('weeklyBack'); return; } if (paidReplay(G.level)) { goMap(); openPre(G.level.id); } else { hideAll(); startLevel(G.level.id, []); } });
+  on('winRetry', () => maybeInterstitial(() => { if (G.level.weekly) { hideAll(); goMap(); RH('weeklyBack'); return; } if (paidReplay(G.level)) { goMap(); openPre(G.level.id); } else { hideAll(); startLevel(G.level.id, []); } }));
   on('winDouble', () => showRewarded(ok => { if (ok) { save.coins += G.pendingCoins; persist(); $('winCoins').textContent = '+' + (G.pendingCoins * 2); $('winDouble').disabled = true; Audio.coin(); } }));
   on('loseAd', () => showRewarded(ok => { if (ok) continueWithBalls(); }));
   on('loseCoins', () => { const cost = +$('loseCost').textContent; if (save.coins >= cost) { save.coins -= cost; persist(); continueWithBalls(); } });
   on('loseGift', () => { if (G.giftWorld) { save.casiFree = save.casiFree || {}; save.casiFree[G.giftWorld] = true; persist(); } continueWithBalls(); });
   on('loseStarter', () => { const it = SHOP.find(x => x.id === 'starter'); if (iapBuy(it)) showLose(); });
-  on('loseRetry', () => { save.streak = 0; stats().winRun = 0; persist(); hideAll(); if (G.level.weekly) { goMap(); RH('weeklyBack'); return; } G.mode = 'pre'; openPre(G.level.id); });
-  on('loseMap', () => { save.streak = 0; stats().winRun = 0; persist(); if (G.level && G.level.club && window.Club) { window.Club.back(G.level); return; } const wk = G.level && G.level.weekly; goMap(); if (wk) RH('weeklyBack'); });
+  on('loseRetry', () => { save.streak = 0; stats().winRun = 0; persist(); hideAll(); maybeInterstitial(() => { if (G.level.weekly) { goMap(); RH('weeklyBack'); return; } G.mode = 'pre'; openPre(G.level.id); }); });
+  on('loseMap', () => { save.streak = 0; stats().winRun = 0; persist(); maybeInterstitial(() => { if (G.level && G.level.club && window.Club) { window.Club.back(G.level); return; } const wk = G.level && G.level.weekly; goMap(); if (wk) RH('weeklyBack'); }); });
   on('ncOk', () => { Audio.click(); closeNewCard(); });
   on('btnFinish', () => { if (G.mode === 'play' && G.sim && G.sim.finish()) handleEvents(); });
   on('btnPause', () => { if (G.mode !== 'play') return; G.paused = true; refreshToggles(); show('pause'); });
@@ -4572,9 +4578,10 @@
     $('sState').textContent = `Sonido ${save.sound ? 'sí' : 'no'} · Vibración ${save.vibe ? 'sí' : 'no'} · Música ${save.music ? 'sí' : 'no'}`;
   }
   function maybeInterstitial(next) {
-    const AD = liveCfg().ads || {}, adFrom = +AD.from || 10, adGap = (AD.gapMin != null ? +AD.gapMin : 3) * 60000;
+    // uno cada «every» partidas terminadas (5 por defecto), desde el nivel «from» y nunca dos seguidos en menos de «gapMin» minutos
+    const AD = liveCfg().ads || {}, adFrom = +AD.from || 10, every = Math.max(1, +AD.every || 5), adGap = (AD.gapMin != null ? +AD.gapMin : 1) * 60000;
     const now = Date.now();
-    if (!AD.off && !save.adsRemoved && G.level && !G.level.bonus && G.level.id >= adFrom && now - (save.lastInter || 0) > adGap) { save.lastInter = now; persist(); showInterstitial(next); }
+    if (!AD.off && !save.adsRemoved && save.unlocked >= adFrom && (save.interN || 0) >= every && now - (save.lastInter || 0) > adGap) { save.lastInter = now; save.interN = 0; persist(); showInterstitial(next); }
     else next();
   }
 

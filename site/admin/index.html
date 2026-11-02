@@ -639,7 +639,8 @@ function renderSettings() {
   const s = sec('Ajustes del juego', `
     <div class="card" id="adsF"><h3>📺 Anuncios entre niveles</h3>
       <div class="grid two"><label class="fld"><span>Desde el nivel</span><input type="number" min="1" name="from" value="${ads.from || 10}"></label>
-        <label class="fld"><span>Como mucho uno cada (minutos)</span><input type="number" min="0" name="gapMin" value="${ads.gapMin != null ? ads.gapMin : 3}"></label></div>
+        <label class="fld"><span>Uno cada (partidas)</span><input type="number" min="1" name="every" value="${ads.every || 5}"></label></div>
+      <div class="grid two"><label class="fld"><span>Y como mucho uno cada (minutos)</span><input type="number" min="0" name="gapMin" value="${ads.gapMin != null ? ads.gapMin : 1}"></label></div>
       <label class="chk"><input type="checkbox" name="off" ${ads.off ? 'checked' : ''}> Apagar los anuncios entre niveles (los de recompensa siguen)</label></div>
     <div class="card" id="mtF"><h3>🛠️ Mantenimiento <span class="grow"></span>${mt.on ? '<span class="pill warn">Activado</span>' : '<span class="pill off">Apagado</span>'}</h3>
       <p class="hint">Se puede seguir jugando; amigos y clasificaciones se pausan y sale un aviso una vez.</p>
@@ -655,7 +656,7 @@ function renderSettings() {
       <div class="row"><button class="btn" data-x="undo">Deshacer el último guardado</button><button class="btn" data-x="json">Ver o pegar la configuración</button></div>
       <div id="jsonBox" hidden><textarea id="jsonTxt" class="mono" style="min-height:220px;margin-top:12px;font-size:12px"></textarea><div class="row"><button class="btn acc" data-x="jsonApply">Usar este texto</button></div></div></div>`);
   const bindCard = (id, fn) => s.querySelector(id).addEventListener('input', () => { fn(s.querySelector(id)); touch(); });
-  bindCard('#adsF', f => { draft.ads = { from: Math.max(1, num(f, 'from')), gapMin: num(f, 'gapMin'), off: val(f, 'off') }; });
+  bindCard('#adsF', f => { draft.ads = { from: Math.max(1, num(f, 'from')), every: Math.max(1, num(f, 'every')), gapMin: num(f, 'gapMin'), off: val(f, 'off') }; });
   bindCard('#mtF', f => { draft.maint = { on: val(f, 'on'), msg: val(f, 'msg').trim() }; });
   bindCard('#upF', f => { draft.update = { min: num(f, 'min'), force: val(f, 'force'), msg: val(f, 'msg').trim() }; });
   s.addEventListener('change', e => { if (e.target.type === 'checkbox') { e.target.closest('.card').dispatchEvent(new Event('input')); render(); } });
