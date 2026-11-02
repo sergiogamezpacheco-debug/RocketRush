@@ -24,7 +24,7 @@ with sync_playwright() as p:
     tabs = ev(pg, "() => [...document.querySelectorAll('#shopTabs button')].map(b => b.textContent.trim())")
     check('pestañas', 'Temporales' in tabs[0] or any('Temporales' in t for t in tabs[:3]), str(tabs))
     T = ev(pg, "() => ChromaGame.cos.tmp()")
-    check('temporales de la semana', len(T['items']) == 3 and len(T['days']) == 2, json.dumps([q['id'] for q in T['items']] + [q['id'] for q in T['days']]))
+    check('temporales de la semana', len(T['items']) == 4 and len(T['days']) == 2, json.dumps([q['id'] for q in T['items']] + [q['id'] for q in T['days']]))
     pg.wait_for_timeout(4000)
     pg.screenshot(path=OUT + 'c1_temporales.png')
     thumbs = ev(pg, "() => document.querySelectorAll('.cth.ok').length")
