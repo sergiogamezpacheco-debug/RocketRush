@@ -40,6 +40,18 @@ jobs:
         with:
           gradle-version: '8.13'
 
+      - name: Comprobar los anuncios de AdMob
+        env:
+          ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
+          ADMOB_REWARDED: ${{ vars.ADMOB_REWARDED }}
+          ADMOB_INTERSTITIAL: ${{ vars.ADMOB_INTERSTITIAL }}
+        run: |
+          falta=""
+          [ -z "$ADMOB_APP_ID" ] && falta="$falta ADMOB_APP_ID"
+          [ -z "$ADMOB_REWARDED" ] && falta="$falta ADMOB_REWARDED"
+          [ -z "$ADMOB_INTERSTITIAL" ] && falta="$falta ADMOB_INTERSTITIAL"
+          if [ -n "$falta" ]; then echo "::warning::Faltan las variables de AdMob:$falta. Este AAB lleva los anuncios de prueba de Google (no dan dinero)."; else echo "::notice::AdMob listo: $ADMOB_APP_ID"; fi
+
       - name: Recuperar la clave de subida
         env:
           KS: ${{ secrets.UPLOAD_KEYSTORE_B64 }}
