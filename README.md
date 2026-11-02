@@ -611,15 +611,15 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
 ## Bienvenida y nombre
 
 - La primera vez (después del idioma y la edad) sale **¡BIENVENIDO!**: elegir el nombre (único, se comprueba al escribir;
-  gratis) y guardar el progreso con Google (Facebook marcado «pronto»). «Ahora no» la cierra. Menores de 13: no sale.
+  gratis) y guardar el progreso con Google (Facebook quitado de momento: Meta pide verificar una empresa para publicarlo). «Ahora no» la cierra. Menores de 13: no sale.
 - Después, cambiar el nombre en el perfil cuesta **50 gemas** (cambiar solo mayúsculas es gratis).
 - Crear un club cuesta **5.000 monedas y 50 gemas**.
 - Prueba: `tools/welcomeflow.py`.
 
 ## Entrar con Google y copia del progreso en la nube
 
-- Ajustes: botón **G** a la izquierda de los de sonido (con ✓ cuando hay sesión) y **f** de Facebook a la derecha (de
-  momento avisa de que llega pronto: hace falta el ID de la app de Facebook).
+- Ajustes: botón **G** a la izquierda de los de sonido (con ✓ cuando hay sesión). El de Facebook
+  se ha quitado de momento: la app de Meta está configurada, pero Meta exige verificar una empresa para publicarla.
 - Android: `GoogleLogin.java` (Credential Manager, «Sign in with Google») con el ID de cliente web de Firebase; el juego
   recibe el `idToken` en `window.onGoogleSignIn` y `social.js` entra en Firebase con `accounts:signInWithIdp`.
 - Si la cuenta de Google es nueva, se **enlaza** la anónima (mismo uid: amigos, club y nombre siguen). Si ya tenía

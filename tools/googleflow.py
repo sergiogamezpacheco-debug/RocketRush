@@ -1,7 +1,7 @@
 # Entrar con Google y copia del progreso en la nube (puente de Android y Firebase de mentira):
 #  1) móvil nuevo sin cuenta de Google previa → se enlaza la cuenta anónima (mismo uid) y se sube el progreso
 #  2) cuenta de Google que ya tenía progreso → pregunta cuál quedarse; «el de la nube» reabre el juego con él
-#  3) guardar ahora, cerrar sesión, botón de Facebook
+#  3) guardar ahora, cerrar sesión (Facebook quitado de momento: no hay botón)
 import sys, json
 sys.path.insert(0, '/home/claude/chroma3d/tools')
 from fakefs import FakeFS
@@ -40,8 +40,8 @@ with sync_playwright() as p:
     print('guardar ahora:', json.loads(fs.docs['saves/ME']['f']['data']['stringValue'])['coins'], pg.evaluate("() => document.getElementById('gaMsg').textContent"))
     pg.click('[data-ga=out]'); pg.click('[data-ga=out]'); pg.wait_for_timeout(800)
     print('sesión cerrada:', pg.evaluate("() => [Social.account.linked, window.__gout, ChromaGame.save().coins]"), st(pg)[0])
-    pg.click('[data-ga=x]'); pg.click('#sFacebook'); pg.wait_for_timeout(300)
-    print('facebook:', pg.evaluate("() => document.getElementById('toast').textContent"))
+    pg.click('[data-ga=x]'); pg.wait_for_timeout(300)
+    print('sin Facebook:', pg.evaluate("() => !document.getElementById('sFacebook') && !document.getElementById('welFacebook')"))
     print('errores', errs[:5]); b.close()
     # 2) cuenta de Google con progreso de otro móvil
     fs = FakeFS(); fs.google_existing = 'GUSER'

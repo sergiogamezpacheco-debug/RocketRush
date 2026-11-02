@@ -212,7 +212,6 @@
         if (prof().name) done();          // la cuenta ya tenía nombre
       } catch (e) { acc.textContent = e.code === 'CANCEL' ? '' : e.code === 'NO_APP' ? T(NO_APP_TXT()) : e.status === 0 ? T('Sin conexión a internet.') : T('No se ha podido entrar con Google. Prueba otra vez.'); }
     };
-    $('welFacebook').onclick = () => { X.Audio.click && X.Audio.click(); X.toast(T('Entrar con Facebook llegará pronto. De momento puedes usar Google.'), 3000); };
     go.onclick = async () => {
       X.Audio.init && X.Audio.init(); X.Audio.click && X.Audio.click();
       const n = cleanName(inp.value); clearTimeout(t);
@@ -1082,7 +1081,7 @@
   }
   function refreshG() { const ok = $('sGoogleOk'); if (ok) ok.hidden = !linked(); }
   { const gb = $('sGoogle'); if (gb) gb.addEventListener('click', () => { X.Audio.click && X.Audio.click(); accountBox(null); }); }
-  { const fb = $('sFacebook'); if (fb) fb.addEventListener('click', () => { X.Audio.click && X.Audio.click(); X.toast(T('Entrar con Facebook llegará pronto. De momento puedes usar Google.'), 3000); }); }
+  // Entrar con Facebook: quitado de momento (Meta exige verificar una empresa para publicarlo). Configuración en Meta guardada.
   setTimeout(refreshG, 0);
 
   // ---------------- denunciar y bloquear ----------------
