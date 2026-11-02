@@ -592,9 +592,13 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
 - **Compras** (`Billing.java`, Play Billing 8): precios de Play en la moneda del jugador, entrega, confirmación o consumo y
   restaurar (quitar anuncios y pack de inicio). Productos: g1, g2, g3, c1, c2, starter (una vez) y noads (una vez).
 - **Anuncios** (`Ads.java`): AdMob con el formulario de consentimiento de Google (UMP). Con premio e intersticial reales;
-  sin personalizar a menores de 16 y para todos los públicos a menores de 13. Los identificadores reales van en
-  GitHub › Settings › Secrets and variables › Actions › **Variables**: `ADMOB_APP_ID`, `ADMOB_REWARDED`, `ADMOB_INTERSTITIAL`
-  (sin ellos se usan los de prueba de Google).
+  sin personalizar a menores de 16 y para todos los públicos a menores de 13. Cuenta `pub-8884472900712050`:
+  app `ca-app-pub-8884472900712050~3759414973`, intersticial «Entre niveles» `…/9342914146` (solo imagen y texto: cortos)
+  y bonificado «Vídeo con premio» `…/4414021099`. Van en `android/app/build.gradle` (solo la versión de Google Play; «RR Pruebas»
+  usa siempre los de prueba de Google). Se pueden cambiar con variables de GitHub (`ADMOB_APP_ID`, `ADMOB_REWARDED`, `ADMOB_INTERSTITIAL`).
+  Mensaje de consentimiento de Europa publicado en AdMob (español + 5 idiomas, con «No consentir»).
+  `site/app-ads.txt` está en https://rocket-rush-7297c.web.app/app-ads.txt: en Play Console, el sitio web del desarrollador debe ser
+  `https://rocket-rush-7297c.web.app` para que AdMob lo encuentre.
 - **Edad**: la primera vez se pregunta el año de nacimiento (solo se guarda en el móvil). Menores de 13: sin funciones en línea.
 - **Ajustes › Privacidad y ayuda**: política, términos, opciones de privacidad de anuncios, funciones en línea sí/no,
   borrar la cuenta en línea (perfil, código, amistades, club y cuenta de Firebase), soporte por correo y créditos.

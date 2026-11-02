@@ -2,13 +2,13 @@ plugins {
     id 'com.android.application'
 }
 
-// Identificadores de AdMob: por defecto, los de prueba de Google (no dan dinero, pero se ven como anuncios de verdad).
-// Los reales se ponen en GitHub › Settings › Secrets and variables › Actions › Variables:
-// ADMOB_APP_ID, ADMOB_REWARDED e ADMOB_INTERSTITIAL (son públicos: no hace falta guardarlos como secreto).
+// Identificadores de AdMob de la versión de Google Play (cuenta pub-8884472900712050). Son públicos: van en el código.
+// La app de pruebas («RR Pruebas», debug) usa siempre los de prueba de Google (más abajo), para no tocar anuncios reales.
+// Se pueden cambiar sin tocar el código con variables de GitHub (ADMOB_APP_ID, ADMOB_REWARDED, ADMOB_INTERSTITIAL).
 def env = { String k, String d -> def v = System.getenv(k); return (v != null && !v.trim().isEmpty()) ? v.trim() : d }
-def admobApp = env('ADMOB_APP_ID', 'ca-app-pub-3940256099942544~3347511713')
-def admobRewarded = env('ADMOB_REWARDED', 'ca-app-pub-3940256099942544/5224354917')
-def admobInter = env('ADMOB_INTERSTITIAL', 'ca-app-pub-3940256099942544/1033173712')
+def admobApp = env('ADMOB_APP_ID', 'ca-app-pub-8884472900712050~3759414973')
+def admobRewarded = env('ADMOB_REWARDED', 'ca-app-pub-8884472900712050/4414021099')
+def admobInter = env('ADMOB_INTERSTITIAL', 'ca-app-pub-8884472900712050/9342914146')
 // Clave de subida a Google Play (solo en GitHub, desde los secretos; nunca en el repositorio)
 def upload = System.getenv('UPLOAD_KEYSTORE_FILE')
 
