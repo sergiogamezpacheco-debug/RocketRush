@@ -9,7 +9,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(args=['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'])
     pg = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=1, is_mobile=True, has_touch=True).new_page()
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.add_init_script("window.RR_TUT_TEST = true; window.RR_AGE = 30; window.RR_LIVE_OFF = true; localStorage.setItem('rocketrush.lang','es'); if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', 1); localStorage.setItem('chromacrash3d.v1', JSON.stringify({ unlocked: 3, played: 2, coins: 900, birthYear: 1990, tut: { main: false, tips: { daily: 1 }, step: 8 } })); }")
+    pg.add_init_script("window.RR_TUT_TEST = true; window.RR_AGE = 30; window.RR_LIVE_OFF = true; localStorage.setItem('rocketrush.lang','es'); if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', 1); localStorage.setItem('chromacrash3d.v1', JSON.stringify({ unlocked: 3, played: 2, coins: 6000, gems: 60, birthYear: 1990, tut: { main: false, tips: { daily: 1 }, step: 8 } })); }")
     pg.route('**/*googleapis.com/**', fs.handle)
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(2500)
     tut = lambda: pg.evaluate("() => [Tutorial.visible, document.querySelector('#tut .tu-tt').textContent]")
