@@ -34,7 +34,12 @@ with sync_playwright() as p:
     if __import__('sys').argv[-1]=='retry':
         pg.click('#winRetry'); ticks(pg,5)
         print('reintentar: modo',ev(pg,"() => ChromaGame.G.mode"),'· nivel',ev(pg,"() => ChromaGame.G.level.id"),'· estado',ev(pg,"() => ChromaGame.G.sim.state"),'· progreso',ev(pg,"() => Math.round(ChromaGame.G.sim.progress()*100)"),'· pantalla victoria',on(pg,'win')); print('errores',errs[:5]); b.close(); raise SystemExit
-    pg.click('#winBalls'); pg.wait_for_timeout(3600); ticks(pg,2)
+    if not vis(pg,'winBalls'):
+        # con el 100 % derribado no queda nada que terminar: el botón «+3 bolas» no sale (es lo correcto)
+        full = ev(pg,"() => ChromaGame.G.sim.progress() >= 0.995")
+        print('+3 bolas: no sale porque no queda ningún bloque (correcto)' if full else 'FALLO: falta el botón +3 bolas')
+        print('errores',errs[:5]); b.close(); raise SystemExit(0 if full and not errs else 1)
+    pg.click('#winBalls'); pg.wait_for_timeout(8800); ticks(pg,2)
     print('tras el anuncio: estado',ev(pg,"() => ChromaGame.G.sim.state"),'· bolas',ev(pg,"() => ChromaGame.G.sim.queue.length"),'· monedas',coins0,'→',coins1,'→',ev(pg,"() => ChromaGame.save().coins"),'· pantalla victoria',on(pg,'win'))
     for i in range(40):
         if on(pg,'win'): break

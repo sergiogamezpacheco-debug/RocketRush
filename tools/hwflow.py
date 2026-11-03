@@ -8,7 +8,7 @@ with sync_playwright() as p:
     pg = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=1, is_mobile=True, has_touch=True).new_page()
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.add_init_script("window.RR_AGE = 30; localStorage.setItem('rocketrush.lang','es')")
-    pg.add_init_script("if(!sessionStorage.g){sessionStorage.g=1;localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:23, coins:1250, gems:14, candy: 500}))}")
+    pg.add_init_script("if(!sessionStorage.g){sessionStorage.g=1;localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked:23, coins:1250, gems:14, candy: 500, hwForce: true}))}")
     pg.route('**/*googleapis.com/**', lambda r: r.abort())
     pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(2500)
     pg.evaluate("() => { document.getElementById('daily').classList.remove('on'); RRGame.goTitle(); ChromaGame.manual(true); }")
