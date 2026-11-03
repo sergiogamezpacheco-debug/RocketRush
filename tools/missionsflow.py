@@ -22,11 +22,13 @@ with sync_playwright() as p:
         pg.click('.mclaim', force=True); pg.wait_for_timeout(120)
     print('tras cobrar: nivel', ev(pg,"() => JSON.stringify(ChromaGame.save().pl)"), '· monedas', ev(pg,"() => ChromaGame.save().coins"), '· gemas', ev(pg,"() => ChromaGame.save().gems"))
     # amigos: código mal, el propio, uno bueno y repetido
-    for c in ['CC-ABCDEF22', ev(pg,"() => document.getElementById('myCode').textContent"), pg.evaluate(CODE,'QWERTZ'), pg.evaluate(CODE,'QWERTZ')]:
+    # (añadir un código válido ya va por el servidor: eso lo prueba socialflow.py; aquí solo los que se rechazan en el móvil)
+    for c in ['CC-ABCDEF22', ev(pg,"() => document.getElementById('myCode').textContent")]:
         pg.fill('#friendCode', c); pg.click('#btnAddFriend'); pg.wait_for_timeout(100)
         print('añadir', c, '→', ev(pg,"() => document.getElementById('friendMsg').textContent"))
     pg.screenshot(path=OUT+'mi_amigo.png')
-    pg.click('.mclaim', force=True); pg.wait_for_timeout(200)
+    ev(pg,"() => { ChromaGame.save().friends = ['QWERTZAB']; RRGame.renderMissions(); }"); pg.wait_for_timeout(200)
+    pg.click('.mclaim[data-id="friends"]', force=True); pg.wait_for_timeout(200)
     print('premio 1 amigo → gemas', ev(pg,"() => ChromaGame.save().gems"), '· doradas', ev(pg,"() => ChromaGame.save().boosters.golden"), '· nivel', ev(pg,"() => JSON.stringify(ChromaGame.save().pl)"))
     pg.click('#btnShare'); pg.wait_for_timeout(200)
     print('compartir → veces', ev(pg,"() => ChromaGame.save().stats.shares"), '· misión lista:', ev(pg,"() => !!document.querySelector('.mclaim[data-id=\"share\"]')"))

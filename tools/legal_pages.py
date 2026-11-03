@@ -3,7 +3,7 @@
 # y en inglés en /en/…  Para cambiar un texto, edítalo aquí y vuelve a ejecutar: python3 tools/legal_pages.py
 import os
 ROOT = os.path.join(os.path.dirname(__file__), '..', 'site')
-UPDATED = {'es': '31 de octubre de 2026', 'en': '31 October 2026'}
+UPDATED = {'es': '3 de noviembre de 2026', 'en': '3 November 2026'}
 MAIL = 'rocketrush.lostanarchygames@hotmail.com'
 OWNER = 'Sergio Gámez Pacheco'
 
@@ -48,7 +48,7 @@ def page(lang, slug, title, body):
 # ------------------------------------------------------------------ ESPAÑOL
 page('es', 'privacidad', 'Política de privacidad', f'''
 <div class="box"><p><strong>En resumen:</strong> puedes jugar sin dar ningún dato. Tu progreso se guarda en tu móvil (y en la nube solo si entras con Google).
-Si usas las funciones en línea (amigos y clasificaciones) se crea una cuenta anónima con tu apodo y tus estadísticas.
+Si usas las funciones en línea (amigos, regalos, clubes, clasificaciones y desafío de la semana) se crea una cuenta anónima con tu apodo y tus estadísticas.
 Los anuncios los sirve Google AdMob y solo son personalizados si das tu consentimiento. Nunca vendemos tus datos.
 Puedes borrar tu cuenta en línea desde el juego en cualquier momento.</p></div>
 
@@ -59,14 +59,14 @@ Puedes borrar tu cuenta en línea desde el juego en cualquier momento.</p></div>
 <div class="wrap"><table>
 <tr><th>Datos</th><th>Para qué</th><th>Base legal</th><th>Cuánto tiempo</th></tr>
 <tr><td>Progreso, monedas, ajustes y año de nacimiento</td><td>Guardar tu partida. Se quedan en tu móvil, no nos llegan.</td><td>—</td><td>Hasta que borres el progreso o desinstales el juego</td></tr>
-<tr><td>Identificador anónimo de cuenta, apodo, avatar, país (si lo eliges), idioma, código de amigo, estadísticas de juego y lista de amigos</td><td>Funciones en línea: amigos y clasificaciones. Tu apodo, avatar, país y estadísticas los ven otros jugadores.</td><td>Ejecución del servicio que pides (art. 6.1.b RGPD)</td><td>Hasta que borres tu cuenta en línea</td></tr>
+<tr><td>Identificador anónimo de cuenta, apodo, avatar, país (si lo eliges), idioma, código de amigo, estadísticas de juego, lista de amigos, regalos enviados entre amigos, club al que perteneces (con su nombre, descripción y tu aportación semanal) y tu mejor puntuación del desafío de la semana</td><td>Funciones en línea: amigos, regalos entre amigos, clubes, clasificaciones y desafío de la semana. Tu apodo, avatar, país, estadísticas, club y puntuación los ven otros jugadores.</td><td>Ejecución del servicio que pides (art. 6.1.b RGPD)</td><td>Hasta que borres tu cuenta en línea</td></tr>
 <tr><td>Identificador de publicidad del dispositivo, dirección IP, datos técnicos del móvil e interacción con los anuncios</td><td>Mostrar anuncios con Google AdMob, medirlos y evitar el fraude</td><td>Consentimiento (art. 6.1.a) para anuncios personalizados; interés legítimo (art. 6.1.f) para anuncios no personalizados y prevención del fraude</td><td>Según la política de Google</td></tr>
 <tr><td>Si entras con Google (opcional): tu correo, tu nombre y el identificador de tu cuenta de Google, y una copia de tu progreso</td><td>Guardar el progreso en la nube y recuperarlo en otro móvil</td><td>Ejecución del servicio que pides (art. 6.1.b RGPD)</td><td>Hasta que cierres sesión y borres tu cuenta en línea</td></tr>
 <tr><td>Denuncias que hagas o recibas (identificadores anónimos, nombre denunciado y motivo)</td><td>Moderar nombres y clubes y evitar trampas</td><td>Interés legítimo (art. 6.1.f) en mantener un juego seguro</td><td>Hasta resolver la denuncia</td></tr>
 <tr><td>Comprobante de compra de Google Play (identificador del producto y del pedido)</td><td>Entregarte lo que compras y restaurar compras</td><td>Ejecución del contrato (art. 6.1.b)</td><td>Lo que exija la ley fiscal y de consumo</td></tr>
 <tr><td>Tu correo y lo que nos escribas</td><td>Responder a tus consultas de soporte</td><td>Interés legítimo (art. 6.1.f)</td><td>Hasta resolver la consulta y, como mucho, 2 años</td></tr>
 </table></div>
-<p>La configuración de eventos y los códigos regalo se descargan sin cuenta y no contienen datos personales. Los avisos de la racha diaria se programan en tu propio móvil.
+<p>La configuración de eventos y los códigos regalo se descargan sin cuenta y no contienen datos personales. Los avisos de la racha diaria y del cofre gratis se programan en tu propio móvil.
 No pedimos tu nombre real, ni tu correo, ni tu ubicación precisa, ni accedemos a tus contactos, fotos o micrófono.</p>
 
 <h2>3. Pagos</h2>
@@ -146,6 +146,7 @@ page('es', 'borrar-cuenta', 'Borrar tu cuenta y tus datos', f'''
 <ul>
 <li>Tu perfil público: apodo, avatar, país, idioma y estadísticas (sales de las clasificaciones).</li>
 <li>Tu código de amigo, tus amistades y las solicitudes pendientes.</li>
+<li>Tu sitio en el club (si eras el último miembro, el club se borra), los regalos que tenías por recoger y tu puntuación del desafío de la semana.</li>
 <li>Tu cuenta de Firebase (anónima o enlazada con Google) y la copia de tu progreso en la nube.</li>
 </ul>
 <p>No guardamos copias de esos datos después del borrado. Los comprobantes de compra los conserva Google Play según sus condiciones y la ley.</p>
@@ -156,7 +157,7 @@ page('es', 'borrar-cuenta', 'Borrar tu cuenta y tus datos', f'''
 # ------------------------------------------------------------------ ENGLISH
 page('en', 'privacidad', 'Privacy policy', f'''
 <div class="box"><p><strong>In short:</strong> you can play without giving us any data. Your progress is stored on your phone (and in the cloud only if you sign in with Google).
-If you use the online features (friends and leaderboards), an anonymous account is created with your nickname and your stats.
+If you use the online features (friends, gifts, clubs, leaderboards and the weekly challenge), an anonymous account is created with your nickname and your stats.
 Ads are served by Google AdMob and are personalised only if you consent. We never sell your data.
 You can delete your online account from the game at any time.</p></div>
 
@@ -167,14 +168,14 @@ You can delete your online account from the game at any time.</p></div>
 <div class="wrap"><table>
 <tr><th>Data</th><th>Purpose</th><th>Legal basis</th><th>Retention</th></tr>
 <tr><td>Progress, coins, settings and year of birth</td><td>Saving your game. It stays on your phone and never reaches us.</td><td>—</td><td>Until you delete your progress or uninstall</td></tr>
-<tr><td>Anonymous account ID, nickname, avatar, country (if you choose one), language, friend code, game stats and friend list</td><td>Online features: friends and leaderboards. Other players can see your nickname, avatar, country and stats.</td><td>Performance of the service you request (Art. 6(1)(b) GDPR)</td><td>Until you delete your online account</td></tr>
+<tr><td>Anonymous account ID, nickname, avatar, country (if you choose one), language, friend code, game stats, friend list, gifts sent between friends, the club you belong to (its name, description and your weekly contribution) and your best weekly-challenge score</td><td>Online features: friends, gifts between friends, clubs, leaderboards and the weekly challenge. Other players can see your nickname, avatar, country, stats, club and score.</td><td>Performance of the service you request (Art. 6(1)(b) GDPR)</td><td>Until you delete your online account</td></tr>
 <tr><td>Device advertising ID, IP address, technical device data and ad interactions</td><td>Showing ads with Google AdMob, measuring them and preventing fraud</td><td>Consent (Art. 6(1)(a)) for personalised ads; legitimate interest (Art. 6(1)(f)) for non-personalised ads and fraud prevention</td><td>As set out in Google's policy</td></tr>
 <tr><td>If you sign in with Google (optional): your email, name and Google account ID, and a copy of your progress</td><td>Saving your progress in the cloud and restoring it on another phone</td><td>Performance of the service you request (Art. 6(1)(b) GDPR)</td><td>Until you delete your online account</td></tr>
 <tr><td>Reports you make or receive (anonymous IDs, reported name and reason)</td><td>Moderating names and clubs and preventing cheating</td><td>Legitimate interest (Art. 6(1)(f)) in keeping the game safe</td><td>Until the report is resolved</td></tr>
 <tr><td>Google Play purchase receipt (product and order ID)</td><td>Delivering and restoring your purchases</td><td>Performance of contract (Art. 6(1)(b))</td><td>As required by tax and consumer law</td></tr>
 <tr><td>Your email address and your message</td><td>Answering support requests</td><td>Legitimate interest (Art. 6(1)(f))</td><td>Until resolved, and at most 2 years</td></tr>
 </table></div>
-<p>Event settings and gift codes are downloaded without an account and contain no personal data. Daily-streak reminders are scheduled on your own phone.
+<p>Event settings and gift codes are downloaded without an account and contain no personal data. Daily-streak and free-chest reminders are scheduled on your own phone.
 We do not ask for your real name, email or precise location, and we do not access your contacts, photos or microphone.</p>
 
 <h2>3. Payments</h2>
@@ -254,6 +255,7 @@ page('en', 'borrar-cuenta', 'Delete your account and data', f'''
 <ul>
 <li>Your public profile: nickname, avatar, country, language and stats (you are removed from leaderboards).</li>
 <li>Your friend code, your friendships and pending requests.</li>
+<li>Your place in your club (if you were the last member, the club is deleted), the gifts waiting for you and your weekly-challenge score.</li>
 <li>Your Firebase account (anonymous or linked to Google) and your cloud progress backup.</li>
 </ul>
 <p>We keep no copies of this data after deletion. Purchase receipts are kept by Google Play under its terms and the law.</p>

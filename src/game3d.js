@@ -20,7 +20,9 @@
   const SAVE_KEY = 'chromacrash3d.v1';
   const DEFAULT_SAVE = () => ({ unlocked: 1, stars: {}, best: {}, coins: 300, boosters: { bomb: 2, rainbow: 1, extra: 1, golden: 0 }, gems: 0, gemDry: 0, gemRoll: null, bonusGemRoll: {}, pass: null, skins: { owned: ['classic'], equip: 'classic' }, bskin: { own: ['clasica'], eq: 'clasica' }, trail: { own: ['ninguna'], eq: 'ninguna' }, can: { lv: 1, own: ['base'], eq: 'base' }, streak: 0, sound: true, vibe: true, music: true, adsRemoved: false, starter: false, played: 0, lastInter: 0 });
   let save;
-  try { save = Object.assign(DEFAULT_SAVE(), JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) { save = DEFAULT_SAVE(); }
+  // si la partida guardada se ha estropeado (el móvil se apagó mientras se escribía), se usa la copia de reserva
+  try { save = Object.assign(DEFAULT_SAVE(), JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); }
+  catch (e) { try { save = Object.assign(DEFAULT_SAVE(), JSON.parse(localStorage.getItem(SAVE_KEY + '.bak') || '{}')); } catch (e2) { save = DEFAULT_SAVE(); } }
   // partidas antiguas: los niveles extra eran 101-110; ahora son 10001-10100 (101-1000 son niveles normales)
   if (!save.bonusIds2) {
     for (const key of ['stars', 'best', 'bonusDone', 'bonusSeen', 'bonusGemRoll']) {
@@ -47,7 +49,14 @@
   }
   // enganches para retencion.js (cofre gratis, logros, desafío semanal, regalos, bienvenida y mini-eventos)
   const RH = (n, d) => { try { const R = window.Retencion; return R && R[n] ? R[n](d) : undefined; } catch (e) { console.warn('[RR ret]', n, e); } };
-  function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* sin almacenamiento */ } if (window.Social) window.Social.dirty(); }
+  let bakAt = 0;
+  function persist() {
+    try {
+      const j = JSON.stringify(save); localStorage.setItem(SAVE_KEY, j);
+      if (Date.now() - bakAt > 60e3) { bakAt = Date.now(); localStorage.setItem(SAVE_KEY + '.bak', j); }   // copia de reserva, como mucho 1 por minuto
+    } catch (e) { /* sin almacenamiento */ }
+    if (window.Social) window.Social.dirty();
+  }
 
   // ---------------- audio ----------------
   const Audio = (() => {
@@ -4468,7 +4477,7 @@
     if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Toca otra vez para borrar todo'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Borrar progreso'; }, 3000); return; }
     delete b.dataset.armed; b.textContent = 'Borrar progreso';
     const keep = { welcomed: save.welcomed, gacc: save.gacc, blocked: save.blocked, blockedClubs: save.blockedClubs, tester: save.tester, nameLc: save.nameLc, prof: save.prof, club: save.club, birthYear: save.birthYear, kid: save.kid, noOnline: save.noOnline, lang: save.lang, calm: save.calm, lowGfx: save.lowGfx, adsRemoved: save.adsRemoved, iapDone: save.iapDone, pid: save.pid, codeUid: save.codeUid, profUid: save.profUid };
-    save = Object.assign(DEFAULT_SAVE(), keep); persist(); setCoins(); toast('Progreso borrado');
+    save = Object.assign(DEFAULT_SAVE(), keep); bakAt = 0; persist(); setCoins(); toast('Progreso borrado');
   });
   on('preBack', () => { $('pre').classList.remove('on'); if (G.mode !== 'map') goMap(); });
   on('preGo', () => {

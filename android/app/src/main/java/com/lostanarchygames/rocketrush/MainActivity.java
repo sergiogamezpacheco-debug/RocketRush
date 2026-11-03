@@ -73,6 +73,23 @@ public class MainActivity extends ComponentActivity {
             }
             @Override
             public void onPageFinished(WebView view, String url) { pushInsets(); }
+            // los enlaces de fuera del juego (privacidad, soporte, Play) se abren en el navegador, nunca dentro del juego
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                android.net.Uri u = request.getUrl();
+                if ("appassets.androidplatform.net".equals(u.getHost())) return false;
+                try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception e) { /* sin navegador */ }
+                return true;
+            }
+            // en móviles con poca memoria el sistema puede cerrar el motor de la página (WebGL): sin esto se cerraría
+            // la app entera; así se vuelve a abrir el juego (el progreso está guardado). Solo existe desde Android 8.
+            @android.annotation.TargetApi(26)
+            @Override
+            public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                if (web == view) { setContentView(new android.view.View(MainActivity.this)); web.destroy(); web = null; }
+                recreate();
+                return true;
+            }
         });
         web.addJavascriptInterface(new Bridge(), "ChromaAndroid");
         setContentView(web);

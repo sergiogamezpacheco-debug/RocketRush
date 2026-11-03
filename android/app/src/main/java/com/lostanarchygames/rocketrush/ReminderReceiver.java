@@ -56,7 +56,7 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         Notification.Builder b;
         if (Build.VERSION.SDK_INT >= 26) {
-            nm.createNotificationChannel(new NotificationChannel(CHANNEL, "Racha diaria", NotificationManager.IMPORTANCE_DEFAULT));
+            nm.createNotificationChannel(new NotificationChannel(CHANNEL, "Avisos del juego (racha y cofre gratis)", NotificationManager.IMPORTANCE_DEFAULT));
             b = new Notification.Builder(ctx, CHANNEL);
         } else {
             b = new Notification.Builder(ctx);
