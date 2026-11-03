@@ -127,6 +127,21 @@ Pruebas: `node tools/mechanics.js` (reglas de los bloques nuevos y de los objeto
 - **Niveles extra**: uno por mundo (100 en total). Ahora usan los números 10001-10100; las partidas guardadas antiguas se convierten solas.
 - El mapa solo pinta los mundos abiertos y el siguiente, para que siga siendo ligero.
 
+## Revisión antes de publicar (3 de noviembre de 2026)
+
+- **Android:** si el sistema cierra el motor de la página por falta de memoria (`onRenderProcessGone`), la app vuelve a abrir
+  el juego en lugar de cerrarse; los enlaces de fuera del juego se abren siempre en el navegador (`shouldOverrideUrlLoading`);
+  el canal de avisos se llama «Avisos del juego (racha y cofre gratis)».
+- **Partida guardada:** copia de reserva `chromacrash3d.v1.bak` (como mucho una por minuto): si la partida se estropea (el
+  móvil se apaga mientras se guarda), se carga la copia.
+- **iPhone:** manifiesto de privacidad `ios/RocketRush/PrivacyInfo.xcprivacy` (sin rastreo; identificador, datos de juego y
+  contenido de los jugadores, solo para que el juego funcione), que Apple exige.
+- **Web legal:** la política de privacidad y «borrar cuenta» incluyen ya los regalos entre amigos, los clubes y el desafío de
+  la semana (`tools/legal_pages.py`).
+- **Pruebas al día:** misiones (los amigos ya van por el servidor), victoria (vídeo de 8 s), Halloween y caramelos (el evento
+  ya terminó: las pruebas lo fuerzan con `hwForce`).
+- Guía completa del juego (cómo se cambia cada cosa, dinero, panel): documento «Rocket Rush · Guía completa del juego».
+
 ## Gólem: ya no pierde bloques al caminar
 
 - Un bloque que se mueve y se queda quieto donde no se ve se echa de la isla con «¡FUERA!» (`sweepHidden`). Al caminar el gólem,
