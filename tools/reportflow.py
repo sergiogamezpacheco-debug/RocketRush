@@ -45,7 +45,7 @@ with sync_playwright() as p:
     pg.click('[data-ms=rep]'); pg.click('[data-r=desc]'); pg.wait_for_timeout(800)
     pg.click('[data-ms=blk]'); pg.wait_for_timeout(300); pg.click('[data-ms=x]'); pg.wait_for_timeout(300)
     print('club bloqueado:', pg.evaluate("() => [...document.querySelectorAll('.klfound b')].map(e => e.textContent)"), [k for k in fs.docs if k.startswith('reports/')])
-    pg.evaluate("() => { ChromaGame.save().coins = 900; }"); pg.click('[data-nt=create]'); pg.wait_for_timeout(200); pg.fill('#cfName', 'Los Putas'); pg.click('#cfGo'); pg.wait_for_timeout(600)
+    pg.evaluate("() => { ChromaGame.save().coins = 6000; ChromaGame.save().gems = 60; }"); pg.click('[data-nt=create]'); pg.wait_for_timeout(200); pg.fill('#cfName', 'Los Putas'); pg.click('#cfGo'); pg.wait_for_timeout(600)
     print('nombre de club feo:', pg.evaluate("() => document.getElementById('clubErr').textContent"))
     # lista de bloqueados
     pg.evaluate("() => { RRGame.goTitle(); document.getElementById('btnSetT').click(); document.getElementById('sPriv').click(); }"); pg.wait_for_timeout(300)
