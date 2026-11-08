@@ -607,6 +607,15 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   tarda en cargar) y se funde para dejar paso a la portada. No bloquea toques. Con `window.RR_NO_INTRO` se salta (pruebas).
 - El fondo del WebView (Android e iPhone) es negro para que no haya destello morado antes del logo.
 
+## Aviso de versión nueva
+
+- **Automático (Android, Google Play):** `Updates.java` usa In-App Updates de Google Play. Al abrir el juego, si en Play hay
+  una versión más nueva, sale la pantalla de Google «Actualización disponible» (actualización inmediata: se instala y el juego
+  se vuelve a abrir solo). Si el jugador la cierra, no se le vuelve a pedir hasta la próxima vez que abra el juego. Solo funciona
+  con el juego instalado desde Google Play (también en la prueba cerrada); con una APK suelta no hace nada.
+- **Desde el panel (Android e iPhone):** «Versión mínima» en el panel de administración: a quien tenga una compilación anterior
+  le sale «¡NUEVA VERSIÓN!» con el botón que abre la tienda; si se marca «obligatoria», no puede seguir sin actualizar.
+
 ## Preparación para Google Play
 
 - **Android 16 (API 36)**, AGP 8.11 y Gradle 8.13: `MainActivity` con borde a borde, barras ocultas, márgenes de la muesca

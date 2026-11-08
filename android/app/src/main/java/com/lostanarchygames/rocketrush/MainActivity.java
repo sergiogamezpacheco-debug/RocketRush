@@ -40,6 +40,7 @@ public class MainActivity extends ComponentActivity {
     private Billing billing;
     private Ads ads;
     private GoogleLogin google;
+    private Updates updates;
     private Insets lastInsets = Insets.NONE;
 
     @Override
@@ -116,6 +117,7 @@ public class MainActivity extends ComponentActivity {
         billing = new Billing(this, this::js);
         ads = new Ads(this, this::js);
         google = new GoogleLogin(this, this::js);
+        updates = new Updates(this);   // aviso automático de versión nueva en Google Play
         web.loadUrl("https://appassets.androidplatform.net/assets/index.html");
     }
 
@@ -249,6 +251,7 @@ public class MainActivity extends ComponentActivity {
             web.resumeTimers();
             web.evaluateJavascript("window.ChromaResume && window.ChromaResume()", null);
         }
+        if (updates != null) { updates.check(); updates.resume(); }
         if (billing != null) billing.restore();   // compras pendientes que se completaron fuera (pago en efectivo, etc.)
     }
 
