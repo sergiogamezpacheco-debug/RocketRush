@@ -29,7 +29,7 @@ final class GameViewController: UIViewController, WKScriptMessageHandler, WKUIDe
 
         web = WKWebView(frame: .zero, configuration: cfg)
         web.isOpaque = false
-        web.backgroundColor = UIColor(red: 0x1D / 255.0, green: 0x14 / 255.0, blue: 0x40 / 255.0, alpha: 1)
+        web.backgroundColor = UIColor.black
         web.scrollView.isScrollEnabled = false
         web.scrollView.bounces = false
         web.scrollView.contentInsetAdjustmentBehavior = .never     // los márgenes de la muesca los pone el CSS (env(safe-area-inset-*))

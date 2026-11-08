@@ -54,7 +54,7 @@ public class MainActivity extends ComponentActivity {
         }
 
         web = new WebView(this);
-        web.setBackgroundColor(0xFF1D1440);
+        web.setBackgroundColor(0xFF000000);   // negro: enlaza con la pantalla del estudio
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);

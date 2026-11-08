@@ -9,7 +9,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         let w = UIWindow(frame: UIScreen.main.bounds)
-        w.backgroundColor = UIColor(red: 0x1D / 255.0, green: 0x14 / 255.0, blue: 0x40 / 255.0, alpha: 1)
+        w.backgroundColor = UIColor.black
         w.rootViewController = GameViewController()
         w.makeKeyAndVisible()
         window = w

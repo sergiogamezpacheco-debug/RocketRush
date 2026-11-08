@@ -4741,6 +4741,9 @@
   ensureSeason(); applySkin(); if (save.lowGfx) applyGfx();
   setTimeout(() => { if (save.skins && save.skins.equip === 'candycane') applySkin(); }, 0);   // la textura del bastón llega con christmas.js
   goTitle(); setCoins(); scheduleReminder();
+  // pantalla del estudio: al menos 2,2 s desde que se abrió la app y después se funde
+  (() => { const st = $('studio'); if (!st) return; const wait = window.RR_NO_INTRO ? 0 : Math.max(300, 2200 - performance.now());
+    setTimeout(() => { st.classList.add('out'); setTimeout(() => st.remove(), 600); }, wait); })();
   setTimeout(() => RH('boot'), 0);
   // sonido desde la portada: en la app (Android e iPhone) el audio puede empezar sin tocar nada; si el navegador lo
   // bloquea, se pone en marcha con el primer toque en cualquier parte de la pantalla (no hace falta pulsar JUGAR)

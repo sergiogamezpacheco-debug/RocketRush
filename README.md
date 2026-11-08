@@ -600,6 +600,13 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   y el contador (las reglas no dejan pasar de 30 ni inventar miembros). Probado contra el Firebase real en
   `tools/firebase_live.mjs`; la pantalla, con un Firestore de mentira en `tools/clubflow.py` (`tools/fakefs.py`).
 
+## Pantalla del estudio al arrancar
+
+- Nada más abrir el juego sale el logo de **Lost Anarchy Games** sobre negro (`#studio` en `src/index.html`, imagen WebP
+  incrustada; original en `store/logo-estudio-original.png`). Dura al menos 2,2 s desde que se abre la app (más si el juego
+  tarda en cargar) y se funde para dejar paso a la portada. No bloquea toques. Con `window.RR_NO_INTRO` se salta (pruebas).
+- El fondo del WebView (Android e iPhone) es negro para que no haya destello morado antes del logo.
+
 ## Preparación para Google Play
 
 - **Android 16 (API 36)**, AGP 8.11 y Gradle 8.13: `MainActivity` con borde a borde, barras ocultas, márgenes de la muesca
