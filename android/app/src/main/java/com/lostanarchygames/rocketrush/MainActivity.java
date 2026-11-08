@@ -234,7 +234,9 @@ public class MainActivity extends ComponentActivity {
         if (web != null) {
             web.evaluateJavascript("window.ChromaPause && window.ChromaPause()", null);
             web.onPause();
-            web.pauseTimers();
+            // pauseTimers() congela TODOS los WebView de la app, también el del anuncio de AdMob (la cuenta atrás
+            // no acababa, no salía la X y no se daba el premio). Con un anuncio en pantalla no se congela nada.
+            if (ads == null || !ads.isShowing()) web.pauseTimers();
         }
         super.onPause();
     }

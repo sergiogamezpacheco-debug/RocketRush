@@ -34,6 +34,10 @@ class Ads {
     private RewardedAd rewarded;
     private InterstitialAd inter;
     private boolean loadingR = false, loadingI = false;
+    /** true mientras se ve un anuncio a pantalla completa: MainActivity no debe congelar los WebView (pauseTimers es global y paraba el anuncio). */
+    private volatile boolean showing = false;
+
+    boolean isShowing() { return showing; }
     private int age = 0;
     private final String idRewarded, idInter;
 
@@ -90,9 +94,10 @@ class Ads {
         final boolean[] earned = {false};
         RewardedAd ad = rewarded; rewarded = null;
         ad.setFullScreenContentCallback(new FullScreenContentCallback() {
-            @Override public void onAdDismissedFullScreenContent() { js.accept("window.onChromaReward && window.onChromaReward(" + earned[0] + ")"); loadRewarded(a); }
-            @Override public void onAdFailedToShowFullScreenContent(@NonNull AdError e) { js.accept("window.onChromaReward && window.onChromaReward(false, 'noad')"); loadRewarded(a); }
+            @Override public void onAdDismissedFullScreenContent() { showing = false; js.accept("window.onChromaReward && window.onChromaReward(" + earned[0] + ")"); loadRewarded(a); }
+            @Override public void onAdFailedToShowFullScreenContent(@NonNull AdError e) { showing = false; js.accept("window.onChromaReward && window.onChromaReward(false, 'noad')"); loadRewarded(a); }
         });
+        showing = true;
         ad.show(a, item -> earned[0] = true);
     }
 
@@ -100,9 +105,10 @@ class Ads {
         if (inter == null) { js.accept("window.onChromaInterstitial && window.onChromaInterstitial()"); loadInter(a); return; }
         InterstitialAd ad = inter; inter = null;
         ad.setFullScreenContentCallback(new FullScreenContentCallback() {
-            @Override public void onAdDismissedFullScreenContent() { js.accept("window.onChromaInterstitial && window.onChromaInterstitial()"); loadInter(a); }
-            @Override public void onAdFailedToShowFullScreenContent(@NonNull AdError e) { js.accept("window.onChromaInterstitial && window.onChromaInterstitial()"); loadInter(a); }
+            @Override public void onAdDismissedFullScreenContent() { showing = false; js.accept("window.onChromaInterstitial && window.onChromaInterstitial()"); loadInter(a); }
+            @Override public void onAdFailedToShowFullScreenContent(@NonNull AdError e) { showing = false; js.accept("window.onChromaInterstitial && window.onChromaInterstitial()"); loadInter(a); }
         });
+        showing = true;
         ad.show(a);
     }
 

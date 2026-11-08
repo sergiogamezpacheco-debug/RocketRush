@@ -611,6 +611,8 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   app `ca-app-pub-8884472900712050~3759414973`, intersticial «Entre niveles» `…/9342914146` (solo imagen y texto: cortos)
   y bonificado «Vídeo con premio» `…/4414021099`. Van en `android/app/build.gradle` (solo la versión de Google Play; «RR Pruebas»
   usa siempre los de prueba de Google). Se pueden cambiar con variables de GitHub (`ADMOB_APP_ID`, `ADMOB_REWARDED`, `ADMOB_INTERSTITIAL`).
+  Mientras se ve un anuncio, `MainActivity` no llama a `pauseTimers()` (congela todos los WebView, también el del anuncio:
+  la cuenta atrás no acababa y no se daba el premio).
   Mensaje de consentimiento de Europa publicado en AdMob (español + 5 idiomas, con «No consentir»).
   `site/app-ads.txt` está en https://rocket-rush-7297c.web.app/app-ads.txt: en Play Console, el sitio web del desarrollador debe ser
   `https://rocket-rush-7297c.web.app` para que AdMob lo encuentre.
