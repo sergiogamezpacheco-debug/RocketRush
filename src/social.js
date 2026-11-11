@@ -792,7 +792,7 @@
     X.save.club = { cid, name: club.name, role: me.role }; X.persist();
     return CL;
   }
-  const clubPayload = o => ({ desc: (o.desc || '').slice(0, 80), open: !!o.open, minLv: Math.max(0, Math.min(5000, o.minLv | 0)), lang: (o.lang || (window.I18N ? I18N.lang : 'es')).slice(0, 5), country: (o.country || prof().country || '').slice(0, 3), badge: { ico: o.badge && o.badge.ico || '🚀', c: Math.max(0, Math.min(11, (o.badge && o.badge.c) | 0)) } });
+  const clubPayload = o => ({ desc: (o.desc || '').slice(0, 80), open: !!o.open && !o.closed, closed: !!o.closed, max: Math.max(10, Math.min(50, (o.max | 0) || 30)), minLv: Math.max(0, Math.min(5000, o.minLv | 0)), lang: (o.lang || (window.I18N ? I18N.lang : 'es')).slice(0, 5), country: (o.country || prof().country || '').slice(0, 3), badge: { ico: o.badge && o.badge.ico || '🚀', c: Math.max(0, Math.min(11, (o.badge && o.badge.c) | 0)) } });
   const cleanClubName = t => (t || '').replace(/[\u0000-\u001f<>\/]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20);
   async function clubCreate(o) {
     const name = cleanClubName(o.name);
@@ -818,8 +818,9 @@
     const q = (text || '').trim().toLowerCase();
     const sq = q
       ? { from: [{ collectionId: 'clubs' }], where: andF([ffilter('nameLc', 'GREATER_THAN_OR_EQUAL', q), ffilter('nameLc', 'LESS_THAN', q + '\uf8ff')]), orderBy: [{ field: fld('nameLc') }], limit: 30 }
-      : { from: [{ collectionId: 'clubs' }], where: andF([ffilter('open', 'EQUAL', true), ffilter('count', 'LESS_THAN', 30)]), orderBy: [{ field: fld('count'), direction: 'DESCENDING' }], limit: 30 };
-    return runQuery(sq);
+      : { from: [{ collectionId: 'clubs' }], where: andF([ffilter('open', 'EQUAL', true), ffilter('count', 'LESS_THAN', 50)]), orderBy: [{ field: fld('count'), direction: 'DESCENDING' }], limit: 40 };
+    const r = await runQuery(sq);
+    return q ? r : r.filter(c => !c.closed && c.count < (c.max || 30)).slice(0, 30);   // sin texto: solo los que tienen sitio
   }
   async function clubJoin(cid) {
     if (myClubId()) throw new ClubErr('IN_CLUB');
@@ -828,7 +829,8 @@
     for (let i = 0; i < 4; i++) {
       const raw = await call(`${FS}/clubs/${cid}`).catch(e => { if (e.status === 404) throw new ClubErr('GONE'); throw e; });
       const c = docOf(raw);
-      if (c.count >= 30) throw new ClubErr('FULL');
+      if (c.closed) throw new ClubErr('CLOSED');
+      if (c.count >= (c.max || 30)) throw new ClubErr('FULL');
       if ((c.minLv || 0) > (X.plState().lv || 1)) throw new ClubErr('MIN_LV');
       if (!c.open) {
         const st = X.starsTotal ? X.starsTotal() : 0;
@@ -877,7 +879,8 @@
       const others = CL.members.filter(m => m._id !== me);
       if (others.length) {
         // el liderazgo pasa al oficial (o miembro) que más ha aportado esta semana
-        const next = others.slice().sort((a, b) => ((b.role === 'officer') - (a.role === 'officer')) || (b.ex + b.dmg / 1000) - (a.ex + a.dmg / 1000))[0];
+        const rk = r => ({ officer: 2, elder: 1 })[r] || 0;   // primero un colíder, luego un veterano
+        const next = others.slice().sort((a, b) => (rk(b.role) - rk(a.role)) || (b.ex + b.dmg / 1000) - (a.ex + a.dmg / 1000))[0];
         await clubTransfer(next._id);
         await removeMember(me);
       } else {
@@ -894,7 +897,7 @@
     const cid = myClubId(), r = CL.reqs.find(x => x._id === uid); if (!r) throw new ClubErr('GONE');
     for (let i = 0; i < 4; i++) {
       const raw = await call(`${FS}/clubs/${cid}`), c = docOf(raw);
-      if (c.count >= 30) throw new ClubErr('FULL');
+      if (c.count >= (c.max || 30)) throw new ClubErr('FULL');
       try {
         await commit([
           wUpdate(`clubs/${cid}/members/${uid}`, { name: r.name, avatar: r.avatar, role: 'member', joinedAt: new Date(), wk: '', ex: 0, exN: 0, dmg: 0, atk: '', atkN: 0, lg: '', lgS: 0 }, null, { exists: false }),
@@ -1146,5 +1149,5 @@
     draw(); el.classList.add('on');
   }
 
-  window.Social = { gifts: { load: () => token().then(loadGifts), get inbox() { return GF.inbox; }, send: uid => sendGift(uid), claim: claimGifts }, weekly: { submit: wkSubmit, board: wkBoard, get online() { return !offline(); } }, open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, account: Account, welcome, sheet, isBlocked, isClubBlocked, blocked, blockedClubs, unblock, unblockClub, badName: n => badName(n), checkTester: () => token().then(checkTester), get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
+  window.Social = { countries: { list: COUNTRIES, flag, name: countryName, mine: () => prof().country || '' }, gifts: { load: () => token().then(loadGifts), get inbox() { return GF.inbox; }, send: uid => sendGift(uid), claim: claimGifts }, weekly: { submit: wkSubmit, board: wkBoard, get online() { return !offline(); } }, open, dirty, sync, addByCode, render, redeem, deleteAccount, club: Club, account: Account, welcome, sheet, isBlocked, isClubBlocked, blocked, blockedClubs, unblock, unblockClub, badName: n => badName(n), checkTester: () => token().then(checkTester), get hasAccount() { return !!(auth && auth.refresh); }, get net() { return net; }, get uid() { return auth && auth.uid; }, _fr: FR, _stats: myStats, get _busy() { return inflight + (busy ? 1 : 0) + (syncing ? 1 : 0); } };
 })();

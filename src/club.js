@@ -11,6 +11,16 @@
   if (!X || !window.Social || !window.Social.club || !window.Levels) return;
   const S = window.Social.club, Lv = window.Levels;
   const ATTACKS = 3, HP_PER = 60000, CREATE_COST = 5000, CREATE_GEMS = 50, MAX = 30;
+  // rangos, como en Clash of Clans (en el servidor el colíder se llama «officer»):
+  //   miembro · veterano (acepta solicitudes y expulsa miembros) · colíder (además asciende hasta veterano, expulsa veteranos
+  //   y cambia los ajustes) · líder (todo: asciende hasta colíder, expulsa colíderes y cede el liderazgo)
+  const RANK = { member: 0, elder: 1, officer: 2, leader: 3 }, RKEY = ['member', 'elder', 'officer', 'leader'];
+  const RNAME = { member: 'Miembro', elder: 'Veterano', officer: 'Colíder', leader: 'Líder' };
+  const rankOf = r => RANK[r] || 0, maxOf = c => (c && c.max) || MAX;
+  const TYPES = [['open', '🟢', 'Abierto'], ['req', '✋', 'Con solicitud'], ['closed', '🔒', 'Cerrado']];
+  const THINT = { open: 'Abierto: entra quien quiera, sin esperar.', req: 'Con solicitud: los jugadores piden entrar y el líder, los colíderes o los veteranos deciden.', closed: 'Cerrado: no entra nadie nuevo hasta que lo abras.' };
+  const typeOf = c => c.closed ? 'closed' : c.open ? 'open' : 'req';
+  const LANGS = [['es', '🇪🇸 Español'], ['en', '🇬🇧 English'], ['pt', '🇵🇹 Português'], ['fr', '🇫🇷 Français'], ['de', '🇩🇪 Deutsch'], ['it', '🇮🇹 Italiano']];
   const ICONS = ['🚀', '💣', '⚡', '👑', '🔥', '⭐', '🦁', '🐲', '🧱', '🎯', '💎', '🛡️'];
   const COLS = [['#ff7a3d', '#c94f1a'], ['#3d8bff', '#2a5fd6'], ['#37c46b', '#22914b'], ['#e8203a', '#8a1a2c'], ['#ffc83d', '#e09a12'], ['#8a5cff', '#5a2fd0'],
     ['#ff5fa8', '#c2307a'], ['#20c4c4', '#128a8a'], ['#9aa6c8', '#4a5478'], ['#ffd76a', '#b07a10'], ['#6a46e0', '#2a1d6c'], ['#1d1440', '#000']];
@@ -24,7 +34,7 @@
     pyramid: '<svg viewBox="0 0 200 170" width="200" height="170"><defs><linearGradient id="cgp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#c98a1a"/></linearGradient></defs><path d="M100 10 L190 160 H10 Z" fill="url(#cgp)" stroke="#1d1440" stroke-width="6" stroke-linejoin="round"/><path d="M100 10 L120 160 H10 Z" fill="#000" opacity=".12"/><path d="M62 96 q16 -14 30 0 q-16 12 -30 0Z" fill="#fff" stroke="#1d1440" stroke-width="4"/><path d="M108 96 q16 -14 30 0 q-16 12 -30 0Z" fill="#fff" stroke="#1d1440" stroke-width="4"/><circle cx="77" cy="96" r="6" fill="#1d1440"/><circle cx="123" cy="96" r="6" fill="#1d1440"/><rect x="80" y="124" width="40" height="8" rx="4" fill="#1d1440"/></svg>',
     ship: '<svg viewBox="0 0 220 180" width="210" height="172"><path d="M108 14 V120" stroke="#5a3a1a" stroke-width="8"/><path d="M112 22 Q170 50 112 100 Z" fill="#fff6e0" stroke="#1d1440" stroke-width="5"/><path d="M104 30 Q56 60 104 104 Z" fill="#ffe9c0" stroke="#1d1440" stroke-width="5"/><path d="M98 14 h30 l-8 10 8 10 h-30 Z" fill="#e8203a" stroke="#1d1440" stroke-width="3"/><path d="M14 118 H206 L180 166 H40 Z" fill="#8a4a1e" stroke="#1d1440" stroke-width="6" stroke-linejoin="round"/><circle cx="70" cy="140" r="9" fill="#1d1440"/><circle cx="110" cy="140" r="9" fill="#1d1440"/><circle cx="150" cy="140" r="9" fill="#1d1440"/></svg>',
   };
-  let tab = 'club', ntab = 'find', busy = false, err = '', found = null, query = '', sel = null, leaveArm = 0, league = { at: 0, list: [], id: '' }, form = { name: '', desc: '', ico: '🚀', c: 0, open: true };
+  let tab = 'club', ntab = 'find', busy = false, err = '', found = null, query = '', sel = null, leaveArm = 0, league = { at: 0, list: [], id: '' }, form = { name: '', desc: '', ico: '🚀', c: 0, type: 'open', max: MAX, minLv: 0, lang: '', country: '' }, edit = null, confirmOn = false, ranksOn = false;
   const save = () => X.save;
 
   // ---------------- progreso propio (en el móvil) ----------------
@@ -99,7 +109,7 @@
   function errMsg(e) {
     const c = e && e.code;
     return ({ NAME_TAKEN: 'Ese nombre ya lo tiene otro club', NAME_SHORT: 'El nombre necesita al menos 3 letras', NAME_BAD: 'Ese nombre no está permitido', DESC_BAD: 'Esa descripción no está permitida', IN_CLUB: 'Ya estás en un club',
-      FULL: 'El club está lleno', MIN_LV: 'No tienes el nivel mínimo que pide el club', GONE: 'Ese club ya no existe', KICKED: 'Ya no estás en el club', BUSY: 'Hay mucho movimiento: vuelve a probar' })[c]
+      FULL: 'El club está lleno', CLOSED: 'El club está cerrado: no admite a nadie nuevo', MIN_LV: 'No tienes el nivel mínimo que pide el club', GONE: 'Ese club ya no existe', KICKED: 'Ya no estás en el club', BUSY: 'Hay mucho movimiento: vuelve a probar' })[c]
       || (e && e.status === -1 ? (save().kid ? 'Los clubes no están disponibles para tu edad.' : 'Las funciones en línea están desactivadas en Ajustes › Privacidad.')
         : e && e.status === 0 ? 'Sin conexión a internet.' : 'No se ha podido conectar con el servidor.');
   }
@@ -130,8 +140,8 @@
       return `<div class="row klhrow"><span class="klbig">🛡️</span><div><b class="klname">Clubes</b><small>Juega en equipo: expedición, jefe colosal y liga</small></div></div>` +
         `<div class="stabs kltabs">${[['find', '🔎 Buscar'], ['create', '➕ Crear']].map(([k, t]) => `<button data-nt="${k}" class="${ntab === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
     }
-    const open = c.open ? 'Abierto' : 'Con solicitud';
-    return `<div class="row klhrow">${shield(c.badge)}<div><b class="klname" translate="no">${esc(c.name)}</b><small><span>${c.count}/${MAX} miembros</span> · <span>${open}</span>${c.country ? ' · <span translate="no">' + esc(c.country) + '</span>' : ''}</small></div></div>` +
+    const open = c.closed ? 'Cerrado' : c.open ? 'Abierto' : 'Con solicitud';
+    return `<div class="row klhrow">${shield(c.badge)}<div><b class="klname" translate="no">${esc(c.name)}</b><small><span>${c.count}/${maxOf(c)} miembros</span> · <span>${open}</span>${c.minLv ? ' · <span>nivel ' + c.minLv + '+</span>' : ''}${c.country ? ' · ' + CO().flag(c.country) : ''}</small></div></div>` +
       `<div class="stabs kltabs">${tabs.map(([k, t]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
   }
   // jugadores y clubes bloqueados (Ajustes › Privacidad y ayuda): no se ven su nombre ni su avatar
@@ -140,7 +150,25 @@
   const cm = c => SO.isClubBlocked(c._id) ? Object.assign({}, c, { name: 'Club bloqueado', desc: '', badge: { ico: '🚫', c: 11 } }) : c;
   const card = (h, cls) => `<div class="klcard ${cls || ''}">${h}</div>`;
   const bar = (f, cls) => `<div class="klbar ${cls || ''}"><i style="width:${Math.max(0, Math.min(100, f * 100)).toFixed(1)}%"></i></div>`;
-  const roleTag = r => r === 'leader' ? '<span class="klrole">LÍDER</span>' : r === 'officer' ? '<span class="klrole of">OFICIAL</span>' : '';
+  const roleTag = r => r === 'leader' ? '<span class="klrole">LÍDER</span>' : r === 'officer' ? '<span class="klrole of">COLÍDER</span>' : r === 'elder' ? '<span class="klrole el">VETERANO</span>' : '';
+  const CO = () => (window.Social && window.Social.countries) || { list: [], flag: () => '🏳️', name: c => c, mine: () => '' };
+  // ajustes del club (al crearlo y, después, para el líder y los colíderes): tipo, máximo, nivel mínimo, idioma y país
+  function setCtl(o) {
+    const co = CO(), cl = co.list.includes(o.country) || !o.country ? co.list : [o.country].concat(co.list);
+    return `<label class="sm">Tipo de club</label>
+      <div class="klseg">${TYPES.map(([k, i, n]) => `<button data-ty="${k}" class="${o.type === k ? 'on' : ''}"><b>${i}</b>${n}</button>`).join('')}</div>
+      <div class="klhint">${THINT[o.type]}</div>
+      <div class="klrow2"><span>👥 Máximo</span><div class="klstep"><button data-st="max" data-d="-5" ${o.max <= Math.max(10, o.minMax || 0) ? 'disabled' : ''}>−</button><i>${o.max}</i><button data-st="max" data-d="5" ${o.max >= 50 ? 'disabled' : ''}>+</button></div></div>
+      <div class="klhint">De 10 a 50 miembros. Con más miembros, el jefe colosal tiene más vida y la liga se reparte entre más.</div>
+      <div class="klrow2"><span>⭐ Nivel mínimo</span><div class="klstep"><button data-st="minLv" data-d="-5" ${o.minLv <= 0 ? 'disabled' : ''}>−</button><i>${o.minLv ? 'Nivel ' + o.minLv : 'Ninguno'}</i><button data-st="minLv" data-d="5" ${o.minLv >= 100 ? 'disabled' : ''}>+</button></div></div>
+      <div class="klhint">Solo pueden entrar o pedir entrar jugadores con este nivel o más.</div>
+      <div class="kltwo"><div><label class="sm">Idioma</label><select class="klsel" data-sel="lang">${LANGS.map(([k, n]) => `<option value="${k}" ${o.lang === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+        <div><label class="sm">País</label><select class="klsel" data-sel="country"><option value="" ${!o.country ? 'selected' : ''}>🌍 Todos</option>${cl.map(c => `<option value="${c}" ${o.country === c ? 'selected' : ''}>${co.flag(c)} ${esc(co.name(c))}</option>`).join('')}</select></div></div>`;
+  }
+  const tags = o => { const co = CO(), t = TYPES.find(x => x[0] === o.type) || TYPES[0], l = LANGS.find(x => x[0] === o.lang);
+    return `<div class="kltags"><span>${t[1]} ${t[2]}</span><span>👥 ${o.max}</span><span>⭐ ${o.minLv ? 'Nivel ' + o.minLv + '+' : 'Sin mínimo'}</span>${l ? `<span>${l[1]}</span>` : ''}${o.country ? `<span>${co.flag(o.country)} ${esc(co.name(o.country))}</span>` : ''}</div>`; };
+  const fromClub = c => ({ cid: S.state.cid, desc: c.desc || '', type: typeOf(c), max: maxOf(c), minLv: c.minLv || 0, lang: c.lang || 'es', country: c.country || '', badge: c.badge, minMax: c.count });
+  const payload = o => ({ desc: o.desc, open: o.type === 'open', closed: o.type === 'closed', max: o.max, minLv: o.minLv, lang: o.lang, country: o.country, badge: o.badge || { ico: o.ico, c: o.c } });
 
   function pendingCard() {
     const pd = save().clubPending || [];
@@ -154,29 +182,43 @@
     X.openChestFX(x.tier, x.r, () => { X.show('club'); render(); if ((save().clubPending || []).length) setTimeout(claim, 300); });
   }
 
+  // Resumen + botón de crear: se rehace al escribir el nombre sin perder el foco del campo
+  function sumHtml() {
+    const s = save(), needC = Math.max(0, CREATE_COST - (s.coins || 0)), needG = Math.max(0, CREATE_GEMS - (s.gems || 0)), okName = (form.name || '').trim().length >= 3, can = !needC && !needG && okName;
+    return `<div class="klsum">${shield({ ico: form.ico, c: form.c })}<div><b translate="no">${esc((form.name || '').trim() || 'Tu club')}</b>${tags(form)}</div></div>
+        <button class="btn gold klpay" id="cfGo" ${can && !busy ? '' : 'disabled'}><span>CREAR CLUB</span><i class="coin"></i>${CREATE_COST.toLocaleString('es-ES')}<i class="gem"></i>${CREATE_GEMS}</button>
+        ${!okName ? '<div class="sm klmid">Escribe un nombre de al menos 3 letras</div>' : ''}${needC ? `<div class="sm klmid">Te faltan ${needC.toLocaleString('es-ES')} monedas</div>` : ''}${needG ? `<div class="sm klmid">Te faltan ${needG} gemas</div>` : ''}
+        ${can ? `<div class="klok">✓ Tienes suficiente: ${(s.coins || 0).toLocaleString('es-ES')} monedas y ${s.gems || 0} gemas</div>` : ''}`;
+  }
+  function confirmBox() {
+    return `<div class="klconfirm" id="cfBox"><div class="panel"><div class="ribbon gold">¿CREAR EL CLUB?</div>
+      <div class="klsum">${shield({ ico: form.ico, c: form.c })}<div><b translate="no">${esc(form.name.trim())}</b>${tags(form)}</div></div>
+      <p class="klcp">Se cobrarán ${CREATE_COST.toLocaleString('es-ES')} monedas y ${CREATE_GEMS} gemas. Serás el líder y podrás cambiar los ajustes cuando quieras.</p>
+      <div class="row"><button class="btn gray" id="cfNo">Cancelar</button><button class="btn green klpay" id="cfPay" ${busy ? 'disabled' : ''}><span>PAGAR</span><i class="coin"></i>${CREATE_COST.toLocaleString('es-ES')}<i class="gem"></i>${CREATE_GEMS}</button></div></div></div>`;
+  }
   function viewNoClub() {
     const s = save();
     if (ntab === 'create') {
-      const needC = Math.max(0, CREATE_COST - (s.coins || 0)), needG = Math.max(0, CREATE_GEMS - (s.gems || 0)), can = !needC && !needG;
+      if (!form.lang) form.lang = window.I18N ? I18N.lang : 'es';
+      if (form.country === '' && !form.cset) { form.country = CO().mine(); form.cset = true; }
       return card(`<div class="klttl">➕ Crea tu club</div>
         <label class="sm">Nombre</label><input id="cfName" class="klinput" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(form.name)}" placeholder="Los Demoledores">
         <label class="sm">Descripción</label><input id="cfDesc" class="klinput" maxlength="80" autocomplete="off" value="${esc(form.desc)}" placeholder="¡Venid a demoler!">
         <label class="sm">Escudo</label><div class="klpick">${ICONS.map(i => `<button data-ico="${i}" class="${form.ico === i ? 'on' : ''}">${i}</button>`).join('')}</div>
-        <div class="klpick col">${COLS.map((c, i) => `<button data-col="${i}" class="${form.c === i ? 'on' : ''}" style="background:${c[0]}"></button>`).join('')}</div>
-        <div class="row klprev">${shield({ ico: form.ico, c: form.c })}<button class="btn small ${form.open ? 'green' : 'purple'}" id="cfOpen">${form.open ? 'Abierto: entra quien quiera' : 'Con solicitud: tú decides'}</button></div>
-        <button class="btn gold" id="cfGo" ${can && !busy ? '' : 'disabled'}><span>CREAR</span><i class="coin"></i>${CREATE_COST.toLocaleString('es-ES')}<i class="gem"></i>${CREATE_GEMS}</button>
-        ${needC ? `<div class="sm">Te faltan ${needC.toLocaleString('es-ES')} monedas</div>` : ''}${needG ? `<div class="sm">Te faltan ${needG} gemas</div>` : ''}`);
+        <div class="klpick col">${COLS.map((c, i) => `<button data-col="${i}" class="${form.c === i ? 'on' : ''}" style="background:${c[0]}"></button>`).join('')}</div>`) +
+        card(`<div class="klttl">⚙️ Ajustes del club</div>${setCtl(form)}`) +
+        card(`<div id="cfSum">${sumHtml()}</div>`);
     }
     const req = s.clubReq && Date.now() - s.clubReq.at < 7 * 864e5 ? card(`<div class="sm">Solicitud enviada a</div><b translate="no">${esc(s.clubReq.name)}</b><div class="sm">Cuando te acepten aparecerás dentro.</div><button class="btn gray small" id="cfReqCheck">Comprobar</button>`) : '';
     const list = found == null ? '<div class="sm klmid">Buscando clubes…</div>' : !found.length ? '<div class="sm klmid">No hay clubes con ese nombre. ¡Crea el tuyo!</div>'
-      : found.map(cm).map(c => `<div class="klfound" data-club="${esc(c._id)}">${shield(c.badge, 40, 46)}<div class="klfi"><b translate="no">${esc(c.name)}</b><small><span translate="no">${c.count}/${MAX}</span> · <span>${c.open ? 'Abierto' : 'Con solicitud'}</span>${c.minLv ? ' · <span>nivel ' + c.minLv + '+</span>' : ''}</small>${c.desc ? `<small class="kldesc" translate="no">${esc(c.desc)}</small>` : ''}</div>` +
-        (c.count >= MAX ? '<span class="sm">Lleno</span>' : `<button class="btn small ${c.open ? 'green' : 'blue'}" data-join="${esc(c._id)}" ${busy ? 'disabled' : ''}>${c.open ? 'Entrar' : 'Pedir'}</button>`) + '</div>').join('');
+      : found.map(cm).map(c => `<div class="klfound" data-club="${esc(c._id)}">${shield(c.badge, 40, 46)}<div class="klfi"><b translate="no">${esc(c.name)}</b><small><span translate="no">${c.count}/${maxOf(c)}</span> · <span>${c.closed ? 'Cerrado' : c.open ? 'Abierto' : 'Con solicitud'}</span>${c.minLv ? ' · <span>nivel ' + c.minLv + '+</span>' : ''}${c.lang ? ' · ' + ((LANGS.find(l => l[0] === c.lang) || ['', c.lang])[1].split(' ')[0]) : ''}</small>${c.desc ? `<small class="kldesc" translate="no">${esc(c.desc)}</small>` : ''}</div>` +
+        (c.closed ? '<span class="sm">🔒 Cerrado</span>' : c.count >= maxOf(c) ? '<span class="sm">Lleno</span>' : `<button class="btn small ${c.open ? 'green' : 'blue'}" data-join="${esc(c._id)}" ${busy ? 'disabled' : ''}>${c.open ? 'Entrar' : 'Pedir'}</button>`) + '</div>').join('');
     return req + card(`<div class="row klsearch"><input id="cfQ" class="klinput" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(query)}" placeholder="Nombre del club"><button class="btn blue small" id="cfFind">Buscar</button></div>${list}`);
   }
 
   function viewClub() {
     const st = S.state, c = st.club, me = st.me, ct = S.time(), p = P();
-    const staff = me.role !== 'member', lead = me.role === 'leader';
+    const myR = rankOf(me.role), staff = myR >= 1, boss = myR >= 2, lead = myR === 3, mx = maxOf(c);
     const exAll = st.members.reduce((a, m) => a + (m.ex || 0), 0), hp = c.count * HP_PER, dmg = st.members.reduce((a, m) => a + (m.dmg || 0), 0);
     const rk = league.id === ct.lg ? league.list.findIndex(x => x._id === st.cid) + 1 : 0;
     const week = `<span>Expedición: día ${Math.min(5, ct.day + 1)} de 5</span> · <span>Jefe: ${Math.max(0, Math.round((1 - dmg / hp) * 100))} % de vida</span> · <span>` + (ct.lg ? (rk ? 'Liga: ' + rk + '.º puesto' : 'Liga: en juego') : 'Liga: el viernes') + '</span>';
@@ -184,16 +226,27 @@
     const act = m => {
       if (sel !== m._id || m._id === me._id) return '';
       const rep = `<button class="btn gray small" data-sheet="${m._id}">🚩 Denunciar o bloquear</button>`;
-      if (!staff || m.role === 'leader' || (m.role === 'officer' && !lead)) return `<div class="klact">${rep}</div>`;
-      return `<div class="klact">${rep}${lead ? (m.role === 'officer' ? `<button class="btn gray small" data-role="member" data-u="${m._id}">Quitar oficial</button>` : `<button class="btn blue small" data-role="officer" data-u="${m._id}">Hacer oficial</button>`) : ''}` +
-        (lead ? `<button class="btn gold small" data-lead="${m._id}">Hacer líder</button>` : '') + `<button class="btn red small" data-kick="${m._id}">Expulsar</button></div>`;
+      const tR = rankOf(m.role);
+      if (tR >= myR) return `<div class="klact">${rep}</div>`;
+      const up = boss && tR + 1 < myR ? RKEY[tR + 1] : null, down = boss && tR >= 1 ? RKEY[tR - 1] : null;
+      return `<div class="klact">${rep}` + (up ? `<button class="btn blue small" data-role="${up}" data-u="${m._id}">⬆ Ascender a ${RNAME[up].toLowerCase()}</button>` : '') +
+        (down ? `<button class="btn gray small" data-role="${down}" data-u="${m._id}">⬇ Degradar a ${RNAME[down].toLowerCase()}</button>` : '') +
+        (lead ? `<button class="btn gold small" data-lead="${m._id}">👑 Hacer líder</button>` : '') + `<button class="btn red small" data-kick="${m._id}">Expulsar</button></div>`;
     };
     const rows = mems.map(mm).map(m => `<div class="klmem ${m._id === me._id ? 'me' : ''}" data-m="${m._id}"><span class="klav">${esc(m.avatar)}</span><span class="klnm" translate="no">${esc(m.name)}</span>${roleTag(m.role)}<span class="klpts">${m.ex || 0} ⭐</span></div>${act(m)}`).join('');
-    const reqs = staff && st.reqs.length ? card(`<div class="klttl">📨 Quieren entrar (${st.reqs.length})</div>` + st.reqs.map(mm).map(r => `<div class="klmem"><span class="klav">${esc(r.avatar)}</span><span class="klnm" translate="no">${esc(r.name)}</span><span class="sm">${r.lv || 0} ⭐</span><button class="btn green small" data-acc="${r._id}" ${c.count >= MAX ? 'disabled' : ''}>Sí</button><button class="btn gray small" data-rej="${r._id}">No</button></div>`).join('')) : '';
-    const settings = staff ? card(`<div class="klttl">⚙️ Ajustes del club</div><label class="sm">Descripción</label><input id="csDesc" class="klinput" maxlength="80" value="${esc(c.desc)}">
-      <div class="row klgap"><button class="btn small ${c.open ? 'green' : 'purple'}" id="csOpen">${c.open ? 'Abierto' : 'Con solicitud'}</button><button class="btn blue small" id="csSave">Guardar</button></div>`) : '';
+    const reqs = staff && st.reqs.length ? card(`<div class="klttl">📨 Quieren entrar (${st.reqs.length})</div>` + st.reqs.map(mm).map(r => `<div class="klmem"><span class="klav">${esc(r.avatar)}</span><span class="klnm" translate="no">${esc(r.name)}</span><span class="sm">${r.lv || 0} ⭐</span><button class="btn green small" data-acc="${r._id}" ${c.count >= mx ? 'disabled' : ''}>Sí</button><button class="btn gray small" data-rej="${r._id}">No</button></div>`).join('')) : '';
+    if (boss && (!edit || edit.cid !== st.cid)) edit = fromClub(c);
+    if (edit) edit.minMax = c.count;
+    const settings = boss ? card(`<div class="klttl">⚙️ Ajustes del club</div><label class="sm">Descripción</label><input id="csDesc" class="klinput" maxlength="80" value="${esc(edit.desc)}">
+      ${setCtl(edit)}<div class="row klgap"><button class="btn blue" id="csSave" ${busy ? 'disabled' : ''}>Guardar ajustes</button></div>`) : '';
+    const ranks = card(`<div class="row"><div class="klttl">🎖️ Rangos</div><button class="btn gray small klright" id="clubRanks">${ranksOn ? 'Ocultar' : 'Ver'}</button></div>` + (ranksOn ? `<div class="klranks">
+      <div><span class="klrole">LÍDER</span> Todo: asciende hasta colíder, expulsa a cualquiera, cambia los ajustes y puede ceder el liderazgo.</div>
+      <div><span class="klrole of">COLÍDER</span> Cambia los ajustes, acepta solicitudes, asciende a veterano y expulsa a miembros y veteranos.</div>
+      <div><span class="klrole el">VETERANO</span> Acepta solicitudes y expulsa a miembros.</div>
+      <div><span class="klrole mb">MIEMBRO</span> Juega y suma para el club.</div>
+      <div class="sm">Toca a un miembro de la lista para ascenderlo, degradarlo o expulsarlo.</div></div>` : ''));
     return pendingCard() + card(`<div class="klttl">📣 Esta semana</div><div class="sm">${week}</div>`) +
-      reqs + card(`<div class="klttl">👥 Miembros <span class="sm klright">contribución semanal</span></div>${rows}`) +
+      reqs + card(`<div class="klttl">👥 Miembros <span translate="no">${c.count}/${mx}</span> <span class="sm klright">contribución semanal</span></div>${rows}`) + ranks +
       `<div class="klbtns"><button class="btn blue" id="clubInvite">Invitar amigos</button></div>` + settings +
       `<div class="klbtns"><button class="btn gray small" id="clubLeave">${leaveArm > Date.now() ? 'Toca otra vez para salir' : 'Salir del club'}</button></div>`;
   }
@@ -254,6 +307,12 @@
     else if (!inClub) body = card(`<div class="sm klmid">${busy ? 'Cargando tu club…' : 'No se ha podido cargar el club.'}</div>`);
     else body = ({ club: viewClub, ex: viewEx, boss: viewBoss, lg: viewLg })[tab]();
     $('clubList').innerHTML = `<div class="klerr" id="clubErr" ${err ? '' : 'hidden'}>${esc(err)}</div>` + body;
+    // ventana de confirmación del pago: encima de toda la pantalla del club
+    let md = $('clubModal');
+    if (!md) { md = document.createElement('div'); md.id = 'clubModal'; $('club').appendChild(md); }
+    const canPay = !S.id && ntab === 'create' && (form.name || '').trim().length >= 3 && (s.coins || 0) >= CREATE_COST && (s.gems || 0) >= CREATE_GEMS;
+    if (!canPay) confirmOn = false;
+    md.innerHTML = confirmOn ? confirmBox() : '';
     wire();
   }
 
@@ -261,29 +320,39 @@
     const L = $('clubList'), H = $('clubHead'), on = (sel, ev, f) => L.querySelectorAll(sel).forEach(el => el.addEventListener(ev, e => { X.Audio.click && X.Audio.click(); f(el, e); }));
     H.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); tab = b.dataset.t; sel = null; $('clubList').scrollTop = 0; render(); if (tab === 'lg') refresh(); }));
     H.querySelectorAll('[data-nt]').forEach(b => b.addEventListener('click', () => { X.Audio.click && X.Audio.click(); ntab = b.dataset.nt; render(); if (ntab === 'find' && found == null) find(); }));
-    const g = id => L.querySelector('#' + id);
+    const g = id => L.querySelector('#' + id) || ($('clubModal') && $('clubModal').querySelector('#' + id));
     if (g('clubClaim')) g('clubClaim').addEventListener('click', claim);
     if (g('clubOnline')) g('clubOnline').addEventListener('click', () => { save().noOnline = false; X.persist(); window.Social.dirty(1500); render(); refresh(true); });
     // sin club
-    if (g('cfName')) g('cfName').addEventListener('input', e => { form.name = e.target.value; });
+    if (g('cfName')) g('cfName').addEventListener('input', e => { form.name = e.target.value; const box = g('cfSum'); if (box) { box.innerHTML = sumHtml(); goWire(); } });
     if (g('cfDesc')) g('cfDesc').addEventListener('input', e => { form.desc = e.target.value; });
     if (g('cfQ')) { g('cfQ').addEventListener('input', e => { query = e.target.value; }); g('cfQ').addEventListener('keydown', e => { if (e.key === 'Enter') find(); }); }
     on('[data-ico]', 'click', b => { form.ico = b.dataset.ico; render(); });
     on('[data-col]', 'click', b => { form.c = +b.dataset.col; render(); });
-    if (g('cfOpen')) g('cfOpen').addEventListener('click', () => { form.open = !form.open; render(); });
+    // ajustes (del formulario de creación o del club): tipo, máximo, nivel mínimo, idioma y país
+    const tgt = () => (S.state.club && edit) ? edit : form;
+    if (g('csDesc')) g('csDesc').addEventListener('input', e => { if (edit) edit.desc = e.target.value; });
+    on('[data-ty]', 'click', b => { tgt().type = b.dataset.ty; render(); });
+    on('[data-st]', 'click', b => { const o = tgt(), k = b.dataset.st, lo = k === 'max' ? Math.max(10, o.minMax || 0) : 0, hi = k === 'max' ? 50 : 100;
+      o[k] = Math.max(lo, Math.min(hi, o[k] + +b.dataset.d)); if (k === 'max' && o[k] % 5) o[k] = Math.min(hi, Math.ceil(o[k] / 5) * 5); render(); });
+    L.querySelectorAll('[data-sel]').forEach(el => el.addEventListener('change', () => { tgt()[el.dataset.sel] = el.value; render(); }));
     if (g('cfFind')) g('cfFind').addEventListener('click', find);
-    if (g('cfGo')) g('cfGo').addEventListener('click', create);
+    const goWire = () => { if (g('cfGo')) g('cfGo').addEventListener('click', () => { confirmOn = true; render(); }); };
+    goWire();
+    if (g('cfNo')) g('cfNo').addEventListener('click', () => { confirmOn = false; render(); });
+    if (g('cfBox')) g('cfBox').addEventListener('click', e => { if (e.target.id === 'cfBox') { confirmOn = false; render(); } });
+    if (g('cfPay')) g('cfPay').addEventListener('click', () => { confirmOn = false; create(); });
+    if (g('clubRanks')) g('clubRanks').addEventListener('click', () => { ranksOn = !ranksOn; render(); });
     if (g('cfReqCheck')) g('cfReqCheck').addEventListener('click', checkReq);
     on('[data-join]', 'click', b => join(b.dataset.join));
     // dentro del club
     on('.klmem[data-m]', 'click', el => { sel = sel === el.dataset.m ? null : el.dataset.m; render(); });
-    on('[data-role]', 'click', b => run(() => S.role(b.dataset.u, b.dataset.role), b.dataset.role === 'officer' ? 'Nuevo oficial' : 'Ya no es oficial'));
+    on('[data-role]', 'click', b => { sel = null; run(() => S.role(b.dataset.u, b.dataset.role), 'Ahora es ' + RNAME[b.dataset.role].toLowerCase()); });
     on('[data-kick]', 'click', b => { if (b.dataset.armed) { sel = null; run(() => S.kick(b.dataset.kick), 'Expulsado del club'); } else { b.dataset.armed = 1; b.textContent = '¿Seguro?'; } });
     on('[data-lead]', 'click', b => { if (b.dataset.armed) { sel = null; run(() => S.transfer(b.dataset.lead), 'Nuevo líder del club'); } else { b.dataset.armed = 1; b.textContent = '¿Seguro?'; } });
     on('[data-acc]', 'click', b => run(() => S.accept(b.dataset.acc), '¡Nuevo miembro!'));
     on('[data-rej]', 'click', b => run(() => S.reject(b.dataset.rej)));
-    if (g('csOpen')) g('csOpen').addEventListener('click', () => { const c = S.state.club; run(() => S.settings(Object.assign({}, c, { open: !c.open, desc: g('csDesc').value }))); });
-    if (g('csSave')) g('csSave').addEventListener('click', () => { const c = S.state.club; run(() => S.settings(Object.assign({}, c, { desc: g('csDesc').value })), 'Guardado'); });
+    if (g('csSave')) g('csSave').addEventListener('click', () => { const o = edit; if (!o) return; o.desc = g('csDesc').value; run(() => S.settings(payload(o)), 'Ajustes guardados').then(() => { edit = null; render(); }); });
     if (g('clubInvite')) g('clubInvite').addEventListener('click', invite);
     if (g('clubLeave')) g('clubLeave').addEventListener('click', () => {
       if (leaveArm < Date.now()) { leaveArm = Date.now() + 3000; render(); setTimeout(render, 3100); return; }
@@ -309,7 +378,7 @@
     if ((s.coins || 0) < CREATE_COST) { X.toast('No tienes monedas suficientes'); return; }
     if ((s.gems || 0) < CREATE_GEMS) { X.toast('No tienes gemas suficientes'); return; }
     if (name.length < 3) { setMsg('El nombre necesita al menos 3 letras'); return; }
-    const r = await run(() => S.create({ name, desc: form.desc, open: form.open, badge: { ico: form.ico, c: form.c }, minLv: 0 }));
+    const r = await run(() => S.create(Object.assign({ name }, payload(Object.assign({}, form, { badge: { ico: form.ico, c: form.c } })))));
     if (r) { s.coins -= CREATE_COST; s.gems = (s.gems || 0) - CREATE_GEMS; X.persist(); X.setCoins(); X.Audio.win && X.Audio.win(); X.toast('¡Club creado!'); tab = 'club'; render(); }
   }
   async function join(cid) {

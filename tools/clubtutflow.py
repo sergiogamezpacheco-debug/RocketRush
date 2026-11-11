@@ -21,7 +21,7 @@ with sync_playwright() as p:
     pg.click('#navClub'); pg.wait_for_timeout(1500)
     print('sin club:', tut()); pg.screenshot(path=OUT + 'tut_club_sin.png')
     pg.click('#tut .tu-bub'); pg.wait_for_timeout(400)
-    pg.click('[data-nt=create]'); pg.fill('#cfName', 'Los Demoledores'); pg.click('#cfGo'); pg.wait_for_timeout(1800)
+    pg.click('[data-nt=create]'); pg.fill('#cfName', 'Los Demoledores'); pg.click('#cfGo'); pg.wait_for_timeout(300); pg.click('#cfPay'); pg.wait_for_timeout(1800)
     print('club:', tut()); pg.screenshot(path=OUT + 'tut_club_club.png'); pg.click('#tut .tu-bub'); pg.wait_for_timeout(400)
     for t in ('ex', 'boss', 'lg'):
         pg.click(f'[data-t={t}]'); pg.wait_for_timeout(1200)

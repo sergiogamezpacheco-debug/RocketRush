@@ -604,6 +604,28 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   y el contador (las reglas no dejan pasar de 30 ni inventar miembros). Probado contra el Firebase real en
   `tools/firebase_live.mjs`; la pantalla, con un Firestore de mentira en `tools/clubflow.py` (`tools/fakefs.py`).
 
+## Clubes: ajustes al crear y rangos (como Clash of Clans)
+
+**Crear un club** (pestaña ➕ Crear): nombre, descripción, escudo y la tarjeta «⚙️ Ajustes del club»:
+- **Tipo**: 🟢 Abierto (entra quien quiera), ✋ Con solicitud (piden entrar y deciden líder, colíderes o veteranos), 🔒 Cerrado (no entra nadie nuevo).
+- **Máximo de miembros**: de 10 a 50 (por defecto 30), de 5 en 5.
+- **Nivel mínimo**: 0 (sin mínimo) a 100, de 5 en 5.
+- **Idioma** y **país** (por defecto, los del jugador).
+
+Debajo, un resumen con las etiquetas elegidas y el botón **CREAR CLUB 5000 🪙 · 50 💎**: solo se activa con un nombre de 3 letras o más y saldo suficiente (si falta algo, se dice qué). Al pulsarlo sale la ventana «¿CREAR EL CLUB?» con el resumen y **PAGAR**; el cobro se hace solo al confirmar.
+
+**Rangos** (tarjeta «🎖️ Rangos» dentro del club):
+| Rango | Puede |
+|---|---|
+| 👑 Líder | Todo: ascender hasta colíder, expulsar a cualquiera, cambiar ajustes, ceder el liderazgo |
+| Colíder | Cambiar ajustes, aceptar solicitudes, ascender a veterano, expulsar a miembros y veteranos |
+| Veterano | Aceptar solicitudes, expulsar a miembros |
+| Miembro | Jugar y sumar para el club |
+
+Se toca a un miembro para «⬆ Ascender», «⬇ Degradar», «👑 Hacer líder» (solo el líder) o «Expulsar»; nadie actúa sobre alguien de su mismo rango o superior. Si el líder se va, hereda el colíder (o el veterano) más antiguo. Los ajustes se cambian luego en «Ajustes del club» (líder y colíderes); el máximo no puede bajar de los miembros que ya hay.
+
+Las reglas de Firestore (`firebase/firestore.rules`) lo hacen cumplir en el servidor: `rank()` 3/2/1/0, `isStaff` (aceptar y expulsar), `isBoss` (ajustes), `max` 10–50 y `closed`. Pruebas: `tools/clubflow.py` (local) y `tools/firebase_live.mjs` (contra Firebase real en CI). Textos en 6 idiomas: `tools/i18n_clubajustes.py`.
+
 ## Portada: botón del Club
 
 - La columna derecha de la portada es **Club · Amigos · Tienda · Ajustes** (`btnClubT`). El club recuerda desde dónde se abrió:

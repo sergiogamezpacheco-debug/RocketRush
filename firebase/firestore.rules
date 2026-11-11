@@ -142,11 +142,17 @@ service cloud.firestore {
     function nameP(n) { return /databases/$(database)/documents/clubnames/$(n); }
     function myRole(c) { return get(memP(c, request.auth.uid)).data.role; }
     function isMember(c) { return signedIn() && exists(memP(c, request.auth.uid)); }
-    function isStaff(c) { return isMember(c) && myRole(c) in ['leader', 'officer']; }
+    // rangos, como en Clash of Clans: miembro (0) < veterano (1) < colíder (2, «officer») < líder (3)
+    function rank(r) { return r == 'leader' ? 3 : r == 'officer' ? 2 : r == 'elder' ? 1 : 0; }
+    function myRank(c) { return rank(myRole(c)); }
+    function isStaff(c) { return isMember(c) && myRole(c) in ['leader', 'officer', 'elder']; }   // aceptan solicitudes
+    function isBoss(c) { return isMember(c) && myRole(c) in ['leader', 'officer']; }             // cambian los ajustes
+    function maxOf(d) { return d.get('max', 30); }
     function okStr(v, a, b) { return v is string && v.size() >= a && v.size() <= b; }
     function okInt(v, a, b) { return v is int && v >= a && v <= b; }
     function okSettings(d) {
       return okStr(d.desc, 0, 80) && d.open is bool && okInt(d.minLv, 0, 5000) && okStr(d.lang, 0, 5) && okStr(d.country, 0, 3)
+        && d.get('closed', false) is bool && okInt(maxOf(d), 10, 50)
         && d.badge is map && d.badge.keys().hasOnly(['ico', 'c']) && okStr(d.badge.ico, 1, 8) && okInt(d.badge.c, 0, 11);
     }
     function okName(d) { return okStr(d.name, 3, 20) && d.nameLc == d.name.lower(); }
@@ -168,15 +174,15 @@ service cloud.firestore {
       allow read: if signedIn();
       // crear: el líder es quien lo crea, empieza con 1 miembro (él) y reserva el nombre en el mismo lote
       allow create: if signedIn()
-        && request.resource.data.keys().hasOnly(['name', 'nameLc', 'desc', 'open', 'minLv', 'lang', 'country', 'badge', 'leader', 'count', 'last', 'lg', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['name', 'nameLc', 'desc', 'open', 'closed', 'max', 'minLv', 'lang', 'country', 'badge', 'leader', 'count', 'last', 'lg', 'createdAt'])
         && okName(request.resource.data) && okSettings(request.resource.data) && okLg(request.resource.data)
         && request.resource.data.leader == request.auth.uid && request.resource.data.count == 1 && request.resource.data.last == request.auth.uid
         && getAfter(memP(cid, request.auth.uid)).data.role == 'leader'
         && getAfter(nameP(request.resource.data.nameLc)).data.cid == cid;
-      // ajustes: líder y oficiales
-      allow update: if isStaff(cid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['desc', 'open', 'minLv', 'lang', 'country', 'badge'])
-        && okSettings(request.resource.data);
+      // ajustes: líder y colíderes (el máximo nunca por debajo de los que ya hay)
+      allow update: if isBoss(cid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['desc', 'open', 'closed', 'max', 'minLv', 'lang', 'country', 'badge'])
+        && okSettings(request.resource.data) && maxOf(request.resource.data) >= resource.data.count;
       // nombre nuevo (solo el líder, con su reserva) y ceder el liderazgo (el nuevo líder ya es «leader» en su ficha)
       allow update: if isMember(cid) && myRole(cid) == 'leader'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'nameLc', 'leader'])
@@ -186,7 +192,7 @@ service cloud.firestore {
       // entrar / salir / expulsar: el contador cambia en 1 y el miembro «last» aparece o desaparece en el mismo lote
       allow update: if signedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count', 'last'])
-        && ((request.resource.data.count == resource.data.count + 1 && request.resource.data.count <= 30
+        && ((request.resource.data.count == resource.data.count + 1 && request.resource.data.count <= maxOf(resource.data)
               && !exists(memP(cid, request.resource.data.last)) && existsAfter(memP(cid, request.resource.data.last)))
           || (request.resource.data.count == resource.data.count - 1 && request.resource.data.count >= 1
               && exists(memP(cid, request.resource.data.last)) && !existsAfter(memP(cid, request.resource.data.last))));
@@ -203,7 +209,7 @@ service cloud.firestore {
       match /members/{uid} {
         function okMember(d) {
           return d.keys().hasOnly(['name', 'avatar', 'role', 'joinedAt', 'wk', 'ex', 'exN', 'dmg', 'atk', 'atkN', 'lg', 'lgS'])
-            && okStr(d.name, 1, 20) && okStr(d.avatar, 1, 16) && d.role in ['leader', 'officer', 'member']
+            && okStr(d.name, 1, 20) && okStr(d.avatar, 1, 16) && d.role in ['leader', 'officer', 'elder', 'member']
             && okStr(d.wk, 0, 12) && okInt(d.ex, 0, 150) && okInt(d.exN, 0, 50) && okInt(d.dmg, 0, 5000000)
             && okStr(d.atk, 0, 12) && okInt(d.atkN, 0, 6) && okStr(d.lg, 0, 12) && okInt(d.lgS, 0, 30);
         }
@@ -213,17 +219,19 @@ service cloud.firestore {
           && !exists(clubP(cid)) && getAfter(clubP(cid)).data.leader == uid;
         // entrar: en un club abierto uno mismo, o un oficial acepta una solicitud (que se borra en el mismo lote)
         allow create: if signedIn() && okMember(request.resource.data) && request.resource.data.role == 'member'
-          && cnt(cid) < 30 && cntAfter(cid) == cnt(cid) + 1 && getAfter(clubP(cid)).data.last == uid
-          && ((uid == request.auth.uid && get(clubP(cid)).data.open == true)
+          && cnt(cid) < maxOf(get(clubP(cid)).data) && cntAfter(cid) == cnt(cid) + 1 && getAfter(clubP(cid)).data.last == uid
+          && ((uid == request.auth.uid && get(clubP(cid)).data.open == true && get(clubP(cid)).data.get('closed', false) == false)
             || (isStaff(cid) && exists(reqP(cid, uid)) && !existsAfter(reqP(cid, uid))));
         // su propio progreso, nombre y avatar
         allow update: if uid == request.auth.uid && okMember(request.resource.data)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'avatar', 'wk', 'ex', 'exN', 'dmg', 'atk', 'atkN', 'lg', 'lgS']);
-        // el líder nombra o quita oficiales y cede el liderazgo (a la vez pone club.leader al nuevo y se queda de oficial)
-        allow update: if isMember(cid) && myRole(cid) == 'leader' && uid != request.auth.uid
+        // ascender y degradar: el colíder mueve a miembros y veteranos (hasta veterano); el líder, a todos (hasta colíder).
+        // Ceder el liderazgo: a la vez pone club.leader al nuevo y el antiguo líder se queda de colíder.
+        allow update: if isMember(cid) && myRank(cid) >= 2 && uid != request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
-          && (request.resource.data.role in ['officer', 'member']
-            || (request.resource.data.role == 'leader' && getAfter(clubP(cid)).data.leader == uid
+          && ((rank(resource.data.role) < myRank(cid) && request.resource.data.role in ['officer', 'elder', 'member']
+                && rank(request.resource.data.role) < myRank(cid))
+            || (myRole(cid) == 'leader' && request.resource.data.role == 'leader' && getAfter(clubP(cid)).data.leader == uid
                 && getAfter(memP(cid, request.auth.uid)).data.role == 'officer'));
         allow update: if uid == request.auth.uid && resource.data.role == 'leader'
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']) && request.resource.data.role == 'officer'
@@ -232,15 +240,14 @@ service cloud.firestore {
         allow delete: if signedIn() && (
             (uid == request.auth.uid && resource.data.role != 'leader' && cntAfter(cid) == cnt(cid) - 1 && getAfter(clubP(cid)).data.last == uid)
           || (uid == request.auth.uid && resource.data.role == 'leader' && !existsAfter(clubP(cid)))
-          || (uid != request.auth.uid && isStaff(cid) && resource.data.role != 'leader'
-              && (resource.data.role == 'member' || myRole(cid) == 'leader')
+          || (uid != request.auth.uid && isStaff(cid) && rank(resource.data.role) < myRank(cid)
               && cntAfter(cid) == cnt(cid) - 1 && getAfter(clubP(cid)).data.last == uid)
           || isAdmin());
       }
       match /requests/{uid} {
         allow get: if signedIn() && (uid == request.auth.uid || isStaff(cid));
         allow list: if isStaff(cid);
-        allow create: if uid == request.auth.uid && get(clubP(cid)).data.open == false
+        allow create: if uid == request.auth.uid && get(clubP(cid)).data.open == false && get(clubP(cid)).data.get('closed', false) == false
           && request.resource.data.keys().hasOnly(['name', 'avatar', 'lv', 'at'])
           && okStr(request.resource.data.name, 1, 20) && okStr(request.resource.data.avatar, 1, 16) && okInt(request.resource.data.lv, 0, 100000);
         allow delete: if signedIn() && (uid == request.auth.uid || isStaff(cid) || isAdmin());
