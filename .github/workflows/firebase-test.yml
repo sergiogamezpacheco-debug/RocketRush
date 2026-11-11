@@ -63,7 +63,8 @@ jobs:
           set -o pipefail
           node tools/build.js
           pip install --quiet playwright
-          python -m playwright install --with-deps chromium > /dev/null
+          # si el espejo de Ubuntu de GitHub falla, se reintenta y luego se instala solo Chromium (el runner ya trae las librerías)
+          python -m playwright install --with-deps chromium > /dev/null || (sudo apt-get update -o Acquire::Retries=3 > /dev/null || true; python -m playwright install --with-deps chromium > /dev/null) || python -m playwright install chromium > /dev/null
           nohup python -m http.server 8123 > /dev/null 2>&1 &
           for i in $(seq 1 40); do curl -s -o /dev/null http://localhost:8123/dist/index.html && break; sleep 0.5; done
           LIVE=1 GAME_URL=http://localhost:8123/dist/index.html python -u tools/socialflow.py 2>&1 | tee res/juego.txt
