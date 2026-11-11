@@ -212,6 +212,7 @@ r = await patch(`clubs/${cid}/members/${B.uid}`, { role: 'member' }, D.tok); ok(
 r = await patch(`clubs/${cid}`, { closed: true }, B.tok); ok(r.s === 200, 'cerrar el club' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
 const E = await signUp(); r = await patch(`clubs/${cid}/requests/${E.uid}`, { name: 'E', avatar: '🐸', lv: 12, at: new Date() }, E.tok); ok(r.s === 403, 'en un club cerrado no se puede pedir entrar');
 r = await patch(`clubs/${cid}`, { closed: false }, B.tok); ok(r.s === 200, 'volver a abrir las solicitudes' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+cs = await cget(); // cerrar y abrir cambió la versión del club
 r = await commit([WD(`clubs/${cid}/members/${A.uid}`, { exists: true }), W(`clubs/${cid}`, { count: cs.c - 1, last: A.uid }, 1, { updateTime: cs.ut })], B.tok);
 ok(r.s === 403, 'un colíder no puede expulsar al líder');
 r = await commit([WD(`clubs/${cid}/members/${D.uid}`, { exists: true }), W(`clubs/${cid}`, { count: cs.c - 1, last: D.uid }, 1, { updateTime: cs.ut })], B.tok);
@@ -227,6 +228,7 @@ r = await get(`clubs/${cid}`, A.tok); ok(r.s === 404, 'el club ya no existe');
 for (const p of [`clubs/${cid}/members/${A.uid}`, `clubs/${cid}/members/${B.uid}`, `clubs/${cid}/members/${D.uid}`, `clubs/${cid}/requests/${D.uid}`, `clubs/${cid}`, `clubnames/${clc}`, `clubs/${cid}x/members/${D.uid}`, `clubs/${cid}x`])
   if (SA) await del(p, SA);
 { const d = await req(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${KEY}`, { method: 'POST', body: JSON.stringify({ idToken: D.tok }) }); ok(d.s === 200, 'borrar el jugador de prueba D'); }
+{ const d = await req(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${KEY}`, { method: 'POST', body: JSON.stringify({ idToken: E.tok }) }); ok(d.s === 200, 'borrar el jugador de prueba E'); }
 
 // limpieza: no queda nada de la prueba
 r = await del(`friendships/${pair}`, B.tok); ok(r.s === 200, 'quitar amigo');
