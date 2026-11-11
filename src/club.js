@@ -114,7 +114,9 @@
     catch (e) { setMsg(errMsg(e)); }
     busy = false; render();
   }
-  function open(t) {
+  let from = 'map';   // pantalla a la que vuelve «atrás»: 'title' (botón de la portada) o 'map' (fila del mapa)
+  function open(t, f) {
+    if (f) from = f;
     if (t) tab = t;
     P(); ensureLevels();
     X.show('club'); X.setCoins(); $('clubList').scrollTop = 0;
@@ -370,9 +372,11 @@
   function back(L) { tab = L && L.club ? ({ ex: 'ex', lg: 'lg', boss: 'boss' })[L.club] : tab; open(); }
 
   window.Club = { open, render, refresh, onStart, onEnd, next, back, levels: ensureLevels, time: () => S.time(), _P: P, get tab() { return tab; }, get inClub() { return !!(S.id && S.state.club && S.state.cid === S.id); } };
-  const bk = $('clubBack'); if (bk) bk.addEventListener('click', () => { X.Audio.click && X.Audio.click(); X.goMap(); });
+  const goBack = () => { if (from === 'title') X.goTitle(); else X.goMap(); };
+  window.Club.goBack = goBack;
+  const bk = $('clubBack'); if (bk) bk.addEventListener('click', () => { X.Audio.click && X.Audio.click(); goBack(); });
   const sy = $('clubSync'); if (sy) sy.addEventListener('click', () => { X.Audio.click && X.Audio.click(); found = null; if (!S.id) find(); else refresh(true); });
   // al abrir sin club, se busca directamente
   const _open = open;
-  window.Club.open = t => { _open(t); if (!S.id && found == null) find(); };
+  window.Club.open = (t, f) => { _open(t, f); if (!S.id && found == null) find(); };
 })();

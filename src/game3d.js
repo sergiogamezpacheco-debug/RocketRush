@@ -3649,12 +3649,15 @@
   }
 
   // ---------------- evento de Navidad ----------------
-  // Del 1 de diciembre al 6 de enero a las 23:59 (hora de España) salvo que el panel diga otra cosa (config en directo «xm»):
+  // Del 27 de noviembre (00:00) al 6 de enero a las 23:59 (hora de España) salvo que el panel diga otra cosa (config en directo «xm»):
   // mundo de 50 niveles en el pueblo nevado, regalos con caramelos y bastones, tienda de Navidad y el trineo de Papá Noel.
-  const XM_START = Date.UTC(2026, 10, 30, 23, 0, 0), XM_END = Date.UTC(2027, 0, 6, 22, 59, 59);
+  // Las 3 semanas antes, el árbol de la portada ya sale con la cuenta atrás hasta que empieza.
+  const XM_START = Date.UTC(2026, 10, 26, 23, 0, 0), XM_END = Date.UTC(2027, 0, 6, 22, 59, 59);
+  const XM_OLD_START = Date.UTC(2026, 10, 30, 23, 0, 0);   // el antiguo inicio por defecto (1 dic): si el panel lo guardó, vale el nuevo
+  const XM_SOON = 21 * 864e5;
   const XML = Levels.XM || [];
   const xmCfg = () => (window.Live && window.Live.cfg.xm) || null;
-  function xmStart() { const c = xmCfg(); return c && c.start != null ? +c.start : XM_START; }
+  function xmStart() { const c = xmCfg(); return c && c.start != null && +c.start !== XM_OLD_START ? +c.start : XM_START; }
   function xmEnd() { const c = xmCfg(); return c && c.end ? +c.end : XM_END; }
   function xmActive() {
     if (!XML.length) return false;
@@ -3663,10 +3666,17 @@
     if (c && c.on === false) return false;
     return t >= xmStart() && t < xmEnd();
   }
+  // todavía no ha empezado, pero falta poco: el árbol sale en la portada con la cuenta atrás hasta el inicio
+  function xmSoon() {
+    if (!XML.length || xmActive()) return false;
+    const c = xmCfg(), t = Date.now(), s = xmStart();
+    if (c && c.on === false) return false;
+    return t < s && s - t <= XM_SOON;
+  }
   function xmState() { if (!save.xm) save.xm = { unlocked: 1 }; return save.xm; }
   function addXCandy(n) { save.xcandy = (save.xcandy || 0) + n; persist(); xmCandyChip(); document.querySelectorAll('.xcandyTxt').forEach(el => { el.textContent = save.xcandy; }); }
   function xmLeft() {
-    const ms = Math.max(0, xmEnd() - Date.now()), d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
+    const ms = Math.max(0, (xmActive() ? xmEnd() : xmStart()) - Date.now()), d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
     return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`;
   }
   // icono del evento: árbol de Navidad con estrella, bolas y nieve en las ramas
@@ -3690,8 +3700,8 @@
     <path d="M14 36 L14 14 Q14 4 22 4 Q30 4 30 12 L30 15 L25 15 L25 12 Q25 9 22 9 Q19 9 19 14 L19 36Z" fill="none" stroke="#4a0010" stroke-width="2.4" stroke-linejoin="round"/></svg>`;
   // árbol de la portada y botón «Navidad» de la fila del mapa
   function xmUi() {
-    const on = xmActive();
-    const tp = $('xmTree'); if (tp) { tp.hidden = !on; tp.classList.toggle('below', on && hwActive()); if (on && !tp.__svg) { tp.__svg = 1; tp.querySelector('.xtw').innerHTML = treeSvg(); } }
+    const on = xmActive(), soon = !on && xmSoon();
+    const tp = $('xmTree'); if (tp) { tp.hidden = !on && !soon; tp.classList.toggle('soon', soon); tp.classList.toggle('below', (on || soon) && hwActive()); if ((on || soon) && !tp.__svg) { tp.__svg = 1; tp.querySelector('.xtw').innerHTML = treeSvg(); } }
     const nb = $('navXm'); if (nb) { nb.hidden = !on; if (on && !nb.__svg) { nb.__svg = 1; nb.querySelector('.xtw').innerHTML = treeSvg(); } }
     document.querySelectorAll('.xmcdTxt').forEach(el => { el.textContent = xmLeft(); });
     document.querySelectorAll('.xcandyTxt').forEach(el => { el.textContent = save.xcandy || 0; });
@@ -4318,9 +4328,10 @@
   on('hwPump', () => { G.hwFrom = 'title'; goHw(); });
   on('navHw', () => { G.hwFrom = 'map'; goHw(); });
   on('navWorlds', () => { G.inHw = false; G.inXm = false; if (!$('map').classList.contains('on')) goMap(); const cur = document.querySelector('#mapList .lv.cur'); if (cur) cur.scrollIntoView({ block: 'center', behavior: 'smooth' }); });
-  on('navClub', () => { if (window.Club) window.Club.open(); });
+  on('navClub', () => { if (window.Club) window.Club.open(null, 'map'); });
+  on('btnClubT', () => { if (window.Club) window.Club.open(null, 'title'); });
   on('hwBack', hwBack);
-  on('xmTree', () => { G.xmFrom = 'title'; goXm(); });
+  on('xmTree', () => { if (!xmActive()) { toast(`¡La Navidad llega en ${xmLeft()}!`, 2600); return; } G.xmFrom = 'title'; goXm(); });
   on('navXm', () => { G.xmFrom = 'map'; goXm(); });
   on('xmBack', xmBack);
   on('xmShop', () => openShop('xm'));
@@ -4605,6 +4616,7 @@
     if (open('settings')) { $('settings').classList.remove('on'); return true; }
     if (open('missions')) { G.mode === 'title' ? goTitle() : goMap(); return true; }
     if (open('social')) { goTitle(); return true; }
+    if (open('club') && window.Club && window.Club.goBack) { window.Club.goBack(); return true; }
     if (open('hwmap')) { hwBack(); return true; }
     if (open('pre')) { $('pre').classList.remove('on'); if (G.mode !== 'map') goMap(); return true; }
     if (G.mode === 'play') {

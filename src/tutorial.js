@@ -37,7 +37,7 @@
   const MAIN = [
     { when: titleReady, title: '¡Bienvenido!', text: '¡Hola! Soy Cubi. En un momento te enseño cómo funciona Rocket Rush.' },
     { when: titleReady, target: () => visible(['btnDailyT', 'btnPassT', 'btnMisT']), title: 'Tus recompensas', text: 'Aquí tienes la racha diaria, el pase de temporada y las misiones. Cuando tengan algo para ti, verás un aviso rojo.' },
-    { when: titleReady, target: () => visible(['btnSocT', 'btnShopT', 'btnSetT']), title: 'Amigos, tienda y ajustes', text: 'Añade amigos y mira la clasificación, compra en la tienda y cambia el idioma o el sonido en los ajustes.' },
+    { when: titleReady, target: () => visible(['btnClubT', 'btnSocT', 'btnShopT', 'btnSetT']), title: 'Club, amigos, tienda y ajustes', text: 'Juega en equipo con tu club, añade amigos y mira la clasificación, compra en la tienda y cambia el idioma o el sonido en los ajustes.' },
     { when: titleReady, target: () => ['#btnPlay'], must: () => on('map') || on('pre'), title: '¡A jugar!', text: 'Toca ¡A DEMOLER! para empezar.' },
     { when: () => on('pre'), target: () => ['#preGo'], must: () => X.G.mode === 'play', title: 'Antes de jugar', text: 'Aquí ves el objetivo del nivel y puedes llevar ventajas como la bomba o el arcoíris. Toca ¡A DEMOLER!' },
     { when: playReady, aim: true, must: () => X.G.sim && X.G.sim.shots > 0, title: 'Apunta y dispara', text: 'Arrastra el dedo para apuntar y suéltalo para disparar. Cada bola revienta los bloques de su color; los demás caen empujados.' },

@@ -515,7 +515,7 @@ h1,h2,h3{margin:0}
   background:linear-gradient(180deg,#ff4f6d 0 20%,#ffd23f 20% 40%,#5fd45a 40% 60%,#3d9bff 60% 80%,#a66bff 80%);
   -webkit-mask:linear-gradient(90deg,transparent,#000 55%);mask:linear-gradient(90deg,transparent,#000 55%)}
 .tside{position:absolute;top:clamp(330px,47%,440px);display:flex;flex-direction:column;gap:14px;z-index:2}
-.tside.left{left:max(12px,var(--sal,env(safe-area-inset-left)))}.tside.right{right:max(12px,var(--sar,env(safe-area-inset-right)))}
+.tside.left{left:max(12px,var(--sal,env(safe-area-inset-left)))}.tside.right{right:max(12px,var(--sar,env(safe-area-inset-right)));top:min(clamp(330px,47%,440px),calc(100% - 431px))}
 .sb{position:relative;width:66px;height:66px;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#fff;border:3px solid var(--gb);cursor:pointer;font-family:inherit;padding:0;
   background:linear-gradient(160deg,var(--gl1),var(--gl2));box-shadow:0 0 0 2px var(--gbd),inset 0 3px 0 rgba(255,255,255,.45),inset 0 -4px 8px rgba(30,10,90,.35),0 5px 0 var(--gbs)}
 .sb:active{transform:translateY(3px);box-shadow:0 0 0 2px var(--gbd),inset 0 3px 0 rgba(255,255,255,.45),0 2px 0 var(--gbs)}
@@ -530,7 +530,7 @@ h1,h2,h3{margin:0}
   box-shadow:0 0 0 4px var(--gb),0 0 0 7px var(--gbd),inset 0 6px 0 rgba(255,255,255,.5),inset 0 -8px 12px rgba(0,80,20,.3),0 10px 0 var(--gbd),0 18px 26px rgba(0,0,0,.4)!important;position:relative}
 .tplay::after{content:'';position:absolute;inset:-7px;border-radius:999px;box-shadow:0 0 0 0 rgba(156,242,138,.7);animation:tglow 1.8s ease-out infinite;pointer-events:none}
 @keyframes tglow{0%{box-shadow:0 0 0 0 rgba(156,242,138,.65)}100%{box-shadow:0 0 0 16px rgba(156,242,138,0)}}
-@media (max-height:700px){.tside{top:clamp(290px,44%,400px)}.sb{width:58px;height:58px}.tside{gap:10px}.lvbub{margin-bottom:12px}.tplay{padding:14px 0!important;font-size:27px!important}}
+@media (max-height:700px){.tside{top:clamp(290px,44%,400px)}.tside.right{top:min(clamp(290px,44%,400px),calc(100% - 356px));gap:8px}.sb{width:58px;height:58px}.tside{gap:10px}.lvbub{margin-bottom:12px}.tplay{padding:14px 0!important;font-size:27px!important}}
 
 /* mapa: los 100 mundos visibles, bloqueados incluidos; cada mundo con el color de su paisaje */
 .world{content-visibility:auto;contain-intrinsic-size:auto var(--wh,470px)}.world.wlock{contain-intrinsic-size:auto var(--whl,490px)}
@@ -999,6 +999,7 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 .xmtree .xtw{width:62px;height:62px;filter:drop-shadow(0 0 14px rgba(140,220,255,.9))}
 .xmtree .xtw svg,.xtw svg,.xti svg{width:100%;height:100%;display:block}
 .xmtree .xmcd{background:#1f6a44;border-color:#ffd23f}
+.xmtree.soon .xmcd{background:#1d4f9a;border-color:#bfe6ff}.xmtree.soon .xtw{filter:drop-shadow(0 0 10px rgba(140,220,255,.6)) saturate(.85)}
 .xmtree.below{top:calc(max(4px,var(--sat,env(safe-area-inset-top))) + 96px)}
 #title.xm .ttrail,#title.xm .trocket{display:none!important}
 .hwnav .xmb{background:linear-gradient(160deg,#1f6a44,#0b3a24);border-color:#ffd23f;box-shadow:0 0 0 2px #062a14,0 0 12px rgba(140,230,255,.55),inset 0 3px 0 rgba(255,255,255,.2),0 4px 0 #04200e}
@@ -1247,6 +1248,7 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
     <button class="sb" id="btnMisT" aria-label="Misiones"><span>&#127919;</span><b>Misiones</b><i class="bdg" id="misDotT" hidden>0</i></button>
   </div>
   <div class="tside right">
+    <button class="sb clubsb" id="btnClubT" aria-label="Club"><span>&#128737;&#65039;</span><b>Club</b></button>
     <button class="sb" id="btnSocT" aria-label="Amigos"><span>&#128101;</span><b>Amigos</b><i class="bdg" id="socDotT" hidden>0</i></button>
     <button class="sb" id="btnShopT" aria-label="Tienda"><span>&#128722;</span><b>Tienda</b></button>
     <button class="sb" id="btnSetT" aria-label="Ajustes"><span>&#9881;&#65039;</span><b>Ajustes</b></button>

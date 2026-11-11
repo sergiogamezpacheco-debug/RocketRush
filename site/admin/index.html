@@ -150,7 +150,9 @@ const FB = { key: 'AIzaSyC9Rbs2qrzJaSugbHCjOTpuH_QQZKw8DNc', pid: 'rocket-rush-7
 const ROOT = `projects/${FB.pid}/databases/(default)/documents`, FS = 'https://firestore.googleapis.com/v1/' + ROOT;
 const IDT = 'https://identitytoolkit.googleapis.com/v1', STS = 'https://securetoken.googleapis.com/v1';
 const HW_DEFAULT_END = Date.UTC(2026, 10, 1, 22, 59, 59);   // la fecha que trae el juego
-const XM_DEFAULT_START = Date.UTC(2026, 10, 30, 23, 0, 0), XM_DEFAULT_END = Date.UTC(2027, 0, 6, 22, 59, 59);   // Navidad: 1 dic – 6 ene
+const XM_DEFAULT_START = Date.UTC(2026, 10, 26, 23, 0, 0), XM_DEFAULT_END = Date.UTC(2027, 0, 6, 22, 59, 59);   // Navidad: 27 nov – 6 ene
+const XM_OLD_START = Date.UTC(2026, 10, 30, 23, 0, 0);   // antiguo inicio por defecto (1 dic): el juego lo cambia por el nuevo
+const xmS = xm => xm.start != null && +xm.start !== XM_OLD_START ? +xm.start : XM_DEFAULT_START;
 const $ = id => document.getElementById(id);
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { /* nada */ } } };
@@ -309,7 +311,7 @@ function nowItems() {
   const out = [], t = Date.now(), d = draft, live = o => o && (!o.start || t >= o.start) && (!o.end || t < o.end);
   const hw = d.hw || {}, hwOn = hw.on !== false && (!hw.start || t >= hw.start) && t < (hw.end || HW_DEFAULT_END);
   out.push(hwOn ? `🎃 Halloween · quedan ${left((hw.end || HW_DEFAULT_END) - t)}` : '🎃 Halloween apagado');
-  const xm = d.xm || {}, xs = xm.start != null ? xm.start : XM_DEFAULT_START, xe = xm.end || XM_DEFAULT_END, xmOn = xm.on !== false && t >= xs && t < xe;
+  const xm = d.xm || {}, xs = xmS(xm), xe = xm.end || XM_DEFAULT_END, xmOn = xm.on !== false && t >= xs && t < xe;
   out.push(xmOn ? `🎄 Navidad · quedan ${left(xe - t)}` : xm.on !== false && t < xs ? `🎄 Navidad empieza en ${left(xs - t)}` : '🎄 Navidad apagada');
   if (d.tmp && d.tmp.on && live(d.tmp)) out.push('⏳ Temporales elegidos a mano');
   if (d.mini && d.mini.on && live(d.mini)) out.push('🎉 Mini-evento elegido a mano'); else if (d.mini && d.mini.on === false) out.push('🎉 Mini-eventos apagados');
@@ -342,7 +344,7 @@ function renderHome() {
 // ---- eventos ----
 function renderEvents() {
   const hw = Object.assign({ on: true, start: 0, end: HW_DEFAULT_END }, draft.hw || {});
-  const xm = Object.assign({ on: true, start: XM_DEFAULT_START, end: XM_DEFAULT_END }, draft.xm || {});
+  const xm = Object.assign({ on: true, start: XM_DEFAULT_START, end: XM_DEFAULT_END }, draft.xm || {}); xm.start = xmS(xm);
   const s = sec('Eventos', `
     <div class="card" id="hwCard"><h3>🎃 Halloween <span class="grow"></span>${pill(Object.assign({}, hw, { end: hw.end || HW_DEFAULT_END }))}</h3>
       <p class="hint">El mundo de 50 niveles, los caramelos y su tienda ya están en el juego: aquí decides cuándo se ven.</p>
@@ -355,7 +357,7 @@ function renderEvents() {
       <label class="chk"><input type="checkbox" name="on" ${xm.on !== false ? 'checked' : ''}> Evento encendido</label>
       <div class="grid two"><label class="fld"><span>Empieza</span><input type="datetime-local" name="start" value="${toInput(xm.start)}"></label>
         <label class="fld"><span>Termina</span><input type="datetime-local" name="end" value="${toInput(xm.end)}"></label></div>
-      <div class="row"><button class="btn sm" data-x="xmNow">Empezar ya</button><button class="btn sm" data-x="xmExt">+7 días</button><button class="btn sm" data-x="xmDef">Fechas originales (1 dic – 6 ene)</button></div></div>
+      <div class="row"><button class="btn sm" data-x="xmNow">Empezar ya</button><button class="btn sm" data-x="xmExt">+7 días</button><button class="btn sm" data-x="xmDef">Fechas originales (27 nov – 6 ene)</button></div></div>
     <div class="card" id="tmpCard"><h3>⏳ Tienda · Temporales <span class="grow"></span>${draft.tmp && draft.tmp.on ? pill(draft.tmp) : '<span class="pill on">Automático</span>'}</h3>
       <p class="hint">Sin tocar nada, cada lunes cambian solos: 2 cañones legendarios (Diamante, Volcán, Tesoro, Holográfico) y 1 bola legendaria (Gema o Píxel). Aquí puedes elegir los de una semana (o de unas fechas). Las 2 ofertas del día (-30 %) y el cañón del Pase Pro anterior van siempre solos.</p>
       <label class="chk"><input type="checkbox" name="on" ${draft.tmp && draft.tmp.on ? 'checked' : ''}> Elegir a mano</label>
@@ -436,7 +438,7 @@ function renderMsgs() {
       <p class="hint">Una ventana que cada jugador ve una sola vez en la portada: novedades, eventos que llegan, avisos.</p><div id="nList"></div></div>
     <div class="card" id="nForm"><h3>Nueva noticia</h3>
       <div class="grid two"><label class="fld"><span>Icono</span><input name="ico" maxlength="4" value="📣"></label><label class="fld"><span>Título</span><input name="title" maxlength="50" placeholder="¡Llega la Navidad!"></label></div>
-      <label class="fld" style="margin-top:10px"><span>Texto</span><textarea name="body" maxlength="400" placeholder="El 1 de diciembre abre un mundo nuevo…"></textarea></label>
+      <label class="fld" style="margin-top:10px"><span>Texto</span><textarea name="body" maxlength="400" placeholder="El 27 de noviembre abre un mundo nuevo…"></textarea></label>
       <div class="grid two"><label class="fld"><span>Desde</span><input type="datetime-local" name="start"></label><label class="fld"><span>Hasta</span><input type="datetime-local" name="end"></label></div>
       ${trFields()}
       <button class="btn acc full" data-x="nAdd">Añadir noticia</button></div>`);

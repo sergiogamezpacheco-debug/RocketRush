@@ -558,7 +558,11 @@ Puesta en marcha (una vez):
 Pruebas: `tools/liveflow.py` (el juego con la configuración en directo), `tools/adminflow.py` (el panel contra un
 Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del panel con un administrador de prueba.
 
-## Evento de Navidad (del 1 de diciembre al 6 de enero a las 23:59, se cambia desde el panel)
+## Evento de Navidad (del 27 de noviembre al 6 de enero a las 23:59, se cambia desde el panel)
+
+- **Empieza solo el 27 de noviembre a las 00:00** (hora de España). Las 3 semanas antes, el árbol ya sale en la portada con la
+  cuenta atrás hasta el inicio (chapa azul); al tocarlo avisa «¡La Navidad llega en …!». Si el panel tenía guardado el antiguo
+  inicio (1 de diciembre), el juego y el panel lo cambian por el 27 de noviembre.
 
 - **Mundo de 50 niveles** (ids 30001-30050, `Levels.XM`) en 5 zonas: Plaza del pueblo, Mercadillo navideño, Bosque de los
   abetos, Lago helado y Taller de Papá Noel. Afinados con `EV=xm node tools/hwtune.js` (gid `xm1…xm50` en `src/gentune.js`)
@@ -599,6 +603,12 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   `clubs/{id}/requests/{uid}` y `clubnames/{nombre}`. Entrar, salir y expulsar van en un lote que cambia a la vez la ficha
   y el contador (las reglas no dejan pasar de 30 ni inventar miembros). Probado contra el Firebase real en
   `tools/firebase_live.mjs`; la pantalla, con un Firestore de mentira en `tools/clubflow.py` (`tools/fakefs.py`).
+
+## Portada: botón del Club
+
+- La columna derecha de la portada es **Club · Amigos · Tienda · Ajustes** (`btnClubT`). El club recuerda desde dónde se abrió:
+  «atrás» (botón o gesto de Android) vuelve a la portada o al mapa. En pantallas bajas la columna sube lo justo para no pisar
+  ¡A DEMOLER! sin tapar el cartel.
 
 ## Pantalla del estudio al arrancar
 
