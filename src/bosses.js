@@ -84,6 +84,7 @@
 
   function stop() {
     if (S) for (const o of S.extras) { if (o.parent) o.parent.remove(o); }
+    if (X.auxLight && X.auxLight.userData.owner === 'boss') { X.auxLight.intensity = 0; X.auxLight.userData.owner = null; }
     X.aimObjs.length = 0;
     S = null;
     document.body.classList.remove('bossmode');
@@ -489,7 +490,8 @@
     nextCore(true);
     const sk = GOLEM_SKIN[S.L.biome];
     if (sk) { const rock = new THREE.MeshStandardMaterial({ color: sk[0], metalness: sk[1], roughness: sk[2] }); for (const b of sim.blocks) if (b.userData.kind === 'stone') { const m = G.meshes[b.userData.id]; if (m) m.userData.body.material = rock; } }
-    const light = new THREE.PointLight(0xff5a10, 6, 9, 2); light.position.set(0, 5, 2); X.world.add(light); S.extras.push(light); S.light = light;
+    // la luz del gólem es la luz de apoyo del juego (siempre en la escena): añadir una luz nueva obligaría a recompilar todos los shaders
+    const light = X.auxLight; light.color.set(0xff5a10); light.intensity = 6; light.distance = 9; light.position.set(0, 5, 2); light.userData.owner = 'boss'; S.light = light;
     S.walk = 0; S.stun = 0; S.charge = 0; S.coresHit = 0;
     // las piezas del gólem agarran más entre sí: al caminar no se le desmonta el cuerpo solo
     for (const b of sim.blocks) if (b.material) { b.material.friction = 1; b.linearDamping = Math.max(b.linearDamping, 0.08); }

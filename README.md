@@ -632,6 +632,29 @@ Las reglas de Firestore (`firebase/firestore.rules`) lo hacen cumplir en el serv
   «atrás» (botón o gesto de Android) vuelve a la portada o al mapa. En pantallas bajas la columna sube lo justo para no pisar
   ¡A DEMOLER! sin tapar el cartel.
 
+## Rendimiento: fluidez en el móvil (revisión a fondo)
+
+Medido con `tools/perfprobe.py` (fotograma a fotograma: física, escena, pintado, shaders nuevos y basura de memoria) y
+`tools/physbench.js` (solo la física, sin dibujo, en 9 niveles con disparos reales). Qué se cambió y por qué:
+
+| Problema | Arreglo |
+|---|---|
+| Tirón la primera vez que salía algo (primer disparo, explosión, pájaro, barco, globo, bola especial): el móvil compilaba su *shader* en ese momento | `src/perf.js` apunta todos los materiales al arrancar y, **mientras se ve el logo del estudio**, se compilan todos (≈45 programas) y se suben sus texturas. Durante la partida ya no se compila ninguno (antes 2-3 en el primer disparo). El logo espera a que acabe, como mucho 4,5 s |
+| Al entrar en la cueva de cristal o en el gólem se añadía una luz → el móvil recompilaba **todos** los shaders | Una luz de apoyo fija (`auxLight`) que esas pantallas encienden y apagan: el número de luces no cambia nunca |
+| Pausas del recolector de memoria (cada pocos fotogramas en un derrumbe) | Física (cannon-es, parcheada al generar `vendor/` en `tools/vendor.js`): sin crear vectores ni arrays en cada choque ni en el solucionador (−30 % de basura). three.js: los uniformes `bool` ya no convierten todas las cachés en «genéricas» (la portada pasó de ~7 a ~3 MB/s). Juego: sin `Set`, arrays ni cierres nuevos en cada paso o fotograma |
+| Movimiento a saltitos (un fotograma hacía 2 pasos de física y el siguiente 3) | **Interpolación**: cada pieza se dibuja entre el paso anterior y el actual (`sim.alpha`, `smoothPose`) |
+| Abrir un nivel tardaba 50-250 ms en el móvil (30 pasos de física para asentar la estructura), y la portada lo repetía cada 8 s | El asentado se guarda por nivel (`Sim.settle`): la segunda vez se coloca todo directamente (de ~60 ms a ~1 ms) |
+| El mapa de sombras se volvía a dibujar en cada fotograma aunque nada se moviera | Solo cuando algo se mueve (bolas, bloques, cañón, pájaros, jefes) y, si no, 1 de cada 3 fotogramas |
+| Cada parpadeo de las caras de los bloques obligaba a revisar su shader | Cambia solo la textura (`needsUpdate` sobraba) |
+| Golpes y cristales en un gran derrumbe: decenas de sonidos por segundo | Como mucho uno cada ~45 ms (suena igual) |
+| Pantallas de 90/120 Hz | La app Android pide la frecuencia más alta; si el móvil no llega (va a menos de ~75 fps con la pantalla a 120), el juego pide 60 Hz estables (`ChromaAndroid.refreshRate`). Debajo de ~52 fps baja la resolución interna (de 0,25 en 0,25) |
+| El 3D de la mascota Cubi se montaba al salir su primer consejo | Se prepara justo después de la precarga |
+| El motor de la página del juego podía perder prioridad | `setRendererPriorityPolicy(IMPORTANT)` en Android 8+ |
+
+Resultados (ordenador, mismas pruebas): física −20 % de tiempo medio y pico máximo de 61 → 32 ms; shaders compilados en
+partida 3 → 0; carga del nivel 1 de 162 → 33 ms; basura en la portada 7,3 → 3 MB/s. En el móvil todo esto se multiplica
+por 3-5, que es justo donde se notaban los tirones.
+
 ## Pantalla del estudio al arrancar
 
 - Nada más abrir el juego sale el logo de **Lost Anarchy Games** sobre negro (`#studio` en `src/index.html`, imagen WebP

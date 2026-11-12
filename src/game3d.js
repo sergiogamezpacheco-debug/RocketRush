@@ -61,7 +61,7 @@
   // ---------------- audio ----------------
   const Audio = (() => {
     let ac = null, master = null, sfx = null, mus = null, noiseBuf = null, musicOn = false, musicTimer = null, musicStyle = 'normal';
-    let popRun = 0, popT = 0;
+    let popRun = 0, popT = 0, thudT = 0, glassT = 0;
     function init() {
       if (ac) { if (ac.state !== 'running' && ac.state !== 'closed' && ac.resume) ac.resume().catch(() => {}); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -109,8 +109,10 @@
         const f = 520 * Math.pow(2, semis / 12);
         tone(f, 0.12, 'sine', 0.32, 1.6); tone(f * 2, 0.06, 'triangle', 0.08, 1.2);
       },
-      thud(v, stone) { if (!ok()) return; const vol = Math.min(0.5, 0.08 + v * 0.05); noise(0.12, vol, stone ? 900 : 500, 120); tone(stone ? 90 : 120, 0.12, 'sine', vol * 0.8, 0.6); },
-      glass() { if (!ok()) return; for (let i = 0; i < 5; i++) tone(1800 + Math.random() * 2400, 0.18, 'triangle', 0.08, 0.9, i * 0.018); noise(0.25, 0.25, 4000, 9000, 'highpass'); },
+      // golpes y cristales: como mucho uno cada ~45 ms (en un gran derrumbe llegaban decenas por segundo, cada uno con
+      // varios nodos de audio nuevos; con menos suena igual y el móvil va más desahogado)
+      thud(v, stone) { if (!ok()) return; const now = ac.currentTime; if (now - thudT < 0.045) return; thudT = now; const vol = Math.min(0.5, 0.08 + v * 0.05); noise(0.12, vol, stone ? 900 : 500, 120); tone(stone ? 90 : 120, 0.12, 'sine', vol * 0.8, 0.6); },
+      glass() { if (!ok()) return; const now = ac.currentTime; if (now - glassT < 0.06) return; glassT = now; for (let i = 0; i < 5; i++) tone(1800 + Math.random() * 2400, 0.18, 'triangle', 0.08, 0.9, i * 0.018); noise(0.25, 0.25, 4000, 9000, 'highpass'); },
       explode() { if (!ok()) return; noise(0.9, 0.9, 1200, 60); tone(70, 0.6, 'sine', 0.8, 0.35); },
       splash(s) { if (!ok()) return; noise(0.35, Math.min(0.35, 0.12 + s * 0.1), 2600, 300, 'bandpass'); },
       crown() { if (!ok()) return; [0, 4, 7, 12].forEach((n, i) => tone(660 * Math.pow(2, n / 12), 0.25, 'triangle', 0.22, 1, i * 0.07)); },
@@ -490,6 +492,10 @@
   sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.03;
   scene.add(sun); scene.add(sun.target);
   const flashLight = new THREE.PointLight(0xffb040, 0, 18, 2); scene.add(flashLight);
+  // luz de apoyo siempre presente (apagada casi siempre): la usan la cueva de cristal y el gólem. Si estas luces se
+  // añadieran y quitaran, cambiaría el número de luces de la escena y el móvil tendría que recompilar todos los shaders
+  // de golpe (un parón de 1-3 s al entrar en esos niveles)
+  const auxLight = new THREE.PointLight(0xffffff, 0, 1, 2); auxLight.position.set(0, -50, 0); scene.add(auxLight);
 
   // isla flotante de feria
   const island = new THREE.Group(); world.add(island);
@@ -885,7 +891,7 @@
     const rockM = M('stal', { color: 0x3a2a5a, roughness: 0.95, flatShading: true });
     around(60, 25, 140, (x, z) => { const h = rnd(6, 18); const c = new THREE.Mesh(new THREE.ConeGeometry(rnd(1, 3), h, 6), rockM); c.rotation.x = Math.PI; c.position.set(x, 55 - h / 2 + rnd(-6, 6), z); env.add(c); });
     const sparks = points(500, 0, 0xcfe8ff, 0.18, () => [rnd(-40, 40), rnd(-6, 30), rnd(-60, 10)]); sparks.material.sizeAttenuation = true; env.add(sparks);
-    const glow = new THREE.PointLight(0xb88aff, 30, 40, 2); glow.position.set(0, 8, -6); env.add(glow);
+    const glow = { intensity: 30 };   // la luz morada de la cueva es la luz de apoyo (auxLight), que no se quita nunca
     scene.add(env); env.visible = false;
     const ame = tiles('#4a2f7a', 'rgba(190,150,255,0.55)', 6, (g, x, y, s) => { if (Math.random() < 0.3) { g.fillStyle = 'rgba(127,230,255,0.4)'; g.fillRect(x + s * 0.3, y + s * 0.3, s * 0.4, s * 0.4); } });
     const under = new THREE.Group();
@@ -893,8 +899,8 @@
     for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; const c = new THREE.Mesh(new THREE.ConeGeometry(0.5, 3, 6), M('cry' + (i % 4), {})); c.position.set(Math.cos(a) * 4.6, -2.2, Math.sin(a) * 4.6); c.rotation.set(Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9); under.add(c); }
     const platform = makePlatform({ top: new THREE.MeshStandardMaterial({ map: ame, roughness: 0.6 }), side: M('crside', { color: 0x3a2a5a, roughness: 0.9 }), trim: new THREE.MeshStandardMaterial({ color: 0x7fe6ff, emissive: 0x3fc8ff, emissiveIntensity: 1.2 }), under,
       post: (i) => { const p = new THREE.Group(); const c = new THREE.Mesh(new THREE.ConeGeometry(0.22, 3.2, 6), M('cry' + (i % 4), {})); c.position.y = 1.6; p.add(c); return p; } });
-    return { env: [env], platform, noSun: true,
-      update: (dt) => { sparks.rotation.y += dt * 0.02; glow.intensity = 26 + Math.sin(G.t * 1.3) * 6; },
+    return { env: [env], platform, noSun: true, light: { color: 0xb88aff, intensity: 30, distance: 40, pos: [0, 8, -6] },
+      update: (dt) => { sparks.rotation.y += dt * 0.02; glow.intensity = 26 + Math.sin(G.t * 1.3) * 6; if (auxLight.userData.owner === 'biome') auxLight.intensity = glow.intensity; },
       splash: splashCol(0xcfe8ff, 0xb88aff) };
   }
 
@@ -1058,6 +1064,9 @@
     for (const k in BIOMES) { const on = k === biome; for (const o of BIOMES[k].env) o.visible = on; BIOMES[k].platform.visible = on; }
     if (BIOMES[biome].water) sea.visible = true;            // paisajes con agua (Halloween: el galeón navega)
     sunDisc.visible = !BIOMES[biome].noSun;
+    const L = BIOMES[biome].light;
+    if (L) { auxLight.color.set(L.color); auxLight.intensity = L.intensity; auxLight.distance = L.distance; auxLight.position.set(L.pos[0], L.pos[1], L.pos[2]); auxLight.userData.owner = 'biome'; }
+    else if (auxLight.userData.owner === 'biome') { auxLight.intensity = 0; auxLight.userData.owner = null; }
   }
 
   // ---------------- cañón en primer plano ----------------
@@ -1083,9 +1092,9 @@
   for (let i = 0; i < DEBRIS_N; i++) { dState.push({ life: 0 }); debris.setColorAt(i, new THREE.Color(1, 1, 1)); }
   scene.add(debris);
   const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3(), _col = new THREE.Color();
-  let dNext = 0;
+  let dNext = 0, dActive = true;
   function spawnDebris(x, y, z, color, n, speed, size, life, opts) {
-    opts = opts || {};
+    opts = opts || {}; dActive = true;
     for (let k = 0; k < n; k++) {
       const p = dState[dNext]; dNext = (dNext + 1) % DEBRIS_N;
       const a = Math.random() * TAU, el = rnd(-0.3, 1.2), v = speed * rnd(0.4, 1.1);
@@ -1099,9 +1108,12 @@
     debris.instanceColor.needsUpdate = true;
   }
   function updateDebris(dt) {
+    if (!dActive) return;
+    let alive = 0;
     for (let i = 0; i < DEBRIS_N; i++) {
       const p = dState[i];
-      if (p.life <= 0) { _m.makeScale(0, 0, 0); debris.setMatrixAt(i, _m); continue; }
+      if (p.life <= 0) { if (p.life > -1) { p.life = -1; _m.makeScale(0, 0, 0); debris.setMatrixAt(i, _m); } continue; }
+      alive++;
       p.life -= dt;
       p.vy += C.G * 0.8 * p.g * dt;
       p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
@@ -1115,6 +1127,7 @@
       debris.setMatrixAt(i, _m);
     }
     debris.instanceMatrix.needsUpdate = true;
+    if (!alive) dActive = false;
   }
   // humo, destellos y anillos con sprites
   const sprites = [];
@@ -1161,8 +1174,10 @@
     }
   }
   const beams = [];
+  const beamGeo = new THREE.BoxGeometry(14, 0.25, 0.25), beamPool = [];
   function spawnBeam(y, z, color) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(14, 0.25, 0.25), new THREE.MeshBasicMaterial({ color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const m = beamPool.pop() || new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    m.material.color.set(color); m.material.opacity = 1; m.scale.set(1, 1, 1);
     m.position.set(0, y, z); scene.add(m); beams.push({ m, life: 0.45, max: 0.45 });
   }
   const flyers = [];
@@ -1236,7 +1251,7 @@
     }, 250 + i * 220);
   }
   function updateBeams(dt) {
-    for (const b of beams) { b.life -= dt; const k = 1 - b.life / b.max; b.m.scale.set(1, 1 + k * 3, 1 + k * 3); b.m.material.opacity = Math.max(0, 1 - k); if (b.life <= 0) scene.remove(b.m); }
+    for (const b of beams) { b.life -= dt; const k = 1 - b.life / b.max; b.m.scale.set(1, 1 + k * 3, 1 + k * 3); b.m.material.opacity = Math.max(0, 1 - k); if (b.life <= 0) { scene.remove(b.m); beamPool.push(b.m); } }
     for (let i = beams.length - 1; i >= 0; i--) if (beams[i].life <= 0) beams.splice(i, 1);
   }
 
@@ -1587,16 +1602,29 @@
   }
   const fogMat = new THREE.MeshStandardMaterial({ color: 0xb8bcc8, roughness: 0.9 });
   let cloudRects = [];
+  const liveBalls = new Set(), liveMovers = new Set(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion();
+  // posición que se dibuja: entre el paso de física anterior y el actual (sim.alpha), para que el movimiento sea continuo
+  // aunque los fotogramas no caigan justo cada 2 pasos. Si el cuerpo ha saltado (portal, reaparece), se pone donde está.
+  function smoothPose(b, o, sim) {
+    const ip = b.userData && b.userData._ip, a = sim.alpha, p = b.position, q = b.quaternion;
+    if (!ip || !(a > 0 && a < 1) || G.paused) { o.position.set(p.x, p.y, p.z); o.quaternion.set(q.x, q.y, q.z, q.w); return; }
+    const dx = p.x - ip[0], dy = p.y - ip[1], dz = p.z - ip[2];
+    if (dx * dx + dy * dy + dz * dz > 0.6) { o.position.set(p.x, p.y, p.z); o.quaternion.set(q.x, q.y, q.z, q.w); return; }
+    o.position.set(ip[0] + dx * a, ip[1] + dy * a, ip[2] + dz * a);
+    _qa.set(ip[3], ip[4], ip[5], ip[6]); _qb.set(q.x, q.y, q.z, q.w);
+    o.quaternion.copy(_qa).slerp(_qb, a);
+  }
   function syncView(dt) {
     const sim = G.sim, t = G.t;
-    cloudRects = (sim.clouds || []).filter(c => c.userData.alive).map(c => [c.position.x, c.position.y, c.userData.w / 2 + 0.2, c.userData.h / 2 + 0.2, c.position.z]);
+    if (sim.clouds && sim.clouds.length) cloudRects = sim.clouds.filter(c => c.userData.alive).map(c => [c.position.x, c.position.y, c.userData.w / 2 + 0.2, c.userData.h / 2 + 0.2, c.position.z]);
+    else if (cloudRects.length) cloudRects = [];
     const look = sim.balls.length ? sim.balls[sim.balls.length - 1].position : null;
     for (const b of sim.blocks) {
       const d = b.userData, g = G.meshes[d.id];
       if (!g) continue;
       if (!d.alive && !d.popping) { g.visible = false; continue; }
       if (d.destroyed && !d.alive) { g.visible = false; continue; }
-      g.position.copy(b.position); g.quaternion.copy(b.quaternion);
+      smoothPose(b, g, sim);
       if (d.popping && d.alive) {
         g.userData.pop = (g.userData.pop || 0) + dt * 8;
         const s = 1 + Math.min(0.3, g.userData.pop * 0.3); g.scale.set(s, s, s);
@@ -1624,12 +1652,13 @@
       if (g.userData.hotMat) g.userData.hotMat.emissiveIntensity = 2 + Math.sin(t * 30) * 1.2;
       if (face) {
         const moving = b.sleepState !== 2 && b.velocity.lengthSquared() > 1.5;
-        const danger = look && sim.balls.some(x => x.userData.c === d.c) && look.distanceTo(b.position) < 3.5;
+        let danger = false;
+        if (look && look.distanceTo(b.position) < 3.5) for (let i = 0; i < sim.balls.length; i++) if (sim.balls[i].userData.c === d.c) { danger = true; break; }
         let mood = 'normal';
         if (moving || danger || d.popping) mood = 'scared';
         else if (t > g.userData.blinkAt) { mood = 'blink'; if (t > g.userData.blinkAt + 0.12) g.userData.blinkAt = t + rnd(2, 6); }
         const tex = FACES[d.c][mood];
-        if (face.material.map !== tex) { face.material.map = tex; face.material.needsUpdate = true; }
+        if (face.material.map !== tex) face.material.map = tex;   // misma clase de textura: no hace falta needsUpdate (evita revisar el shader en cada parpadeo)
       }
       if (d.kind === 'tnt' && d.lit) { g.userData.body.material.emissive = g.userData.body.material.emissive || new THREE.Color(); }
     }
@@ -1647,12 +1676,12 @@
       if (Math.random() < 0.5) spawnSprite(V.x + rnd(-2.5, 2.5), V.y + rnd(-1.5, 1.5), V.z + rnd(-1, 1), 0xa66bff, 0.5, -0.8, 0.5, { add: true, alpha: 0.8 });
     } else if (G.vortexMesh) G.vortexMesh.visible = false;
     // bolas
-    const live = new Set();
+    const live = liveBalls; live.clear();
     for (const b of sim.balls) {
       live.add(b);
       let m = G.ballMeshes.get(b);
       if (!m) { m = makeBallMesh(b.userData.ball, b.userData.r); scene.add(m); G.ballMeshes.set(b, m); }
-      m.position.copy(b.position); m.quaternion.copy(b.quaternion);
+      smoothPose(b, m, sim);
       const wt = W_TRAIL[b.userData.ball], tf = !wt && !G.demo && trailFx();
       if (tf) { if (Math.random() < 0.85) { const c = tf.rb ? RB_COLS[Math.floor(G.t * 12) % RB_COLS.length] : tf.cols[Math.floor(Math.random() * tf.cols.length)]; spawnSprite(b.position.x + rnd(-0.08, 0.08), b.position.y + rnd(-0.08, 0.08), b.position.z, c, b.userData.r * 1.5 * tf.sz, 0.3, 0.45, { alpha: tf.a, add: !!tf.add }); } }
       else if (Math.random() < 0.6) spawnSprite(b.position.x, b.position.y, b.position.z, wt || 0xffffff, b.userData.r * (wt ? 2 : 1.4), 0.4, wt ? 0.4 : 0.25, { alpha: wt ? 0.6 : 0.35, add: !!wt });
@@ -1898,7 +1927,7 @@
   function syncMovers() {
     const sim = G.sim;
     if (!G.moverMeshes) G.moverMeshes = new Map();
-    const live = new Set();
+    const live = liveMovers; live.clear();
     for (const m of (sim && sim.movers) || []) {
       live.add(m.id);
       let g = G.moverMeshes.get(m.id);
@@ -2349,8 +2378,9 @@
     if (Math.abs(sim.score - shownScore) < 1) shownScore = sim.score;
     setText($('hudScore'), Math.round(shownScore));
     const p = sim.progress();
-    $('meterFill').style.width = (p * 100).toFixed(1) + '%';
-    $('meterFill').classList.toggle('done', p >= sim.target);
+    const mw = (p * 100).toFixed(1) + '%', mf = $('meterFill');
+    if (mf.__w !== mw) { mf.__w = mw; mf.style.width = mw; }
+    if (mf.__d !== (p >= sim.target)) { mf.__d = p >= sim.target; mf.classList.toggle('done', mf.__d); }
     setText($('meterPct'), Math.round(p * 100) + '%');
     updateTray();
     const hint = $('hint');
@@ -2360,7 +2390,7 @@
     else if (G.mode === 'play' && G.sim.goalReached && G.sim.state === 'play' && !G.aim) txt = 'Sigue disparando para más estrellas, o pulsa Terminar';
     else if (G.mode === 'play' && G.aim) txt = '';
     if (performance.now() < hintUntil) txt = hintMsg;
-    setText(hint, txt); hint.style.opacity = txt ? 1 : 0;
+    setText(hint, txt); if (hint.__o !== !!txt) { hint.__o = !!txt; hint.style.opacity = txt ? 1 : 0; }
     const ng = save.boosters.golden || 0, gb = $('btnGold');
     setHidden(gb, !(G.mode === 'play' && ng > 0 && sim.state === 'play'));
     if (gb.disabled !== (sim.queue[0] === 'golden')) gb.disabled = sim.queue[0] === 'golden';
@@ -4634,23 +4664,27 @@
   let last = performance.now();
   let manual = false;
   // calidad adaptable: si el móvil no llega a ~45 fps, baja la resolución interna
-  let perfAcc = 0, perfN = 0;
+  let perfAcc = 0, perfN = 0, perfMin = 1, hzLow = false;
   function adaptQuality(dt) {
-    perfAcc += dt; perfN++;
+    perfAcc += dt; perfN++; if (dt > 0.003 && dt < perfMin) perfMin = dt;
     if (perfN < 90) return;
-    const avg = perfAcc / perfN; perfAcc = 0; perfN = 0;
-    if (avg > 0.022 && pixelRatio > 1) { pixelRatio = Math.max(1, pixelRatio - 0.25); renderer.setPixelRatio(pixelRatio); renderer.setSize(W, H, false); }
+    const avg = perfAcc / perfN, fastest = perfMin; perfAcc = 0; perfN = 0; perfMin = 1;
+    // pantalla de 90/120 Hz que el móvil no llega a llenar: mejor 60 Hz estables que 75 a trompicones
+    if (!hzLow && fastest < 0.0118 && avg > 0.0135 && window.ChromaAndroid && ChromaAndroid.refreshRate) { hzLow = true; try { ChromaAndroid.refreshRate(60); } catch (e) { /* nada */ } return; }
+    // por debajo de ~52 fps: menos resolución interna (de 0,25 en 0,25, hasta 1). Se nota poco y libera mucha tarjeta gráfica.
+    if (avg > 0.0192 && pixelRatio > 1) { pixelRatio = Math.max(1, pixelRatio - 0.25); renderer.setPixelRatio(pixelRatio); renderer.setSize(W, H, false); }
   }
   // menús a pantalla completa (mapa, pase, misiones): el 3D de fondo se pinta a 20 fps y se para mientras deslizas,
   // para que el desplazamiento vaya fluido en móviles modestos
-  let scrollBusy = 0, liteN = 0;
+  let scrollBusy = 0, liteLast = 0;
   const busy = () => { scrollBusy = performance.now() + 350; };
   for (const id of ['mapList', 'hwList', 'passList', 'misList']) for (const ev of ['scroll', 'touchstart', 'touchmove', 'wheel']) $(id).addEventListener(ev, busy, { passive: true });
   const liteMenu = () => $('map').classList.contains('on') || $('hwmap').classList.contains('on') || $('pass').classList.contains('on') || $('missions').classList.contains('on');
   function frame(now) {
     if (manual) { last = now; requestAnimationFrame(frame); return; }
     const lite = liteMenu();
-    if (lite && (now < scrollBusy || (liteN = (liteN + 1) % 3) !== 0)) { requestAnimationFrame(frame); return; }
+    if (lite && (now < scrollBusy || now - liteLast < 46)) { requestAnimationFrame(frame); return; }
+    if (lite) liteLast = now;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (!lite) adaptQuality(dt);
     tick(dt);
@@ -4724,11 +4758,28 @@
       cannonG.visible = false;
     }
     drawAim();
-    if (!noRender) { titleView(); renderer.render(scene, camera); }
+    if (!noRender) { titleView(); shadowGate(); renderer.render(scene, camera); }
+  }
+  // El mapa de sombras es un segundo dibujo de toda la escena desde el sol. Con todo quieto (lo normal mientras apuntas)
+  // da el mismo resultado: se rehace solo si algo se mueve y, por si acaso, uno de cada 3 fotogramas.
+  let shadowN = 0, aimX = 1e9, aimY = 1e9;
+  renderer.shadowMap.autoUpdate = false;
+  function shadowGate() {
+    if (!renderer.shadowMap.enabled) return;
+    const sim = G.sim;
+    let moving = G.mode !== 'play' || !sim || !!(G.level && G.level.boss);
+    if (!moving) {
+      const ax = G.aim ? G.aim.x : 1e9, ay = G.aim ? G.aim.y : 1e9;
+      moving = sim.balls.length > 0 || (sim.maxV || 0) > 0.03 || G.recoil > 0 || G.shake > 0 || G.introT > 0 || ax !== aimX || ay !== aimY || sim.state !== 'play';
+      if (!moving && sim.movers) for (let i = 0; i < sim.movers.length; i++) if (sim.movers[i].active) { moving = true; break; }
+      aimX = ax; aimY = ay;
+    }
+    shadowN = (shadowN + 1) % 3;
+    if (moving || shadowN === 0) renderer.shadowMap.needsUpdate = true;
   }
 
   // los jefes (bosses.js) usan estas piezas del juego
-  window.RRGame = { testBuild: TEST_MODE, showRewarded, startLevel, openPre: id => openPre(id), hideAll, liveUi: () => liveUi(), updateTitle: () => updateTitle(), dayKey: () => dayKey(), leftTxt: ms => leftTxt(ms), liveCfg: () => liveCfg(), liveWin: o => liveWin(o), cosApi: { def: cosDef, owned: cosOwned, tSave: () => tSave(), bSave: () => bSave(), canSave: () => canSave() }, cubiFrames, openShop, goMap, mountCol, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
+  window.RRGame = { auxLight, testBuild: TEST_MODE, showRewarded, startLevel, openPre: id => openPre(id), hideAll, liveUi: () => liveUi(), updateTitle: () => updateTitle(), dayKey: () => dayKey(), leftTxt: ms => leftTxt(ms), liveCfg: () => liveCfg(), liveWin: o => liveWin(o), cosApi: { def: cosDef, owned: cosOwned, tSave: () => tSave(), bSave: () => bSave(), canSave: () => canSave() }, cubiFrames, openShop, goMap, mountCol, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
     stats, plState, starsTotal, countLv, LEVELS, myCode, openPre: id => openPre(id), setTester, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,
@@ -4753,9 +4804,38 @@
   ensureSeason(); applySkin(); if (save.lowGfx) applyGfx();
   setTimeout(() => { if (save.skins && save.skins.equip === 'candycane') applySkin(); }, 0);   // la textura del bastón llega con christmas.js
   goTitle(); setCoins(); scheduleReminder();
-  // pantalla del estudio: al menos 2,2 s desde que se abrió la app y después se funde
-  (() => { const st = $('studio'); if (!st) return; const wait = window.RR_NO_INTRO ? 0 : Math.max(300, 2200 - performance.now());
-    setTimeout(() => { st.classList.add('out'); setTimeout(() => st.remove(), 600); }, wait); })();
+  // ---------------- precarga (mientras se ve el logo del estudio) ----------------
+  // Una pieza de cada cosa que puede aparecer en mitad de una partida (pájaros, barcos, globos, bolas especiales, bloques
+  // nuevos…): sus materiales se compilan ya, junto con todos los del juego, para que la primera vez no dé un tirón.
+  function warmExtras() {
+    const out = [], add = f => { try { const o = f(); if (o && o.isObject3D) out.push(o); } catch (e) { /* esa pieza no se puede montar aquí */ } };
+    add(() => makeBird()); add(() => makeSatellite()); add(() => makeShip({ balls: ['r', 'b'], dir: 1, x: 0, y: 0, z: 0 }));
+    for (const k of Object.keys(C.CARRIERS || {})) add(() => makeCarrier({ carrier: k, kind: 'carrier', balls: ['r', 'b'], dir: 1, x: 0, y: 0, z: 0 }));
+    if (window.Halloween) { add(() => window.Halloween.makeWitch()); add(() => window.Halloween.makePirate({ balls: ['r', 'b'], dir: 1 })); }
+    if (window.Christmas && window.Christmas.makeBird) add(() => window.Christmas.makeBird());
+    for (const k of new Set(Object.keys(jelly).concat(Object.keys(SPECIAL_MAT)))) add(() => makeBallMesh(k, 0.34));
+    for (const k of Object.keys(NEWK)) if (k !== 'lockDeco' && k !== 'tikiDeco') add(() => newKindMesh({ kind: k, id: 1, w: 1, h: 1, d: 1, c: 'r', a: 1 }));
+    add(() => newKindMesh({ kind: 'portal', id: 1, w: 1, h: 1, d: 1 }));
+    return out;
+  }
+  let warmP = Promise.resolve(null);
+  function bootWarm() {
+    if (!window.Perf) return;
+    warmP = window.Perf.warm(renderer, scene, camera, warmExtras(), 4500);
+    warmP.then(st => { if (st && TEST_MODE) console.log('[precarga]', JSON.stringify(window.RR_WARM || st)); });
+    // Cubi (la mascota del tutorial) se dibuja con un 3D aparte: mejor ahora, tras el logo, que al salir su primer consejo
+    warmP.then(() => setTimeout(() => { try { cubiFrames(); } catch (e) { /* nada */ } }, 60));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootWarm, { once: true }); else setTimeout(bootWarm, 0);
+  // pantalla del estudio: al menos 2,2 s desde que se abrió la app y, si la precarga aún no ha terminado, hasta que termine
+  // (como mucho 4,5 s); después se funde
+  (() => { const st = $('studio'); if (!st) return;
+    const fade = () => { st.classList.add('out'); setTimeout(() => st.remove(), 600); };
+    if (window.RR_NO_INTRO) { setTimeout(fade, 0); return; }
+    const min = new Promise(r => setTimeout(r, Math.max(300, 2200 - performance.now())));
+    const cap = new Promise(r => setTimeout(r, Math.max(300, 4500 - performance.now())));
+    const auto = navigator.webdriver;   // pruebas automáticas: el logo dura lo de siempre
+    Promise.race([cap, min.then(() => auto ? null : new Promise(r => setTimeout(() => warmP.then(r), 0)))]).then(fade); })();
   setTimeout(() => RH('boot'), 0);
   // sonido desde la portada: en la app (Android e iPhone) el audio puede empezar sin tocar nada; si el navegador lo
   // bloquea, se pone en marcha con el primer toque en cualquier parte de la pantalla (no hace falta pulsar JUGAR)

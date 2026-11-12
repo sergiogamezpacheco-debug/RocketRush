@@ -2211,6 +2211,10 @@ const tmpQuat$1 = new Quaternion();
  *     const convexBody = new CANNON.Body({ mass: 1, shape: convexShape })
  *     world.addBody(convexBody)
  */
+const CP_T = []; for (let i = 0; i < 16; i++) CP_T.push(new Vec3());
+const CLIP_POOL = []; let CLIP_N = 0;
+function clipVec() { if (CLIP_N === CLIP_POOL.length) CLIP_POOL.push(new Vec3()); return CLIP_POOL[CLIP_N++]; }
+const CLIP_B1 = [], CLIP_B2 = [];
 class ConvexPolyhedron extends Shape {
   /** vertices */
 
@@ -2379,7 +2383,8 @@ class ConvexPolyhedron extends Shape {
 
 
   clipAgainstHull(posA, quatA, hullB, posB, quatB, separatingNormal, minDist, maxDist, result) {
-    const WorldNormal = new Vec3();
+    const WorldNormal = CP_T[0];
+    CLIP_N = 0;
     let closestFaceB = -1;
     let dmax = -Number.MAX_VALUE;
 
@@ -2394,11 +2399,11 @@ class ConvexPolyhedron extends Shape {
       }
     }
 
-    const worldVertsB1 = [];
+    const worldVertsB1 = CLIP_B1; worldVertsB1.length = 0;
 
     for (let i = 0; i < hullB.faces[closestFaceB].length; i++) {
       const b = hullB.vertices[hullB.faces[closestFaceB][i]];
-      const worldb = new Vec3();
+      const worldb = clipVec();
       worldb.copy(b);
       quatB.vmult(worldb, worldb);
       posB.vadd(worldb, worldb);
@@ -2417,12 +2422,12 @@ class ConvexPolyhedron extends Shape {
 
 
   findSeparatingAxis(hullB, posA, quatA, posB, quatB, target, faceListA, faceListB) {
-    const faceANormalWS3 = new Vec3();
-    const Worldnormal1 = new Vec3();
-    const deltaC = new Vec3();
-    const worldEdge0 = new Vec3();
-    const worldEdge1 = new Vec3();
-    const Cross = new Vec3();
+    const faceANormalWS3 = CP_T[1];
+    const Worldnormal1 = CP_T[2];
+    const deltaC = CP_T[3];
+    const worldEdge0 = CP_T[4];
+    const worldEdge1 = CP_T[5];
+    const Cross = CP_T[6];
     let dmin = Number.MAX_VALUE;
     const hullA = this;
 
@@ -2596,16 +2601,16 @@ class ConvexPolyhedron extends Shape {
 
 
   clipFaceAgainstHull(separatingNormal, posA, quatA, worldVertsB1, minDist, maxDist, result) {
-    const faceANormalWS = new Vec3();
-    const edge0 = new Vec3();
-    const WorldEdge0 = new Vec3();
-    const worldPlaneAnormal1 = new Vec3();
-    const planeNormalWS1 = new Vec3();
-    const worldA1 = new Vec3();
-    const localPlaneNormal = new Vec3();
-    const planeNormalWS = new Vec3();
+    const faceANormalWS = CP_T[7];
+    const edge0 = CP_T[8];
+    const WorldEdge0 = CP_T[9];
+    const worldPlaneAnormal1 = CP_T[10];
+    const planeNormalWS1 = CP_T[11];
+    const worldA1 = CP_T[12];
+    const localPlaneNormal = CP_T[13];
+    const planeNormalWS = CP_T[14];
     const hullA = this;
-    const worldVertsB2 = [];
+    const worldVertsB2 = CLIP_B2; worldVertsB2.length = 0;
     const pVtxIn = worldVertsB1;
     const pVtxOut = worldVertsB2;
     let closestFaceA = -1;
@@ -2628,7 +2633,7 @@ class ConvexPolyhedron extends Shape {
 
 
     const polyA = hullA.faces[closestFaceA];
-    polyA.connectedFaces = [];
+    if (!polyA.connectedFaces) { polyA.connectedFaces = [];
 
     for (let i = 0; i < hullA.faces.length; i++) {
       for (let j = 0; j < hullA.faces[i].length; j++) {
@@ -2642,7 +2647,7 @@ class ConvexPolyhedron extends Shape {
           polyA.connectedFaces.push(i);
         }
       }
-    } // Clip the polygon to the back of the planes of all faces of hull A,
+    } } // Clip the polygon to the back of the planes of all faces of hull A,
     // that are adjacent to the witness face
 
 
@@ -2736,19 +2741,19 @@ class ConvexPolyhedron extends Shape {
       if (n_dot_first < 0) {
         if (n_dot_last < 0) {
           // Start < 0, end < 0, so output lastVertex
-          const newv = new Vec3();
+          const newv = clipVec();
           newv.copy(lastVertex);
           outVertices.push(newv);
         } else {
           // Start < 0, end >= 0, so output intersection
-          const newv = new Vec3();
+          const newv = clipVec();
           firstVertex.lerp(lastVertex, n_dot_first / (n_dot_first - n_dot_last), newv);
           outVertices.push(newv);
         }
       } else {
         if (n_dot_last < 0) {
           // Start >= 0, end < 0 so output intersection and end
-          const newv = new Vec3();
+          const newv = clipVec();
           firstVertex.lerp(lastVertex, n_dot_first / (n_dot_first - n_dot_last), newv);
           outVertices.push(newv);
           outVertices.push(lastVertex);
@@ -3050,8 +3055,8 @@ class ConvexPolyhedron extends Shape {
   }
 
 }
-const maxminA = [];
-const maxminB = [];
+const maxminA = [0, 0.5];
+const maxminB = [0, 0.5];
 const project_worldVertex = new Vec3();
 const project_localAxis = new Vec3();
 const project_localOrigin = new Vec3();
@@ -9912,12 +9917,8 @@ class GSSolver extends Solver {
     } // Things that do not change during iteration can be computed once
 
 
-    const invCs = GSSolver_solve_invCs;
-    const Bs = GSSolver_solve_Bs;
-    const lambda = GSSolver_solve_lambda;
-    invCs.length = Neq;
-    Bs.length = Neq;
-    lambda.length = Neq;
+    if (GS_BUF.n < Neq) { const c = Math.max(Neq, GS_BUF.n * 2, 256); GS_BUF.n = c; GS_BUF.invCs = new Float64Array(c); GS_BUF.Bs = new Float64Array(c); GS_BUF.lambda = new Float64Array(c); }
+    const invCs = GS_BUF.invCs, Bs = GS_BUF.Bs, lambda = GS_BUF.lambda;
 
     for (let i = 0; i !== Neq; i++) {
       const c = equations[i];
@@ -9993,6 +9994,7 @@ class GSSolver extends Solver {
 
 } // Just temporary number holders that we want to reuse each iteration.
 
+const GS_BUF = { n: 0, invCs: null, Bs: null, lambda: null };
 const GSSolver_solve_lambda = [];
 const GSSolver_solve_invCs = [];
 const GSSolver_solve_Bs = [];

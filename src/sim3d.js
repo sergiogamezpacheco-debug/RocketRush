@@ -121,6 +121,7 @@
     return true;
   }
 
+  const SETTLE = new Map();   // asentado inicial ya calculado, por nivel (ver Sim.settle)
   class Sim {
     constructor(level, opts) {
       opts = opts || {};
@@ -146,7 +147,7 @@
       this.build();
       this.gems = 0;
       if (opts.gems) this.placeGems(opts.gems, opts.gemSeed || 1);
-      for (let i = 0; i < 30; i++) { this.applyFloat(); this.world.step(C.DT); }
+      this.settle(opts);
       for (const b of this.blocks) { b.sleep(); b.userData.hy = b.position.y; }   // altura de reposo: la cascada es solo para bloques que caen
       this.events.length = 0;
       this.silent = false; this.state = 'play';
@@ -163,6 +164,26 @@
       this.nextEmber = 4 + this.rand() * 3; this.nextMeteor = 6 + this.rand() * 4;
 
       this.nextBird = 9 + this.rand() * 10; this.nextShip = 16 + this.rand() * 12;
+    }
+
+    // Asentado inicial: 30 pasos de física para que todo repose. Es lo que más tarda al abrir un nivel (50-250 ms en un
+    // móvil) y siempre da lo mismo para el mismo nivel, así que el resultado se guarda y la vez siguiente (la portada lo
+    // repite cada pocos segundos, el mapa al elegir nivel, reintentar…) se coloca todo directamente donde quedó.
+    settle(opts) {
+      const bodies = this.world.bodies.filter(b => b.type !== CANNON.Body.STATIC);
+      let fp = bodies.length * 1000003;
+      for (const b of bodies) { const p = b.position; fp = (fp * 31 + Math.round(p.x * 1000) * 7 + Math.round(p.y * 1000) * 13 + Math.round(p.z * 1000) * 17 + Math.round(b.mass * 100)) % 2147483647; }
+      const key = this.level.id + ':' + (opts.gems || 0) + ':' + (opts.gemSeed || 1) + ':' + fp;
+      const hit = SETTLE.get(key);
+      if (hit && hit.length === bodies.length * 7) {
+        bodies.forEach((b, i) => { const k = i * 7; b.position.set(hit[k], hit[k + 1], hit[k + 2]); b.quaternion.set(hit[k + 3], hit[k + 4], hit[k + 5], hit[k + 6]); b.velocity.set(0, 0, 0); b.angularVelocity.set(0, 0, 0); b.previousPosition.copy(b.position); b.interpolatedPosition.copy(b.position); b.interpolatedQuaternion.copy(b.quaternion); b.aabbNeedsUpdate = true; });
+        return;
+      }
+      for (let i = 0; i < 30; i++) { this.applyFloat(); this.world.step(C.DT); }
+      const out = new Float64Array(bodies.length * 7);
+      bodies.forEach((b, i) => { const k = i * 7, p = b.position, q = b.quaternion; out[k] = p.x; out[k + 1] = p.y; out[k + 2] = p.z; out[k + 3] = q.x; out[k + 4] = q.y; out[k + 5] = q.z; out[k + 6] = q.w; });
+      SETTLE.set(key, out);
+      if (SETTLE.size > 60) SETTLE.delete(SETTLE.keys().next().value);
     }
 
     build() {
@@ -374,7 +395,8 @@
 
     // ---------- contactos ----------
     processContacts() {
-      const now = new Set();
+      // dos conjuntos que se turnan (sin crear uno nuevo en cada paso: menos trabajo para el recolector de memoria)
+      const now = this._pairsSpare || new Set(); now.clear();
       for (const eq of this.world.contacts) {
         const A = eq.bi, B = eq.bj;
         const key = A.id < B.id ? A.id * 100000 + B.id : B.id * 100000 + A.id;
@@ -388,7 +410,7 @@
         const px = A.position.x + eq.ri.x, py = A.position.y + eq.ri.y, pz = A.position.z + eq.ri.z;
         this.onContact(A, B, v, px, py, pz);
       }
-      this.prevPairs = now;
+      this._pairsSpare = this.prevPairs; this.prevPairs = now;
     }
     onContact(A, B, v, px, py, pz) {
       const da = A.userData, db = B.userData;
@@ -1074,23 +1096,34 @@
       let steps = 0;
       // como mucho 4 pasos por fotograma (lo justo para ir a 30 fotogramas por segundo): si uno va más lento (un gran derrumbe en un
       // móvil), la física va un instante más lenta en vez de recuperar el tiempo con más pasos, que encadenaban fotogramas lentos (tirones)
-      while (this.acc >= C.DT && steps < 4) { this.step(); this.acc -= C.DT; steps++; }
+      while (this.acc >= C.DT && steps < 4) { this.savePose(); this.step(); this.acc -= C.DT; steps++; }
       if (steps >= 4) this.acc = Math.min(this.acc, C.DT);
+      // cuánto falta para el siguiente paso (0-1): el dibujo coloca cada pieza entre el paso anterior y el actual
+      this.alpha = this.acc / C.DT;
+    }
+    // posición y giro de cada cuerpo justo antes del paso (para dibujar el movimiento suave, sin saltos de 1/120 s)
+    savePose() {
+      const bs = this.world.bodies;
+      for (let i = 0; i < bs.length; i++) {
+        const b = bs[i], d = b.userData; if (!d || (b.type === CANNON.Body.STATIC && !d._ip)) continue;
+        const ip = d._ip || (d._ip = new Float64Array(7)), p = b.position, q = b.quaternion;
+        ip[0] = p.x; ip[1] = p.y; ip[2] = p.z; ip[3] = q.x; ip[4] = q.y; ip[5] = q.z; ip[6] = q.w;
+      }
     }
     step() {
       const dt = C.DT;
       this.t += dt; this.sinceFire += dt;
       this.impactBudget = 3;
       for (const b of this.world.bodies) if (b.userData && b.type !== CANNON.Body.STATIC) {
-        const v = b.velocity; b.userData._pv = [v.x, v.y, v.z];
+        const v = b.velocity, pv = b.userData._pv || (b.userData._pv = [0.5, 0.5, 0.5]); pv[0] = v.x; pv[1] = v.y; pv[2] = v.z;
       }
       this.applyFloat();
       if (this.vortex) this.updateVortex(dt);
       this.world.step(dt);
       this.processContacts();
       if (this.pending.length) {
-        const due = this.pending.filter(p => p.t <= this.t);
-        if (due.length) { this.pending = this.pending.filter(p => p.t > this.t); for (const p of due) p.fn(); }
+        let anyDue = false; for (const p of this.pending) if (p.t <= this.t) { anyDue = true; break; }
+        if (anyDue) { const due = this.pending.filter(p => p.t <= this.t); this.pending = this.pending.filter(p => p.t > this.t); for (const p of due) p.fn(); }
       }
       let maxV = 0;
       for (const b of this.blocks) {
@@ -1116,7 +1149,10 @@
       this.updateMovers(dt);
       if (this.portals && this.portals.length >= 2) this.updatePortals(dt);
       this.updateExtras(dt);
-      for (const b of this.balls.slice()) {
+      // killBall cambia this.balls por un array nuevo, así que recorrer el actual es seguro (sin copiarlo en cada paso)
+      const ballsNow = this.balls;
+      for (let bi = 0; bi < ballsNow.length; bi++) {
+        const b = ballsNow[bi];
         const d = b.userData, p = b.position;
         d.age += dt;
         if (p.y < C.SEA_Y) { this.killBall(b, false); this.emit({ type: 'splash', x: p.x, y: C.SEA_Y, z: p.z, s: 0.7 }); continue; }

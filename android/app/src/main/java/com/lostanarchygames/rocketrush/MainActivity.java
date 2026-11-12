@@ -54,8 +54,13 @@ public class MainActivity extends ComponentActivity {
             getWindow().setAttributes(lp);
         }
 
+        // pantallas de 90/120 Hz: el juego pide la frecuencia más alta (va más fluido). Si el móvil no la aguanta,
+        // el propio juego lo nota y vuelve a pedir 60 Hz (refreshRate desde JavaScript)
+        setRefresh(0);
         web = new WebView(this);
         web.setBackgroundColor(0xFF000000);   // negro: enlaza con la pantalla del estudio
+        // el motor de la página con prioridad alta también cuando la app está delante (menos tirones si hay otras apps)
+        if (Build.VERSION.SDK_INT >= 26) web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -119,6 +124,27 @@ public class MainActivity extends ComponentActivity {
         google = new GoogleLogin(this, this::js);
         updates = new Updates(this);   // aviso automático de versión nueva en Google Play
         web.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+    }
+
+    /** Frecuencia de la pantalla: 0 = la más alta que tenga el móvil (hasta 120 Hz); 60 = la normal. */
+    private float refreshNow = 0;
+    void setRefresh(float max) {
+        try {
+            android.view.Display d = Build.VERSION.SDK_INT >= 30 ? getDisplay() : getWindowManager().getDefaultDisplay();
+            if (d == null) return;
+            android.view.Display.Mode cur = d.getMode(), best = cur;
+            for (android.view.Display.Mode m : d.getSupportedModes()) {
+                if (m.getPhysicalWidth() != cur.getPhysicalWidth() || m.getPhysicalHeight() != cur.getPhysicalHeight()) continue;
+                float r = m.getRefreshRate();
+                if (r > 121f || (max > 0 && r > max + 1f)) continue;
+                if (best == null || r > best.getRefreshRate() || (max > 0 && best.getRefreshRate() > max + 1f)) best = m;
+            }
+            WindowManager.LayoutParams lp = getWindow().getAttributes();
+            lp.preferredDisplayModeId = best.getModeId();
+            lp.preferredRefreshRate = best.getRefreshRate();
+            getWindow().setAttributes(lp);
+            refreshNow = best.getRefreshRate();
+        } catch (Exception e) { /* este móvil no deja elegir: se queda como esté */ }
     }
 
     /** Ejecuta código en el juego (siempre en el hilo principal). */
@@ -196,6 +222,10 @@ public class MainActivity extends ComponentActivity {
                 }
             });
         }
+
+        /** El juego pide bajar (60) o volver a subir (0 = la más alta) la frecuencia de la pantalla. Devuelve la que queda. */
+        @JavascriptInterface
+        public float refreshRate(float max) { runOnUiThread(() -> setRefresh(max)); return max > 0 ? Math.min(max, refreshNow) : refreshNow; }
 
         @JavascriptInterface
         public String version() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return ""; } }
