@@ -675,7 +675,8 @@ Medido con `tools/perfprobe.py` (fotograma a fotograma: física, escena, pintado
 | Chispas: se dibujaban siempre las 700 (las muertas a tamaño 0) y se subían enteras cada fotograma | Solo las vivas, seguidas al principio de la lista (`debris.count`) |
 | Lluvia, tormenta, nieve, ventisca, ceniza, arena, ascuas, luciérnagas y la nieve de Navidad: el procesador movía miles de puntos en cada fotograma y los volvía a subir | Los mueve la **tarjeta gráfica** (`gpuMotion`: cada punto calcula su posición con el tiempo); el procesador no hace nada. Además, la lluvia ya no deja rayas que cruzaban toda la pantalla al volver a caer |
 | En móviles de 90/120 Hz la tarjeta gráfica tenía que dibujar el doble y en los derrumbes bajaba a trompicones | La app Android fija **60 Hz** (fotogramas siempre iguales) |
-| La primera vez que se entraba en un mundo se montaba su paisaje (parón al llegar) | Con el juego ya en la portada se montan todos los paisajes poco a poco (uno cada ~0,4 s, nunca en mitad de una partida) y quedan listos y ocultos (+~15 texturas en memoria). Los climas se preparan durante el logo |
+| La primera vez que se entraba en un mundo se montaba su paisaje (parón al llegar) | El paisaje de tu mundo actual y del siguiente se montan en un rato libre tras la portada (`requestIdleCallback`, nunca en mitad de una partida) y quedan listos y ocultos; los demás, como antes, al elegir nivel en el mapa. Los climas se preparan durante el logo |
+| Durante la cuenta atrás de Navidad, cada 30 s el juego volvía a la portada aunque estuvieras en Amigos, Misiones o la tienda | Solo se rehace la portada cuando el evento empieza o acaba de verdad, y solo si estás en ella |
 
 Prueba: `tools/fxprobe.py` (capturas en mitad de un derrumbe con cada clima y dibujos por fotograma: de ~155 a ~115).
 

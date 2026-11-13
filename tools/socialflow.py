@@ -123,7 +123,7 @@ with sync_playwright() as p:
         pages.append(pg)
     A, B = pages
     try:
-        for pg in pages: pg.wait_for_function("() => window.Social && Social.uid && Social.net === 'online'", timeout=30000)
+        for pg in pages: pg.wait_for_function("() => window.Social && Social.uid && Social.net === 'online'", timeout=75000)   # dos juegos a la vez con dibujo por software: el arranque (precarga de shaders) tarda
         for pg in pages: pg.evaluate("() => { ChromaGame.manual(true); document.getElementById('daily').classList.remove('on'); RRGame.goTitle(); }")
         print('sesiones:', ev(A, "() => Social.uid"), ev(B, "() => Social.uid"), '· docs:', sorted(DB))
         codeA = ev(A, "() => RRGame.myCode()")

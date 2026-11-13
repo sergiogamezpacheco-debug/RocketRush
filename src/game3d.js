@@ -3668,7 +3668,7 @@
     document.querySelectorAll('.hwcdTxt').forEach(el => { el.textContent = hwLeft(); });
     document.querySelectorAll('.candyTxt').forEach(el => { el.textContent = save.candy || 0; });
   }
-  setInterval(() => { if (document.hidden) return; const was = $('hwPump') && !$('hwPump').hidden; hwUi(); if (was && !hwActive() && G.mode === 'title') goTitle(); }, 30000);
+  setInterval(() => { if (document.hidden) return; const was = $('hwPump') && !$('hwPump').hidden; hwUi(); if (was && !hwActive() && G.mode === 'title' && $('title').classList.contains('on')) goTitle(); }, 30000);
   function hwCandyChip() {
     const el = $('candyChip'); if (!el) return;
     const show = G.mode === 'play' && hwActive() && G.level && (G.level.hw || (G.candyHosts || 0) > 0 || G.candyRun > 0);
@@ -3822,7 +3822,10 @@
     document.querySelectorAll('.xcandyTxt').forEach(el => { el.textContent = save.xcandy || 0; });
     document.querySelectorAll('.xcane:not([data-ok])').forEach(el => { el.dataset.ok = 1; el.innerHTML = CANE_SVG; });
   }
-  setInterval(() => { if (document.hidden) return; const was = $('xmTree') && !$('xmTree').hidden; xmUi(); if (was !== xmActive() && G.mode === 'title') goTitle(); }, 30000);
+  // cada 30 s: si la Navidad acaba de empezar o de terminar, se rehace la portada (solo si se está viendo la portada: antes,
+  // durante la cuenta atrás, devolvía a la portada cada 30 s aunque estuvieras en Amigos, Misiones o la tienda)
+  let xmWasOn = null;
+  setInterval(() => { if (document.hidden) return; xmUi(); const on = xmActive(); if (xmWasOn !== null && on !== xmWasOn && G.mode === 'title' && $('title').classList.contains('on')) goTitle(); xmWasOn = on; }, 30000);
   function xmCandyChip() {
     const el = $('xcandyChip'); if (!el) return;
     const show = G.mode === 'play' && xmActive() && G.level && G.level.xm;
@@ -4907,15 +4910,18 @@
     return out;
   }
   let warmP = Promise.resolve(null);
-  // Paisajes: antes se montaban la primera vez que se entraba en un mundo (un parón al llegar). Ahora, con el juego ya en
-  // la portada, se montan todos poco a poco (uno cada ~0,4 s, nunca en mitad de una partida) y se dejan listos y ocultos.
+  // Paisaje del mundo en el que estás y del siguiente: se montan en un rato libre tras la portada y se dejan listos y
+  // ocultos (antes se montaban al entrar, con un parón). Solo esos dos y solo cuando el navegador está desocupado: montar
+  // todos de golpe cargaba demasiado los móviles más modestos mientras se movían por los menús.
   function preloadBiomes() {
-    const names = Object.keys(biomeBuilders).filter(n => n === 'halloween' ? hwActive() : n === 'xmas' ? xmActive() : true);
-    let i = 0;
+    if (window.RR_NO_PRELOAD) return;
+    const L = byId(Math.min(save.unlocked, LEVELS.length)); if (!L) return;
+    const names = [];
+    for (const w of [L.world, L.world + 1]) { const W = WORLDS[w - 1]; if (W && W.biome && biomeBuilders[W.biome] && !names.includes(W.biome)) names.push(W.biome); }
+    const idle = window.requestIdleCallback ? f => window.requestIdleCallback(f, { timeout: 8000 }) : f => setTimeout(f, 1200);
     const step = () => {
-      if (i >= names.length) return;
-      if (G.mode === 'play' && G.sim && G.sim.state === 'play') { setTimeout(step, 2500); return; }
-      const n = names[i++];
+      const n = names.shift(); if (!n) return;
+      if (G.mode === 'play' && G.sim && G.sim.state === 'play') { names.unshift(n); setTimeout(() => idle(step), 3000); return; }
       if (!BIOMES[n]) {
         try {
           const B = BIOMES[n] = biomeBuilders[n]();
@@ -4924,9 +4930,9 @@
         } catch (e) { delete BIOMES[n]; if (TEST_MODE) console.warn('[paisajes] ' + n + ': ' + (e && e.message)); }
       }
       if (TEST_MODE) window.RR_BIOMES = Object.keys(BIOMES);
-      setTimeout(step, 400);
+      setTimeout(() => idle(step), 2000);
     };
-    setTimeout(step, 1500);
+    setTimeout(() => idle(step), 4000);
   }
   function bootWarm() {
     if (!window.Perf) return;
