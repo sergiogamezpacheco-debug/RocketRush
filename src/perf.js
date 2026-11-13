@@ -56,5 +56,10 @@
     window.RR_WARM_KEEP = g;
     return Promise.race([done, new Promise(r => setTimeout(() => r(stats), max || 5000))]);
   }
-  window.Perf = { warm, sampleGroup, stop() { rec = false; REG.length = 0; }, get count() { return REG.length; } };
+  // un trozo de escena ya montado (por ejemplo un paisaje oculto): texturas a la tarjeta gráfica y shaders compilados
+  function prime(renderer, obj, scene, camera) {
+    try { uploadTextures(renderer, obj); } catch (e) { /* nada */ }
+    try { return renderer.compileAsync ? renderer.compileAsync(obj, camera, scene) : Promise.resolve(renderer.compile(obj, camera, scene)); } catch (e) { return Promise.resolve(); }
+  }
+  window.Perf = { warm, prime, sampleGroup, stop() { rec = false; REG.length = 0; }, get count() { return REG.length; } };
 })();

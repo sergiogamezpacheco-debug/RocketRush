@@ -61,7 +61,8 @@
     const sn = s.clubSnap && s.clubSnap.wk === ct.wk ? s.clubSnap : { wk: ct.wk };
     Object.assign(sn, { count: st.club.count, ex: st.members.reduce((a, m) => a + (m.ex || 0), 0), dmg: st.members.reduce((a, m) => a + (m.dmg || 0), 0) });
     s.clubSnap = sn;
-    if (ct.lg && league.id === ct.lg && league.list.length) { const i = league.list.findIndex(c => c._id === st.cid); s.clubLgSnap = { lg: ct.lg, rank: i >= 0 ? i + 1 : 0 }; }
+    // puesto dentro del grupo (si aún no tiene rivales, no hay puesto: cofre de madera si ha jugado)
+    if (ct.lg && league.id === ct.lg && league.list.length > 1) { const i = league.list.findIndex(c => c._id === st.cid); s.clubLgSnap = { lg: ct.lg, rank: i >= 0 ? i + 1 : 0 }; }
     X.persist();
   }
   const exGoal = n => Math.max(1, n) * 40;
@@ -117,10 +118,17 @@
     if (busy) return; busy = true; setMsg(''); render();
     try { const r = await fn(); if (okMsg) X.toast(okMsg); busy = false; render(); return r; } catch (e) { busy = false; setMsg(errMsg(e)); render(); if (e && (e.code === 'KICKED' || e.code === 'GONE')) X.toast(errMsg(e)); }
   }
+  // liga: tu grupo (tu club y hasta 4 rivales elegidos al azar al empezar), ordenado por estrellas de esta liga
+  async function loadGroup(ct) {
+    const g = await S.group();
+    const pts = c => (c.lg && c.lg.id === ct.lg ? c.lg.s : 0) || 0;
+    const list = g ? g.clubs.slice().sort((a, b) => pts(b) - pts(a) || String(a._id).localeCompare(String(b._id))) : [];
+    league = { at: Date.now(), list, id: ct.lg, gid: g ? g.id : '', pts };
+  }
   async function refresh(force) {
     if (!S.id) { render(); return; }
     busy = true; render();
-    try { await S.load(force); const ct = S.time(); if (ct.lg && (force || Date.now() - league.at > 60e3 || league.id !== ct.lg)) { league = { at: Date.now(), list: await S.league(), id: ct.lg }; } snap(); setMsg(''); }
+    try { await S.load(force); const ct = S.time(); if (ct.lg && (force || Date.now() - league.at > 60e3 || league.id !== ct.lg)) await loadGroup(ct); snap(); setMsg(''); }
     catch (e) { setMsg(errMsg(e)); }
     busy = false; render();
   }
@@ -220,7 +228,7 @@
     const st = S.state, c = st.club, me = st.me, ct = S.time(), p = P();
     const myR = rankOf(me.role), staff = myR >= 1, boss = myR >= 2, lead = myR === 3, mx = maxOf(c);
     const exAll = st.members.reduce((a, m) => a + (m.ex || 0), 0), hp = c.count * HP_PER, dmg = st.members.reduce((a, m) => a + (m.dmg || 0), 0);
-    const rk = league.id === ct.lg ? league.list.findIndex(x => x._id === st.cid) + 1 : 0;
+    const rk = league.id === ct.lg && league.list.length > 1 ? league.list.findIndex(x => x._id === st.cid) + 1 : 0;
     const week = `<span>Expedición: día ${Math.min(5, ct.day + 1)} de 5</span> · <span>Jefe: ${Math.max(0, Math.round((1 - dmg / hp) * 100))} % de vida</span> · <span>` + (ct.lg ? (rk ? 'Liga: ' + rk + '.º puesto' : 'Liga: en juego') : 'Liga: el viernes') + '</span>';
     const mems = st.members.slice().sort((a, b) => (b.ex || 0) - (a.ex || 0) || (b.dmg || 0) - (a.dmg || 0));
     const act = m => {
@@ -286,14 +294,18 @@
     const st = S.state, ct = S.time(), p = P();
     if (!ct.lg) {
       const s = save(), last = s.clubLgSnap;
-      return pendingCard() + card(`<div class="klttl">🏆 Liga del fin de semana</div><div class="sm">Empieza el viernes: falta ${left(ct.lgStart - Date.now())}. 10 niveles difíciles; gana el club con más estrellas.</div>` +
+      return pendingCard() + card(`<div class="klttl">🏆 Liga del fin de semana</div><div class="sm">Empieza el viernes: falta ${left(ct.lgStart - Date.now())}. Al empezar, tu club entra en un grupo con 4 clubes elegidos al azar: 10 niveles difíciles y gana el que más estrellas consiga.</div>` +
         (last && last.rank ? `<div class="sm">La última vez quedasteis ${last.rank}.º</div>` : '')) + card('<div class="sm">Premios: 1.º cofre de cristal · 2.º y 3.º cofre de oro · los demás cofre de madera (si has jugado)</div>');
     }
-    const rows = league.list.length ? league.list.slice(0, 30).map(cm).map((c, i) => `<div class="klrank ${c._id === st.cid ? 'me' : ''}" ${c._id === st.cid ? '' : `data-club="${esc(c._id)}"`}><span class="kln">${i + 1}</span>${shield(c.badge, 26, 30)}<span class="klnm" translate="no">${esc(c.name)}</span><span class="klpts">${fmt(c.lg && c.lg.s)} ⭐</span></div>`).join('')
-      : '<div class="sm klmid">Todavía nadie ha jugado esta liga. ¡Sed los primeros!</div>';
+    const N = S.GROUP_N || 5, pts = league.pts || (c => (c.lg && c.lg.id === ct.lg ? c.lg.s : 0) || 0);
+    const rivals = Math.max(0, league.list.length - 1);
+    const rows = `<div class="row"><div class="klttl">⚔️ Tu grupo</div><span class="kltag">${league.list.length}/${N}</span></div>
+      <div class="sm">${rivals >= N - 1 ? 'Tu club contra 4 rivales elegidos al azar al empezar la liga.' : 'Buscando rivales: los clubes que juegan esta liga se van sumando a tu grupo al azar (hasta 4 rivales).'}</div>` +
+      league.list.map(cm).map((c, i) => `<div class="klrank ${c._id === st.cid ? 'me' : ''}" ${c._id === st.cid ? '' : `data-club="${esc(c._id)}"`}><span class="kln">${i + 1}</span>${shield(c.badge, 26, 30)}<span class="klnm" translate="no">${esc(c.name)}</span><span class="klpts">${fmt(pts(c))} ⭐</span></div>`).join('') +
+      Array.from({ length: Math.max(0, N - league.list.length) }, () => `<div class="klrank klwait"><span class="kln">·</span><span class="klnm">🔎 Buscando rival…</span></div>`).join('');
     return pendingCard() + card(`<div class="row"><div class="klttl">🏆 Liga del fin de semana</div><span class="kltag lg">${left(ct.lgEnd - Date.now())}</span></div>
       <div class="sm">10 niveles · gana el club con más estrellas · tú llevas ${sum(p.lgS)} ⭐</div>${tiles(10, 1, p.lgS, lgOpen, 'lg')}`) + card(rows) +
-      card('<div class="sm">Premios: 1.º cofre de cristal · 2.º y 3.º cofre de oro · los demás cofre de madera (si has jugado)</div>');
+      card('<div class="sm">Premios según el puesto en tu grupo: 1.º cofre de cristal · 2.º y 3.º cofre de oro · 4.º y 5.º cofre de madera (si has jugado)</div>');
   }
 
   function render() {
@@ -445,6 +457,16 @@
   window.Club.goBack = goBack;
   const bk = $('clubBack'); if (bk) bk.addEventListener('click', () => { X.Audio.click && X.Audio.click(); goBack(); });
   const sy = $('clubSync'); if (sy) sy.addEventListener('click', () => { X.Audio.click && X.Audio.click(); found = null; if (!S.id) find(); else refresh(true); });
+  // la liga empieza sola: al abrir la app (y cada media hora) un miembro mete a su club en un grupo con 4 rivales al azar,
+  // aunque nadie abra la pantalla del club
+  function autoGroup() {
+    try {
+      const ct = S.time(); if (!S.id || !ct.lg || (league.id === ct.lg && league.gid)) return;
+      loadGroup(ct).then(() => { snap(); if ($('club') && $('club').classList.contains('on')) render(); }).catch(() => { /* lo intentará más tarde */ });
+    } catch (e) { /* sin conexión */ }
+  }
+  if (!(window.RRGame && window.RRGame.testBuild && navigator.webdriver)) { setTimeout(autoGroup, 9000); setInterval(autoGroup, 30 * 60e3); }
+  window.Club.autoGroup = autoGroup;
   // al abrir sin club, se busca directamente
   const _open = open;
   window.Club.open = (t, f) => { _open(t, f); if (!S.id && found == null) find(); };

@@ -210,6 +210,8 @@
     for (let i = 0; i < 30; i++) { const x = rnd(-80, 80), z = rnd(-170, -120); const t = pine(rnd(8, 13), { lights: i % 3 === 0 }); const hy = Math.max(0, 26 * Math.sqrt(Math.max(0, 1 - ((x + 6) ** 2 + (z + 150) ** 2) / 4900))); t.position.set(x, Y0 + hy - 1, z); env.add(t); }
     for (const [x, z] of [[-11, -30], [12, -32]]) { const s = snowman(1.2); s.position.set(x, Y0, z); s.lookAt(0, Y0, 10); env.add(s); }
     const snow = H.points(500, 0, 0xffffff, 0.3, () => [rnd(-40, 40), rnd(-6, 34), rnd(-60, 8)]); snow.material.map = H.TEX.soft; snow.material.size = 0.34; snow.material.transparent = true; env.add(snow);
+    // la nieve la mueve la tarjeta gráfica (sin recorrer los 500 copos en cada fotograma)
+    if (H.gpuMotion) H.gpuMotion(snow, { vy: -1.2, vyStep: -0.25, vyMod: 5, ymin: -6, yr: 40, swx: 0.43, swxF: 0.7 });
     H.scene.add(env); env.visible = false;
     // plataforma: losas de hielo, borde y postes de bastón de caramelo, banderines rojos, verdes, dorados y blancos
     const top = H.tiles('#dff4ff', 'rgba(110,170,210,.55)', 7, (c, x, y, s) => { if (Math.random() < 0.15) { c.fillStyle = 'rgba(255,255,255,.8)'; c.fillRect(x + 4, y + 4, s * 0.4, s * 0.2); } });
@@ -222,8 +224,7 @@
     return { env: [env], platform, noSun: true, water: false,
       update(dt) {
         const t = H.G.t;
-        for (let i = 0; i < sa.count; i++) { let y = sa.getY(i) - dt * (1.2 + (i % 5) * 0.25); if (y < -6) y = 34; sa.setY(i, y); sa.setX(i, sa.getX(i) + Math.sin(t * 0.7 + i) * dt * 0.3); }
-        sa.needsUpdate = true;
+        if (!H.gpuMotion) { for (let i = 0; i < sa.count; i++) { let y = sa.getY(i) - dt * (1.2 + (i % 5) * 0.25); if (y < -6) y = 34; sa.setY(i, y); sa.setX(i, sa.getX(i) + Math.sin(t * 0.7 + i) * dt * 0.3); } sa.needsUpdate = true; }
         if (tree.userData.glow) tree.userData.glow.material.opacity = 0.6 + Math.sin(t * 2.2) * 0.2;
         for (let i = 0; i < bulbMats.length; i++) bulbMats[i].color.setHex(bulbCols[(i + Math.floor(t * 1.5)) % 5]);
       } };

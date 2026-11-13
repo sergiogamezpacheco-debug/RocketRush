@@ -932,7 +932,43 @@
     const ct = clubTime(); if (!ct.lg) return [];
     return runQuery({ from: [{ collectionId: 'clubs' }], where: ffilter('lg.id', 'EQUAL', ct.lg), orderBy: [{ field: fld('lg.s'), direction: 'DESCENDING' }], limit: 50 });
   }
-  const Club = { time: clubTime, load: clubLoad, create: clubCreate, search: clubSearch, join: clubJoin, leave: clubLeave, kick: clubKick, role: clubRole,
+  // ---------------- grupo de la liga ----------------
+  // Al empezar la liga (viernes), el primer miembro que abre el club busca rivales: entra al azar en un grupo de esta liga
+  // que aún tenga sitio o, si no hay ninguno, abre uno nuevo. Cada grupo junta 5 clubes (el tuyo y 4 rivales al azar) y
+  // todos ven la misma clasificación. Solo entran los clubes que juegan ese fin de semana (los inactivos no ocupan sitio).
+  const GROUP_N = 5;
+  const rid = n => { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'; let o = ''; for (let i = 0; i < n; i++) o += a[Math.floor(Math.random() * a.length)]; return o; };
+  async function groupDocs(g) {
+    const raw = await call(`${FS}/leaguegroups/${g}`).catch(e => { if (e.status === 404) return null; throw e; });
+    const gd = raw && docOf(raw); if (!gd) return null;
+    const clubs = await batchGet((gd.clubs || []).map(c => `clubs/${c}`));
+    return { id: g, n: gd.n, open: !!gd.open, clubs };
+  }
+  async function clubLeagueGroup() {
+    const ct = clubTime(), cid = myClubId(); if (!ct.lg || !cid || offline()) return null;
+    await token();
+    for (let i = 0; i < 6; i++) {
+      const raw = await call(`${FS}/clubs/${cid}`), c = docOf(raw);
+      if (c.lgG && c.lgG.id === ct.lg) return groupDocs(c.lgG.g);
+      // grupos de esta liga con sitio (con su versión, para entrar sin pisar a otro club que entre a la vez)
+      const j = await call(`${FS}:runQuery`, { method: 'POST', body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'leaguegroups' }], where: ffilter('open', 'EQUAL', ct.lg), limit: 40 } }) });
+      const open = (j || []).filter(x => x && x.document).map(x => Object.assign(docOf(x.document), { _ut: x.document.updateTime })).filter(g => (g.clubs || []).length < GROUP_N && !(g.clubs || []).includes(cid));
+      let gid, writes;
+      if (open.length) {
+        const g = open[Math.floor(Math.random() * open.length)], clubs = g.clubs.concat([cid]);
+        gid = g._id;
+        writes = [wUpdate(`leaguegroups/${gid}`, { lg: ct.lg, open: clubs.length < GROUP_N ? ct.lg : '', clubs, n: clubs.length }, null, { updateTime: g._ut })];
+      } else {
+        gid = ct.lg + '_' + rid(12);
+        writes = [wUpdate(`leaguegroups/${gid}`, { lg: ct.lg, open: ct.lg, clubs: [cid], n: 1 }, null, { exists: false })];
+      }
+      writes.push(wUpdate(`clubs/${cid}`, { lgG: { id: ct.lg, g: gid } }, true, { updateTime: raw.updateTime }));
+      try { await commit(writes); CL.at = 0; return groupDocs(gid); }
+      catch (e) { if (e.status === 400 || e.status === 409 || e.status === 412 || /PRECONDITION|ABORTED|FAILED_PRECONDITION/.test(String(e.code) + e.message)) continue; throw e; }
+    }
+    throw new ClubErr('BUSY');
+  }
+  const Club = { time: clubTime, group: clubLeagueGroup, GROUP_N, load: clubLoad, create: clubCreate, search: clubSearch, join: clubJoin, leave: clubLeave, kick: clubKick, role: clubRole,
     transfer: clubTransfer, accept: clubAccept, reject: clubReject, settings: clubSettings, report: clubReport, league: clubLeague, state: CL, get id() { return myClubId(); } };
 
   // ---------------- entrar con Google y copia del progreso en la nube ----------------

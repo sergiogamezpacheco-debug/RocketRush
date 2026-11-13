@@ -604,6 +604,22 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   y el contador (las reglas no dejan pasar de 30 ni inventar miembros). Probado contra el Firebase real en
   `tools/firebase_live.mjs`; la pantalla, con un Firestore de mentira en `tools/clubflow.py` (`tools/fakefs.py`).
 
+## Liga de clubes por grupos (5 clubes al azar)
+
+Cuando empieza la liga (viernes), cada club entra en un **grupo de 5**: el suyo y 4 rivales al azar. Todos los del grupo ven
+la misma clasificación (estrellas de esta liga) y los premios van por el puesto en el grupo: 1.º cofre de cristal, 2.º y 3.º
+de oro, 4.º y 5.º de madera (si has jugado). Sin rivales todavía no hay puesto (madera si has jugado).
+
+- **Cómo se forma:** el primer miembro que abre la app o el club durante la liga busca grupos de esa liga con sitio
+  (`leaguegroups`, campo `open` = id de la liga mientras queden huecos) y entra en uno al azar; si no hay ninguno, abre uno nuevo.
+  Club y grupo se escriben en el mismo lote (`lgG` en el club). Así solo entran clubes que juegan ese fin de semana.
+- **En pantalla:** pestaña Liga › «⚔️ Tu grupo» con los clubes y huecos «🔎 Buscando rival…» mientras se llena.
+- **Reglas** (`firebase/firestore.rules`): un club solo entra una vez por liga, solo puede meterlo un miembro suyo, se
+  añade al final y el contador y «open» deben cuadrar (máximo 5). Leer: cualquiera con sesión. Borrar: el panel.
+- **Pruebas:** `tools/leagueflow.py` (local: entra en el grupo con sitio, no se apunta dos veces, abre uno nuevo) y
+  `tools/firebase_live.mjs` (reglas reales).
+- Ahora mismo no hay clubes, así que el primer club de cada liga abrirá su grupo y los siguientes se irán sumando.
+
 ## Clubes: ajustes al crear y rangos (como Clash of Clans)
 
 **Crear un club** (pestaña ➕ Crear): nombre, descripción, escudo y la tarjeta «⚙️ Ajustes del club»:
@@ -647,9 +663,21 @@ Medido con `tools/perfprobe.py` (fotograma a fotograma: física, escena, pintado
 | El mapa de sombras se volvía a dibujar en cada fotograma aunque nada se moviera | Solo cuando algo se mueve (bolas, bloques, cañón, pájaros, jefes) y, si no, 1 de cada 3 fotogramas |
 | Cada parpadeo de las caras de los bloques obligaba a revisar su shader | Cambia solo la textura (`needsUpdate` sobraba) |
 | Golpes y cristales en un gran derrumbe: decenas de sonidos por segundo | Como mucho uno cada ~45 ms (suena igual) |
-| Pantallas de 90/120 Hz | La app Android pide la frecuencia más alta; si el móvil no llega (va a menos de ~75 fps con la pantalla a 120), el juego pide 60 Hz estables (`ChromaAndroid.refreshRate`). Debajo de ~52 fps baja la resolución interna (de 0,25 en 0,25) |
+| Pantallas de 90/120 Hz | 60 Hz fijos (ver la segunda ronda). Debajo de ~52 fps baja la resolución interna (de 0,25 en 0,25) |
 | El 3D de la mascota Cubi se montaba al salir su primer consejo | Se prepara justo después de la precarga |
 | El motor de la página del juego podía perder prioridad | `setRendererPriorityPolicy(IMPORTANT)` en Android 8+ |
+
+**Segunda ronda (romper bloques y clima):**
+
+| Problema | Arreglo |
+|---|---|
+| Cada destello, humo y anillo de onda era un objeto aparte (un dibujo por partícula): un derrumbe sumaba 40-100 dibujos en un fotograma | Todas las partículas van en **2 dibujos por lotes** (normal y brillo sumado) con una sola textura (círculo suave + aro). Los anillos ya no son toros 3D. Mismo aspecto (comparado con capturas) |
+| Chispas: se dibujaban siempre las 700 (las muertas a tamaño 0) y se subían enteras cada fotograma | Solo las vivas, seguidas al principio de la lista (`debris.count`) |
+| Lluvia, tormenta, nieve, ventisca, ceniza, arena, ascuas, luciérnagas y la nieve de Navidad: el procesador movía miles de puntos en cada fotograma y los volvía a subir | Los mueve la **tarjeta gráfica** (`gpuMotion`: cada punto calcula su posición con el tiempo); el procesador no hace nada. Además, la lluvia ya no deja rayas que cruzaban toda la pantalla al volver a caer |
+| En móviles de 90/120 Hz la tarjeta gráfica tenía que dibujar el doble y en los derrumbes bajaba a trompicones | La app Android fija **60 Hz** (fotogramas siempre iguales) |
+| La primera vez que se entraba en un mundo se montaba su paisaje (parón al llegar) | Con el juego ya en la portada se montan todos los paisajes poco a poco (uno cada ~0,4 s, nunca en mitad de una partida) y quedan listos y ocultos (+~15 texturas en memoria). Los climas se preparan durante el logo |
+
+Prueba: `tools/fxprobe.py` (capturas en mitad de un derrumbe con cada clima y dibujos por fotograma: de ~155 a ~115).
 
 Resultados (ordenador, mismas pruebas): física −20 % de tiempo medio y pico máximo de 61 → 32 ms; shaders compilados en
 partida 3 → 0; carga del nivel 1 de 162 → 33 ms; basura en la portada 7,3 → 3 MB/s. En el móvil todo esto se multiplica

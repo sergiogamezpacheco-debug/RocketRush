@@ -212,6 +212,23 @@ r = await patch(`clubs/${cid}/members/${B.uid}`, { role: 'member' }, D.tok); ok(
 r = await patch(`clubs/${cid}`, { closed: true }, B.tok); ok(r.s === 200, 'cerrar el club' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
 const E = await signUp(); r = await patch(`clubs/${cid}/requests/${E.uid}`, { name: 'E', avatar: '🐸', lv: 12, at: new Date() }, E.tok); ok(r.s === 403, 'en un club cerrado no se puede pedir entrar');
 r = await patch(`clubs/${cid}`, { closed: false }, B.tok); ok(r.s === 200, 'volver a abrir las solicitudes' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+// liga por grupos: un miembro mete a su club en un grupo (club y grupo en el mismo lote); nadie de fuera puede
+const LGT = 'T' + cid.slice(3, 9), gid = LGT + '_g' + A.uid.slice(0, 10).replace(/[^A-Za-z0-9]/g, 'x');
+const grp = (o = {}) => Object.assign({ lg: LGT, open: LGT, clubs: [cid], n: 1 }, o);
+r = await commit([W(`leaguegroups/${gid}`, grp(), 0, { exists: false }), W(`clubs/${cid}`, { lgG: { id: LGT, g: gid } }, 1)], E.tok);
+ok(r.s === 403, 'alguien de fuera no mete al club en un grupo de liga');
+r = await commit([W(`leaguegroups/${gid}`, grp({ n: 2 }), 0, { exists: false }), W(`clubs/${cid}`, { lgG: { id: LGT, g: gid } }, 1)], D.tok);
+ok(r.s === 403, 'un grupo no puede nacer con el contador mal');
+r = await commit([W(`leaguegroups/${gid}`, grp(), 0, { exists: false }), W(`clubs/${cid}`, { lgG: { id: LGT, g: gid } }, 1)], D.tok);
+ok(r.s === 200, 'un miembro abre un grupo de liga con su club' + (r.s !== 200 ? ' → ' + errOf(r) : ''));
+r = await commit([W(`leaguegroups/${gid}y`, grp(), 0, { exists: false }), W(`clubs/${cid}`, { lgG: { id: LGT, g: gid + 'y' } }, 1)], D.tok);
+ok(r.s === 403, 'un club no entra en dos grupos de la misma liga');
+r = await commit([W(`leaguegroups/${gid}`, grp({ clubs: [cid, 'otroclubdeprueba'], n: 2 }))], E.tok);
+ok(r.s === 403, 'no se puede añadir a un grupo un club que no es tuyo');
+r = await commit([W(`leaguegroups/${gid}`, grp({ open: '', n: 1 }))], D.tok);
+ok(r.s === 403, 'no se puede cerrar ni tocar un grupo sin entrar en él');
+r = await get(`leaguegroups/${gid}`, E.tok); ok(r.s === 200, 'cualquiera ve la clasificación de un grupo');
+if (SA) await del(`leaguegroups/${gid}`, SA);
 cs = await cget(); // cerrar y abrir cambió la versión del club
 r = await commit([WD(`clubs/${cid}/members/${A.uid}`, { exists: true }), W(`clubs/${cid}`, { count: cs.c - 1, last: A.uid }, 1, { updateTime: cs.ut })], B.tok);
 ok(r.s === 403, 'un colíder no puede expulsar al líder');

@@ -157,6 +157,7 @@ service cloud.firestore {
     }
     function okName(d) { return okStr(d.name, 3, 20) && d.nameLc == d.name.lower(); }
     function okLg(d) { return d.lg is map && d.lg.keys().hasOnly(['id', 's']) && okStr(d.lg.id, 0, 12) && okInt(d.lg.s, 0, 30 * 30); }
+    function groupP(g) { return /databases/$(database)/documents/leaguegroups/$(g); }
     function cnt(c) { return get(clubP(c)).data.count; }
     function cntAfter(c) { return getAfter(clubP(c)).data.count; }
 
@@ -202,6 +203,14 @@ service cloud.firestore {
       allow update: if isMember(cid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lg']) && okLg(request.resource.data)
         && request.resource.data.lg.s <= resource.data.count * 30;
+      // grupo de la liga de esta semana (lo apunta el primer miembro que entra durante la liga, en el mismo lote en que el
+      // club entra en el grupo; una sola vez por liga)
+      allow update: if isMember(cid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lgG'])
+        && request.resource.data.lgG is map && request.resource.data.lgG.keys().hasOnly(['id', 'g'])
+        && okStr(request.resource.data.lgG.id, 1, 12) && okStr(request.resource.data.lgG.g, 1, 40)
+        && resource.data.get('lgG', {'id': ''}).id != request.resource.data.lgG.id
+        && cid in getAfter(groupP(request.resource.data.lgG.g)).data.clubs;
       // borrar: el líder cuando es el último que queda (su ficha se borra en el mismo lote) · o el panel
       allow delete: if isAdmin() || (isMember(cid) && myRole(cid) == 'leader' && resource.data.count == 1
         && !existsAfter(memP(cid, request.auth.uid)));
@@ -252,6 +261,32 @@ service cloud.firestore {
           && okStr(request.resource.data.name, 1, 20) && okStr(request.resource.data.avatar, 1, 16) && okInt(request.resource.data.lv, 0, 100000);
         allow delete: if signedIn() && (uid == request.auth.uid || isStaff(cid) || isAdmin());
       }
+    }
+
+    // ---------------- Grupos de la liga de clubes ----------------
+    // leaguegroups/{liga}_{aleatorio}: hasta 5 clubes que compiten entre sí el fin de semana. Un club entra cuando uno de
+    // sus miembros abre el club durante la liga: se une a un grupo abierto al azar o, si no hay, abre uno nuevo.
+    // «open» vale el id de la liga mientras queda sitio y '' cuando está lleno (así se buscan con una sola condición).
+    match /leaguegroups/{gid} {
+      function okGroup(d) {
+        return d.keys().hasOnly(['lg', 'open', 'clubs', 'n']) && okStr(d.lg, 1, 12) && d.clubs is list
+          && d.n == d.clubs.size() && d.n >= 1 && d.n <= 5
+          && ((d.n < 5 && d.open == d.lg) || (d.n == 5 && d.open == ''))
+          && gid.matches(d.lg + '_[A-Za-z0-9]{6,20}');
+      }
+      allow read: if signedIn();
+      // abrir un grupo nuevo con tu club dentro
+      allow create: if signedIn() && okGroup(request.resource.data) && request.resource.data.n == 1
+        && isMember(request.resource.data.clubs[0])
+        && getAfter(clubP(request.resource.data.clubs[0])).data.lgG.g == gid;
+      // entrar en un grupo: tu club se añade al final y nada más cambia
+      allow update: if signedIn() && okGroup(request.resource.data) && request.resource.data.lg == resource.data.lg
+        && request.resource.data.n == resource.data.n + 1
+        && request.resource.data.clubs.hasAll(resource.data.clubs)
+        && !(request.resource.data.clubs[resource.data.n] in resource.data.clubs)
+        && isMember(request.resource.data.clubs[resource.data.n])
+        && getAfter(clubP(request.resource.data.clubs[resource.data.n])).data.lgG.g == gid;
+      allow delete: if isAdmin();
     }
 
     // Todo lo demás: cerrado

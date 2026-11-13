@@ -51,6 +51,11 @@ class FakeFS:
             w = json.dumps(sq.get('where', {}))
             mm = re.search(r'"lg.id".*?"stringValue": "([^"]+)"', w)
             if mm: out = [d for d in out if d['fields'].get('lg', {}).get('mapValue', {}).get('fields', {}).get('id', {}).get('stringValue') == mm.group(1)]
+            # filtro de igualdad sobre un campo de primer nivel (p. ej. grupos de liga abiertos: open == '2026-W46')
+            ff = (sq.get('where') or {}).get('fieldFilter')
+            if ff and ff.get('op') == 'EQUAL' and '.' not in ff['field']['fieldPath'] and 'stringValue' in ff.get('value', {}):
+                k, v = ff['field']['fieldPath'], ff['value']['stringValue']
+                out = [d for d in out if d['fields'].get(k, {}).get('stringValue') == v]
             if 'friendships' == col: out = []
             return route.fulfill(json=[{'document': d} for d in out] or [{}])
         if path == ':batchGet':

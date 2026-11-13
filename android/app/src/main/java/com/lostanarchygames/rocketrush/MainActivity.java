@@ -54,9 +54,9 @@ public class MainActivity extends ComponentActivity {
             getWindow().setAttributes(lp);
         }
 
-        // pantallas de 90/120 Hz: el juego pide la frecuencia más alta (va más fluido). Si el móvil no la aguanta,
-        // el propio juego lo nota y vuelve a pedir 60 Hz (refreshRate desde JavaScript)
-        setRefresh(0);
+        // 60 Hz fijos: en pantallas de 90/120 Hz la tarjeta gráfica tenía que dibujar el doble y, en los momentos de más
+        // carga (derrumbes, explosiones), bajaba a trompicones. 60 fotogramas siempre iguales se ven más fluidos.
+        setRefresh(60);
         web = new WebView(this);
         web.setBackgroundColor(0xFF000000);   // negro: enlaza con la pantalla del estudio
         // el motor de la página con prioridad alta también cuando la app está delante (menos tirones si hay otras apps)
