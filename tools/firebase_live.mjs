@@ -19,6 +19,7 @@ function enc(v) {
   if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
   if (typeof v === 'string') return { stringValue: v };
   if (typeof v === 'boolean') return { booleanValue: v };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(enc) } };
   const f = {}; for (const k in v) f[k] = enc(v[k]); return { mapValue: { fields: f } };
 }
 const patch = (p, data, tok, extra = '') => req(`${FS}/${p}?${Object.keys(data).map(k => 'updateMask.fieldPaths=' + k).join('&')}${extra}`, { method: 'PATCH', body: JSON.stringify({ fields: enc(data).mapValue.fields }) }, tok);
