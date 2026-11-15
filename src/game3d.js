@@ -292,6 +292,19 @@
         g.fill();
         g.lineWidth = 3; g.strokeStyle = 'rgba(29,20,64,0.35)'; g.stroke();
       };
+      if (mood === 'cry') {                                   // llorando (Cubi en la oferta de ayuda): ojos cerrados, cejas tristes y lagrimones
+        g.strokeStyle = ink; g.lineWidth = 7; g.lineCap = 'round';
+        g.beginPath(); g.arc(38, 60, 13, Math.PI * 1.1, Math.PI * 1.9); g.moveTo(103, 60 - 13 * Math.sin(Math.PI * 0.1)); g.arc(90, 60, 13, Math.PI * 1.1, Math.PI * 1.9); g.stroke();
+        g.lineWidth = 4; g.beginPath(); g.moveTo(22, 36); g.lineTo(48, 28); g.moveTo(106, 36); g.lineTo(80, 28); g.stroke();
+        for (const x of [36, 92]) {
+          const gr = g.createLinearGradient(0, 60, 0, 124); gr.addColorStop(0, 'rgba(120,205,255,0.95)'); gr.addColorStop(1, 'rgba(70,160,255,0.85)');
+          g.fillStyle = gr; g.beginPath(); g.moveTo(x - 6, 64); g.quadraticCurveTo(x - 9, 100, x - 4, 126); g.lineTo(x + 6, 126); g.quadraticCurveTo(x + 10, 100, x + 6, 64); g.closePath(); g.fill();
+          g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.ellipse(x - 2, 80, 2, 6, 0, 0, TAU); g.fill();
+        }
+        g.fillStyle = ink; g.beginPath(); g.moveTo(46, 102); g.quadraticCurveTo(64, 76, 82, 102); g.quadraticCurveTo(64, 94, 46, 102); g.fill();
+        g.fillStyle = '#ff6b8a'; g.beginPath(); g.ellipse(64, 98, 7, 3, 0, 0, TAU); g.fill();
+        return;
+      }
       if (mood === 'blink') {
         g.strokeStyle = ink; g.lineWidth = 7; g.lineCap = 'round';
         g.beginPath(); g.moveTo(26, 54); g.lineTo(50, 54); g.moveTo(78, 54); g.lineTo(102, 54); g.stroke();
@@ -2343,11 +2356,27 @@
     const hits = ray.intersectObjects(objs, false);
     if (hits.length) return hits[0].point.clone();
     const p = new THREE.Vector3();
+    // pájaro, velero y lo que cruza el cielo: van lejos y se ven pequeños (el teleférico, unos 20 px), así que el dedo vale en
+    // una franja alrededor de su altura de al menos ±MOVER_PX px en pantalla (además de la franja en metros de cada uno).
+    // La diana se lleva a la altura a la que estará el objeto cuando llegue la bola (la de las bolas que lleva): el jugador
+    // solo tiene que adelantarse en horizontal.
+    const MOVER_PX = Math.max(46, H * 0.06);
     for (const m of (G.sim && G.sim.movers) || []) {
       if (!m.active) continue;
       const AIM = { desert: [1.8, 2.6], snow: [0.4, 1.6], jungle: [-0.8, 1.6], volcano: [-0.25, 1.5], space: [0.3, 1.3] };
+      const SNAP = { desert: [0.7, 0.3], snow: [-0.1, 0.25], jungle: [-1.0, 0.25], volcano: [-0.45, 0.25], space: [0.2, 0.25] };
       const cy = m.kind === 'bird' ? m.y : m.carrier ? m.y + AIM[m.carrier][0] : m.y + 1.9 * C.SHIP_S, band = m.kind === 'bird' ? 1.8 : m.carrier ? AIM[m.carrier][1] : 2.1 * C.SHIP_S;
-      if (ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -m.z), p) && Math.abs(p.y - cy) < band) return p.clone();
+      if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -m.z), p)) continue;
+      const sy = _v.set(p.x, cy, m.z).project(camera).y, ty = (-sy * 0.5 + 0.5) * H;
+      if (Math.abs(p.y - cy) < band || Math.abs(py - ty) < MOVER_PX) {
+        // altura a la que estará cuando llegue la bola (el globo, el dragón y el ovni suben y bajan; el mono baja por la tirolina)
+        const sn = m.kind === 'bird' ? [0, 0.2] : m.carrier ? SNAP[m.carrier] : [C.BOAT.ballY * C.SHIP_S, 0.3 * C.SHIP_S], sim = G.sim;
+        const yAt = t => { if (m.carrier) { const K = C.CARRIERS[m.carrier]; return m.y0 + (K.bob ? Math.sin(t * K.bobF + m.ph) * K.bob : 0) - (K.slope ? K.slope * m.dir * p.x : 0); }
+          return m.kind === 'bird' ? m.y0 + Math.sin(t * 2.2 + m.ph) * 0.45 : m.y0 + Math.sin(t * 1.3 + m.ph) * 0.12; };
+        let yc = m.y + sn[0];
+        for (let k = 0; k < 3; k++) yc = yAt(sim.t + sim.launch(p.x, yc, m.z).T) + sn[0];
+        p.y = clamp(p.y, yc - sn[1], yc + sn[1]); return p.clone();
+      }
     }
     if (ray.ray.intersectPlane(aimPlane, p)) { p.y = clamp(p.y, 0.3, 14); p.x = clamp(p.x, -6, 6); return p; }
     return null;
@@ -2691,7 +2720,7 @@
   }
   addEventListener('resize', measureWorlds);
   let preSel = {};
-  function openPre(id) {
+  function openPre(id, noOffer) {
     const L = byId(id); if (!L) return;
     G.preId = id; preSel = {}; closeCosSheet();
     if (G.mode !== 'play') loadDemo(id);
@@ -2738,6 +2767,11 @@
     $('preStreak').style.display = 'none';
     renderLoadout();
     $('pre').classList.add('on'); $('preScroll').scrollTop = 0;
+    if (!noOffer) setTimeout(() => { if ($('pre').classList.contains('on') && G.preId === id) maybeOffer(L); }, 500);
+  }
+  // marca ventajas en la pantalla de antes del nivel (después de comprarlas en un aviso)
+  function preSelect(ks) {
+    for (const k of ks) { const el = $('preBoosters').querySelector(`.boost[data-k="${k}"]`); if (!el || !(save.boosters[k] > 0) || preSel[k]) continue; preSel[k] = true; el.classList.add('sel'); }
   }
   // premio de la racha de victorias: al ganar, uno al azar de su nivel (mejor cuanto más larga es la racha) y nunca el mismo dos veces seguidas
   const STREAK_PRIZES = [
@@ -2813,6 +2847,7 @@
   function finishWin() {
     if (!G.interCounted) { G.interCounted = true; save.interN = (save.interN || 0) + 1; }   // partidas terminadas desde el último anuncio entre niveles
     const sim = G.sim, L = G.level;
+    if (save.lvFails && save.lvFails[L.id]) delete save.lvFails[L.id];
     G.winShown = true;
     G.saveBefore = JSON.parse(JSON.stringify(save));   // por si el jugador sigue jugando con +3 bolas
     const stars = L.boss ? (G.bossStars || 1) : sim.stars();
@@ -2890,8 +2925,8 @@
   // fases de monetización: 1-9 luna de miel (regalo), desde el 10 anuncio o monedas
   const HONEYMOON = Levels.HARD[0] - 1;   // antes del primer nivel difícil, perder regala bolas
   function showLose() {
-    if (!G.interCounted) { G.interCounted = true; save.interN = (save.interN || 0) + 1; }
     const sim = G.sim, L = G.level;
+    if (!G.interCounted) { G.interCounted = true; save.interN = (save.interN || 0) + 1; if (L && L.world && !L.club && !L.weekly) { save.lvFails = save.lvFails || {}; save.lvFails[L.id] = (save.lvFails[L.id] || 0) + 1; } }
     if (L.weekly) RH('lose', { L, score: sim.score });
     if (L.club === 'boss' && window.Club && !G.clubLoseDone) { G.clubLoseDone = true; const t = window.Club.onEnd(L, { win: false }); if (t) setTimeout(() => toast(t, 2600), 600); }
     const p = Math.round(sim.progress() * 100), tgt = Math.round(sim.target * 100);
@@ -2990,17 +3025,22 @@
 
   // ---------------- tienda ----------------
   const SHOP = [
-    { id: 'g1', sec: 'gems', name: 'Puñado de gemas', desc: '30 gemas', gems: 30, price: '0,99 €', grant: () => { save.gems = (save.gems || 0) + 30; } },
-    { id: 'g2', sec: 'gems', name: 'Cofre de gemas', desc: '150 gemas: justo un Pase Pro', gems: 150, price: '4,99 €', noAds: true, grant: () => { save.gems = (save.gems || 0) + 150; } },
-    { id: 'g3', sec: 'gems', name: 'Tesoro de gemas', desc: '330 gemas (10 % extra)', gems: 330, price: '9,99 €', noAds: true, grant: () => { save.gems = (save.gems || 0) + 330; } },
+    { id: 'g1', sec: 'gems', name: 'Puñado de gemas', desc: '30 gemas', gems: 30, x2: true, price: '0,99 €', grant: () => { save.gems = (save.gems || 0) + 30; } },
+    { id: 'g2', sec: 'gems', name: 'Cofre de gemas', desc: '165 gemas: el Pase Pro y de sobra', gems: 165, extra: 10, x2: true, price: '4,99 €', noAds: true, grant: () => { save.gems = (save.gems || 0) + 165; } },
+    { id: 'g3', sec: 'gems', name: 'Tesoro de gemas', desc: '360 gemas', gems: 360, extra: 20, x2: true, price: '9,99 €', noAds: true, grant: () => { save.gems = (save.gems || 0) + 360; } },
     { id: 'noads', name: 'Quitar anuncios', desc: 'Sin anuncios entre niveles para siempre', price: '3,99 €', grant: () => { save.adsRemoved = true; } },
     { id: 'starter', name: 'Pack de inicio', desc: '1.000 monedas + 3 bombas + 3 arcoíris', price: '1,99 €', once: true, noAds: true, grant: () => { save.coins += 1000; save.boosters.bomb += 3; save.boosters.rainbow += 3; save.starter = true; } },
-    { id: 'c1', name: 'Bolsa de monedas', desc: '500 monedas', price: '0,99 €', grant: () => { save.coins += 500; } },
-    { id: 'c2', name: 'Cofre de monedas', desc: '3.000 monedas', price: '4,99 €', noAds: true, grant: () => { save.coins += 3000; } },
+    { id: 'c1', name: 'Bolsa de monedas', desc: '500 monedas', x2: true, price: '0,99 €', grant: () => { save.coins += 500; } },
+    { id: 'c2', name: 'Cofre de monedas', desc: '3.000 monedas', extra: 20, x2: true, price: '4,99 €', noAds: true, grant: () => { save.coins += 3000; } },
     { id: 'b1', name: 'Bomba', desc: 'Potenciador para empezar un nivel', coins: 250, grant: () => { save.boosters.bomb++; } },
     { id: 'b2', name: 'Bola arcoíris', desc: 'Toma el color del primer bloque', coins: 300, grant: () => { save.boosters.rainbow++; } },
     { id: 'b3', name: '+2 bolas', desc: 'Empiezas con dos bolas más', coins: 200, grant: () => { save.boosters.extra++; } },
     { id: 'b4', name: 'Cohete de salida', desc: 'Al empezar revienta la fila con más bloques', coins: 200, grant: () => { save.boosters.rocket = (save.boosters.rocket || 0) + 1; } },
+    // packs de los avisos personalizados (antes de un nivel) y la oferta de la semana: no salen en la lista de la tienda
+    { id: 'ayuda', offer: true, name: 'Pack de ayuda', price: '0,99 €', has: { bomb: 1, rainbow: 1, extra: 1 }, grant: () => grant({ bomb: 1, rainbow: 1, extra: 1 }) },
+    { id: 'cazajefes', offer: true, name: 'Pack Cazajefes', price: '2,99 €', gemsAlt: 100, noAds: true, has: { bomb: 3, rocket: 2, rainbow: 2 }, grant: () => grant({ bomb: 3, rocket: 2, rainbow: 2 }) },
+    { id: 'arsenal', offer: true, name: 'Pack Arsenal', price: '2,99 €', gemsAlt: 100, noAds: true, has: { bomb: 5, rainbow: 5, extra: 5 }, grant: () => grant({ bomb: 5, rainbow: 5, extra: 5 }) },
+    { id: 'semanal', offer: true, name: 'Oferta de la semana', price: '2,99 €', noAds: true, grant: () => { const w = weekPack(); grant(w.has); save.weekBuy = w.wk; } },
   ];
   // compras con Google Play: el precio que se ve es el de Play (en la moneda del jugador); el premio se da cuando Play
   // confirma el pago y después se avisa a Play de que ya se ha entregado (si no, lo devuelve a los 3 días).
@@ -3014,13 +3054,32 @@
   // Comprar cualquier COFRE o PACK (los de 1,99 € o más: noAds en SHOP) quita para siempre los anuncios entre niveles.
   // Los puñados y bolsas de 0,99 € no. Los anuncios con premio (los que eliges ver) siguen, porque son opcionales.
   function paidNoAds(it) { if (save.adsRemoved || !(it && it.noAds)) return false; save.adsRemoved = true; persist(); return true; }
+  // la primera compra de gemas o monedas (con dinero) da el doble; el resto de compras no la gastan
+  const x2Open = () => !save.x2Used;
+  function firstX2(it) { if (!it || !it.x2 || save.x2Used) return false; it.grant(); save.x2Used = true; persist(); return true; }
+  // oferta de la semana: cambia cada lunes (mismo contenido para todos), se compra una vez por semana
+  const WEEK_PACKS = [{ gems: 100, bomb: 4 }, { coins: 2000, golden: 2, rainbow: 2 }, { gems: 60, bomb: 3, rainbow: 3, golden: 1 }, { coins: 1500, gems: 60, extra: 3 }];
+  // lo que costaría por separado en la tienda (gemas y monedas al precio del puñado y la bolsa; ventajas a su precio en monedas)
+  const EUR = { gems: 0.99 / 30, coins: 0.99 / 500, bomb: 250 * 0.99 / 500, rainbow: 300 * 0.99 / 500, extra: 200 * 0.99 / 500, rocket: 200 * 0.99 / 500, golden: 600 * 0.99 / 500 };
+  function weekPack() {
+    const wk = Math.floor((Date.now() - WEEK_EPOCH) / (7 * 864e5)), has = WEEK_PACKS[((wk % WEEK_PACKS.length) + WEEK_PACKS.length) % WEEK_PACKS.length];
+    let v = 0; for (const k in has) v += has[k] * (EUR[k] || 0);
+    return { wk, has, value: v, end: WEEK_EPOCH + (wk + 1) * 7 * 864e5, bought: save.weekBuy === wk };
+  }
+  // fichas de lo que trae un pack (iconos del juego)
+  function packChips(h) {
+    const IC = { coins: '<i class="coin"></i>', gems: '<i class="gem"></i>', bomb: '<i class="ball bBomb"></i>', rainbow: '<i class="ball bRainbow"></i>', extra: '<i class="ball bPlus2"></i>', golden: '<i class="ball bGolden"></i>',
+      rocket: '<span class="rk">' + ROCKET_SVG.replace(/width="44" height="44"/, 'width="22" height="22"') + '</span>' };
+    return Object.keys(h).map(k => `<span>${IC[k] || ''}${k === 'coins' || k === 'gems' ? h[k].toLocaleString('es-ES') : '×' + h[k]}</span>`).join('');
+  }
   function iapGrant(id, token) {
     const it = SHOP.find(s => s.id === id); if (!it) return;
     save.iapDone = save.iapDone || [];
     if (token && save.iapDone.includes(token)) { try { window.ChromaAndroid.billingFinish(token, !iapOnce(id)); } catch (e) { /* nada */ } return; }
     it.grant(); if (token) { save.iapDone.push(token); save.iapDone = save.iapDone.slice(-60); }
-    const freed = paidNoAds(it);
-    stats().iap = (stats().iap || 0) + 1; persist(); setCoins(); Audio.win(); toast(freed ? '¡Gracias por tu compra! Ya no verás anuncios entre niveles' : '¡Gracias por tu compra!', 3000);
+    const dbl = firstX2(it), freed = paidNoAds(it);
+    stats().iap = (stats().iap || 0) + 1; persist(); setCoins(); Audio.win(); toast(dbl ? '¡Primera compra: te damos el DOBLE!' : freed ? '¡Gracias por tu compra! Ya no verás anuncios entre niveles' : '¡Gracias por tu compra!', 3000);
+    if (it.offer) offerBought(it);
     if (token) try { window.ChromaAndroid.billingFinish(token, !iapOnce(id)); } catch (e) { /* nada */ }
     if ($('shop').classList.contains('on')) { const sc = $('shopList').scrollTop; openShop(); $('shopList').scrollTop = sc; }
     if ($('lose').classList.contains('on') && id === 'starter') showLose();
@@ -3042,40 +3101,48 @@
   // solo en la app de pruebas (TEST_MODE); por defecto, activadas (esa app no está en Google Play)
   const fakePay = () => TEST_MODE && save.fakePay !== false && !window.RR_REAL_PAY;   // RR_REAL_PAY: pruebas de Google Play simulado
   function iapBuy(it) {
-    if (fakePay()) { it.grant(); paidNoAds(it); persist(); setCoins(); Audio.coin(); toast('Compra simulada hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
+    if (fakePay()) { it.grant(); const d = firstX2(it); paidNoAds(it); persist(); setCoins(); Audio.coin(); toast(d ? 'Compra simulada: primera compra, ¡el DOBLE!' : 'Compra simulada hecha (no se ha cobrado nada)'); if (it.offer) offerBought(it); if ($('shop').classList.contains('on')) openShop(); return true; }
     if (payNative()) {
       if (!iap.prices[it.id]) { iapQuery(); toast('La tienda de Google Play no responde. Comprueba la conexión y vuelve a probar.', 2800); return; }
       window.ChromaAndroid.billingBuy(it.id); return;
     }
-    if (TEST_MODE) { it.grant(); paidNoAds(it); persist(); setCoins(); Audio.coin(); toast('Compra de prueba hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
+    if (TEST_MODE) { it.grant(); const d = firstX2(it); paidNoAds(it); persist(); setCoins(); Audio.coin(); toast(d ? 'Compra de prueba: primera compra, ¡el DOBLE!' : 'Compra de prueba hecha (no se ha cobrado nada)'); if (it.offer) offerBought(it); if ($('shop').classList.contains('on')) openShop(); return true; }
     toast(IOS ? 'Las compras llegarán pronto a la app de iPhone y iPad.' : 'Las compras solo están disponibles en la app de Android.', 2600);
   }
   function openShop(focus) {
     iapQuery();
     $('shopNote').textContent = fakePay() ? 'Compras simuladas: no se cobra nada.' : payNative() ? 'Pagos seguros con Google Play.' : TEST_MODE ? 'Compras de prueba: no se cobra nada.' : IOS ? 'Las compras llegarán pronto a la app de iPhone y iPad.' : 'Las compras solo están disponibles en la app de Android.';
-    const items = SHOP.filter(s => !(s.once && save.starter) && s.id !== 'noads');   // «Quitar anuncios» lo hace ya cualquier compra
+    const items = SHOP.filter(s => !(s.once && save.starter) && s.id !== 'noads' && !s.offer);   // «Quitar anuncios» lo hace ya cualquier cofre o pack
     const SIC = { g1: '<i class="gem"></i>', g2: '<i class="gems2"></i>', g3: '<i class="chest crystal"></i>', starter: '<i class="chest gold"></i>', c1: '<i class="coin"></i>', c2: '<i class="chest wood"></i>', b1: '<i class="ball bBomb"></i>', b2: '<i class="ball bRainbow"></i>', b3: '<i class="ball bPlus2"></i>', b4: '<span style="display:inline-block;width:34px;height:34px">' + ROCKET_SVG.replace(/width="44" height="44"/, 'width="34" height="34"') + '</span>' };
-    const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}</b><span>${s.desc}</span>${s.noAds && !save.adsRemoved ? '<em class="noadtag">🚫 + sin anuncios para siempre</em>' : ''}</div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : iapPrice(s)}</button></div>`;
+    const x2 = x2Open();
+    const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}${s.extra ? `<i class="xtra">+${s.extra} % EXTRA</i>` : ''}</b><span>${s.desc}</span>${x2 && s.x2 ? '<em class="x2tag">🎁 ×2 en tu 1.ª compra</em>' : ''}${s.noAds && !save.adsRemoved ? '<em class="noadtag">🚫 + sin anuncios para siempre</em>' : ''}</div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : iapPrice(s)}</button></div>`;
     const wrow = k => {
       const open = wbOpen(k), have = save.boosters[k] || 0;
       return `<div class="shopitem wb ${open ? '' : 'locked'}"><div class="ball ${CSSB[k]}"></div><div><b>${WBALLS[k].name} <small>nv. ${wbLevel(k)}${have ? ' · tienes ' + have : ''}</small></b><span>${open ? WB_DESC[k] : 'Se desbloquea en el mundo ' + WBALLS[k].world}</span></div>` +
         (open ? `<button class="btn gold" data-wb="${k}"><i class="coin"></i>${wbCoins(k)}</button>` : '<span class="lockico">&#128274;</span>') + '</div>';
     };
     // pestañas: Ofertas, Gemas, Bolas y Monedas (cada una baja a su sección)
-    const TAG = { g2: 'MÁS POPULAR', g3: 'MEJOR VALOR' };
+    const TAG = { g2: 'MÁS POPULAR', g3: 'MEJOR VALOR', c2: 'MEJOR VALOR' };
     const st = items.find(s => s.id === 'starter');
     const feat = st ? `<div class="feat"><div class="frays"></div><div class="ftag">OFERTA ÚNICA</div><div class="fic"><i class="chest gold"></i></div>
       <div class="ftx"><b>${st.name}</b><div class="fit"><span><i class="coin"></i>1.000</span><span><i class="ball bBomb"></i>×3</span><span><i class="ball bRainbow"></i>×3</span></div></div>
       <div class="fbuy"><button class="btn green" data-id="starter">${iapPrice(st)}</button><small>solo una vez${save.adsRemoved ? '' : ' · sin anuncios'}</small></div></div>` : '';
     const noAdsBan = save.adsRemoved ? '<div class="noadsban ok">✓ Sin anuncios entre niveles</div>'
       : '<div class="noadsban"><i>🚫</i><span><b>Cualquier cofre o pack</b> quita para siempre los anuncios entre niveles.</span></div>';
+    const x2Ban = x2 ? '<div class="x2ban"><i>🎁</i><span><b>¡El DOBLE en tu primera compra!</b> Cualquier paquete de gemas o monedas te da el doble.</span></div>' : '';
+    const wp = weekPack(), wIt = SHOP.find(s => s.id === 'semanal'), wPr = iapPrice(wIt), wEur = / ?€$/.test(wPr) ? +wPr.replace(/[^\d,]/g, '').replace(',', '.') : 0;
+    const wkCard = `<div class="wkoff${wp.bought ? ' done' : ''}"><i class="rtag">OFERTA DE LA SEMANA</i><div class="wkhead"><b>Oferta de la semana</b><small class="wkcd">⏳ ${leftTxt(wp.end - Date.now())}</small></div>
+      <div class="wkit">${packChips(wp.has)}</div>
+      <div class="wkbuy">${wp.bought ? '<span class="wkok">✓ Ya la tienes · el lunes cambia</span>' : `${wEur ? `<s><span>valor</span> ${wp.value.toFixed(2).replace('.', ',')} €</s>` : ''}<span class="wkx">×${(Math.floor(wp.value / (wEur || 2.99) * 2) / 2).toString().replace('.', ',')} <span>de valor</span></span><button class="btn green" data-id="semanal">${wPr}</button>`}</div>
+      ${!wp.bought && !save.adsRemoved ? '<em class="noadtag">🚫 + sin anuncios para siempre</em>' : ''}</div>`;
     const rowT = s => TAG[s.id] ? row(s).replace('<div class="shopitem">', `<div class="shopitem hot"><i class="rtag">${TAG[s.id]}</i>`) : row(s);
     const by = ids => items.filter(s => ids.includes(s.id)).map(rowT).join('');
     const hw = hwActive(), xm = xmActive();
     $('shopTabs').innerHTML = (RH('shopTab') || '') + (xm ? `<button data-to="sXm" class="hwtab xmtab" aria-label="Navidad"><span class="xti">${treeSvg()}</span></button>` : '') + (hw ? '<button data-to="sHw" class="hwtab" aria-label="Halloween">🎃</button>' : '') + [['sTmp', 'emo:⏳', 'Temporales'], ['sOff', 'ico ico-fire', 'Ofertas'], ['sCan', 'emo:🎨', 'Cañones'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
       .map(([id, ic, t]) => `<button data-to="${id}">${ic.startsWith('emo:') ? `<i class="emo">${ic.slice(4)}</i>` : `<i class="${ic}"></i>`}${t}</button>`).join('');
     $('shopTabs').classList.toggle('withhw', hw || xm || !!RH('shopTab'));
-    $('shopList').innerHTML = (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + (RH('shopTop') || '') + tmpShopHtml() + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${noAdsBan}${feat}` + canShopHtml() +
+    // el Pack de inicio (la forma más barata de quitar los anuncios), arriba del todo mientras no se haya comprado
+    $('shopList').innerHTML = feat + x2Ban + (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + (RH('shopTop') || '') + tmpShopHtml() + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${noAdsBan}${wkCard}` + canShopHtml() +
       `<div class="sechead" id="sGem"><span>Gemas · para el Pase Pro</span></div>${by(['g1', 'g2', 'g3'])}` +
       `<div class="sechead" id="sBall"><span>Potenciadores</span></div>${by(['b1', 'b2', 'b3'])}` +
       `<div class="sechead"><span>Bolas de los mundos</span></div>${WB_KEYS.map(wrow).join('')}` +
@@ -3099,6 +3166,7 @@
     }));
     $('shopList').querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', () => {
       const it = SHOP.find(s => s.id === b.dataset.id);
+      if (it.id === 'semanal' && weekPack().bought) { toast('Ya tienes la oferta de esta semana. El lunes llega otra'); return; }
       if (!it.coins) { iapBuy(it); return; }
       if (save.coins < it.coins) { toast('No tienes monedas suficientes'); return; } save.coins -= it.coins;
       it.grant(); persist(); setCoins(); Audio.coin(); toast('¡Comprado!');
@@ -3409,7 +3477,7 @@
     if (r.trail && !tSave().own.includes(r.trail) && Cannons.TRAIL[r.trail]) { tSave().own.push(r.trail); out.push('Estela ' + Cannons.TRAIL[r.trail].name); }
     if (r.coins) { save.coins += r.coins; out.push(r.coins + ' monedas'); }
     if (r.gems) { save.gems = (save.gems || 0) + r.gems; out.push(r.gems + ' gemas'); }
-    for (const k of ['bomb', 'rainbow', 'extra', 'golden']) if (r[k]) { save.boosters[k] = (save.boosters[k] || 0) + r[k]; out.push(r[k] + ' ' + ({ bomb: r[k] > 1 ? 'bombas' : 'bomba', rainbow: 'arcoíris', extra: '× +2 bolas', golden: r[k] > 1 ? 'bolas doradas' : 'bola dorada' })[k]); }
+    for (const k of ['bomb', 'rainbow', 'extra', 'rocket', 'golden']) if (r[k]) { save.boosters[k] = (save.boosters[k] || 0) + r[k]; out.push(r[k] + ' ' + ({ bomb: r[k] > 1 ? 'bombas' : 'bomba', rainbow: 'arcoíris', extra: '× +2 bolas', rocket: r[k] > 1 ? 'cohetes' : 'cohete', golden: r[k] > 1 ? 'bolas doradas' : 'bola dorada' })[k]); }
     if (r.skin && !save.skins.owned.includes(r.skin)) { save.skins.owned.push(r.skin); save.skins.equip = r.skin; applySkin(); out.push(SKINS[r.skin].name); }
     return out;
   }
@@ -3525,7 +3593,8 @@
       const face = new THREE.Mesh(faceGeo, fm); face.scale.set(0.92, 0.92, 1); face.position.z = 0.506; g.add(face);
       g.rotation.set(0.14, -0.32, 0); sc.add(g);
       const cam = new THREE.PerspectiveCamera(30, 1, 0.1, 50); cam.position.set(0, 0.12, 3.1); cam.lookAt(0, 0, 0);
-      for (const mood of ['normal', 'blink', 'scared']) { fm.map = FACES.y[mood]; fm.needsUpdate = true; r.render(sc, cam); out[mood] = cv.toDataURL('image/png'); }
+      FACES.y.cry = FACES.y.cry || faceTex('y', 'cry');
+      for (const mood of ['normal', 'blink', 'scared', 'cry']) { fm.map = FACES.y[mood]; fm.needsUpdate = true; r.render(sc, cam); out[mood] = cv.toDataURL('image/png'); }
       r.dispose(); if (r.forceContextLoss) r.forceContextLoss();
     } catch (e) { /* sin WebGL: el tutorial usa un cubo dibujado */ }
     return (cubiCache = out);
@@ -3558,7 +3627,8 @@
   // ventana de avisos (actualizar, mantenimiento, regalos, noticias y canjear código)
   function liveBox(o) {
     $('lbRib').textContent = lt(o.rib || 'AVISO');
-    $('lbIco').textContent = o.ico || '';
+    if (o.icoHtml) $('lbIco').innerHTML = o.icoHtml; else $('lbIco').textContent = o.ico || '';
+    $('liveBox').classList.toggle('offer', !!o.offer);
     $('lbTitle').textContent = o.title || ''; $('lbTitle').hidden = !o.title;
     $('lbBody').textContent = o.body || ''; $('lbBody').hidden = !o.body;
     $('lbExtra').innerHTML = o.extra || '';
@@ -3571,6 +3641,57 @@
     $('liveBox').classList.add('on');
   }
   function liveClose() { $('liveBox').classList.remove('on'); setTimeout(liveCheck, 600); }
+
+  // ---------------- avisos personalizados antes de un nivel (ofertas) ----------------
+  // ¿Necesitas una ayuda? (3 derrotas o más en el mismo nivel) · ¡A por el jefe! (nivel de jefe) · ¡Pocas ventajas! (te queda 1 o
+  // ninguna). Como mucho uno de cada tipo al día, 2 al día en total y nunca dos en el mismo nivel; nunca a menores de 13 ni en el
+  // tutorial, ni en clubes, eventos o el desafío semanal. Cada uno trae una salida sin pagar (vídeo, gemas o «No, gracias»).
+  const OFFER_MAX_DAY = 2;
+  const boostersLeft = () => ['bomb', 'rainbow', 'extra', 'rocket'].reduce((n, k) => n + (save.boosters[k] || 0), 0);
+  function offerState() { const d = dayKey(); if (!save.offers || save.offers.day !== d) save.offers = { day: d, seen: {}, n: 0 }; return save.offers; }
+  function offerFor(L) {
+    if (!L || L.club || L.weekly || L.hw || L.xm || L.bonus || !L.world || save.kid || (navigator.webdriver && !window.RR_OFFERS)) return null;
+    if ((save.unlocked || 1) < 8 || IOS) return null;
+    const st = offerState(); if (st.n >= OFFER_MAX_DAY) return null;
+    if (L.boss && !st.seen.boss) return 'boss';
+    if (((save.lvFails || {})[L.id] || 0) >= 3 && !st.seen.help) return 'help';
+    if (boostersLeft() <= 1 && (save.unlocked || 1) >= 15 && !st.seen.low) return 'low';
+    return null;
+  }
+  const offerPack = it => `<div class="ofpack${it.id === 'cazajefes' ? ' hot' : ''}">${it.id === 'cazajefes' ? '<i class="rtag">SOLO HOY</i>' : ''}<div class="ofi">${{ ayuda: '🎒', cazajefes: '🏴‍☠️', arsenal: '🧨' }[it.id]}</div><div class="oft"><b>${it.name}</b><span>${packChips(it.has)}</span>${it.noAds && !save.adsRemoved ? '<em>🚫 + sin anuncios para siempre</em>' : ''}</div></div>`;
+  function offerClose() { $('liveBox').classList.remove('on', 'offer'); }
+  function offerBought(it) {
+    offerClose();
+    if ($('pre').classList.contains('on') && G.preId) { const id = G.preId; openPre(id, true); preSelect(Object.keys(it.has || {})); }
+  }
+  function offerGems(it) {
+    const g = it.gemsAlt;
+    if ((save.gems || 0) < g) { toast(`Te faltan ${g - (save.gems || 0)} gemas`, 2400); return; }
+    save.gems -= g; it.grant(); persist(); setCoins(); Audio.win(); vibe([20, 20, 40]);
+    toast('¡' + it.name + ' es tuyo!', 2200); offerBought(it);
+  }
+  function maybeOffer(L) {
+    const kind = offerFor(L); if (!kind || $('liveBox').classList.contains('on')) return;
+    const st = offerState(); st.seen[kind] = 1; st.n++; persist();
+    const buy = id => { const it = SHOP.find(x => x.id === id); return { t: lt(it.name.toUpperCase()) + ' · ' + String(iapPrice(it)).replace(/ /g, '\u00a0'), fn: () => iapBuy(it) }; };
+    const it = id => SHOP.find(x => x.id === id);
+    if (kind === 'help') {
+      const n = save.lvFails[L.id], cubi = cubiFrames().cry;
+      liveBox({ offer: true, rib: '¿NECESITAS UNA AYUDA?', icoHtml: cubi ? `<img class="lbcubi" src="${cubi}" alt="">` : '😭', title: lt('¡Este nivel se resiste!'),
+        body: lt('Llevas {n} intentos. Con un empujón lo pasas seguro.').replace('{n}', n), extra: offerPack(it('ayuda')),
+        btns: [{ t: '🎬 ' + lt('+2 bolas gratis (anuncio)'), cls: 'blue', fn: () => showRewarded(ok => { if (!ok) return; save.boosters.extra = (save.boosters.extra || 0) + 1; persist(); offerClose(); openPre(L.id, true); preSelect(['extra']); toast(lt('¡+2 bolas para este intento!')); }) },
+          buy('ayuda'), { t: 'No, gracias', cls: 'gray small', fn: offerClose }] });
+    } else if (kind === 'boss') {
+      liveBox({ offer: true, rib: '¡A POR EL JEFE!', ico: '☠️', title: lt('¡Derrota al jefe a lo grande!'),
+        body: lt('{boss} no se rinde fácilmente. Llega con todo tu arsenal.').replace('{boss}', L.bossName ? lt(L.bossName) : lt('El jefe')), extra: offerPack(it('cazajefes')),
+        btns: [buy('cazajefes'), { t: lt('Con gemas') + ' · 💎 ' + it('cazajefes').gemsAlt, cls: 'gold', fn: () => offerGems(it('cazajefes')) }, { t: 'Ir sin nada', cls: 'gray small', fn: offerClose }] });
+    } else {
+      const n = boostersLeft();
+      liveBox({ offer: true, rib: '¡POCAS VENTAJAS!', ico: '🧰', title: lt('Tu arsenal está casi vacío'),
+        body: (n ? lt('Solo te queda 1 potenciador.') : lt('No te quedan potenciadores.')) + ' ' + lt('Repón antes de los niveles difíciles.'), extra: offerPack(it('arsenal')),
+        btns: [buy('arsenal'), { t: lt('Con gemas') + ' · 💎 ' + it('arsenal').gemsAlt, cls: 'gold', fn: () => offerGems(it('arsenal')) }, { t: 'Ahora no', cls: 'gray small', fn: offerClose }] });
+    }
+  }
   const liveSeen = {};          // en esta sesión (mantenimiento, actualizar sin obligar)
   function liveNext() {
     const c = liveCfg(), u = c.update || {};
@@ -4967,5 +5088,5 @@
   ageGate(); if (save.birthYear) adsStart();
   requestAnimationFrame(() => requestAnimationFrame(autoDailySoon));   // cuenta desde que la portada ya se ve
   requestAnimationFrame(frame);
-  window.ChromaGame = { G, startLevel, tick, manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, LEVELS, goTitle, finishWin, cos: { buy: (k, id) => cosBuy(k, id), equip: (k, id) => cosEquip(k, id), up: () => cosUpgrade(), tmp: () => tmpNow(), apply: applySkin, out: () => cannonOut } };
+  window.ChromaGame = { G, startLevel, tick, pickTarget: (x, y) => pickTarget(x, y), manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, LEVELS, goTitle, finishWin, cos: { buy: (k, id) => cosBuy(k, id), equip: (k, id) => cosEquip(k, id), up: () => cosUpgrade(), tmp: () => tmpNow(), apply: applySkin, out: () => cannonOut } };
 })();

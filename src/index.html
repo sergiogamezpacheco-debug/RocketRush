@@ -712,7 +712,8 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 .ftx{position:relative;flex:1;min-width:0}.ftx small{font-size:10px;font-weight:900;letter-spacing:1px;color:#fff3c4}.ftx b{display:block;font-size:19px;font-weight:900;text-shadow:0 2px 0 rgba(120,0,40,.5)}
 .fit{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}.fit span{display:flex;align-items:center;gap:3px;font-size:12px;font-weight:900;background:rgba(0,0,0,.2);border-radius:8px;padding:2px 6px}
 .fit .coin,.fit .ball{width:16px;height:16px}
-.fbuy{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;flex:none}.fbuy .btn{width:auto;margin:0;padding:10px 14px;font-size:17px}.fbuy small{font-size:10.5px;font-weight:800}
+.fbuy{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;max-width:118px}.fbuy .btn{width:auto;margin:0;padding:10px 14px;font-size:17px}.fbuy small{font-size:10.5px;font-weight:800;text-align:center;line-height:1.2}
+.feat .ftx{padding-top:14px}.feat .ftx b{font-size:18px;line-height:1.1}
 /* monedero con «+»: lleva a la tienda */
 .wallet .coins{cursor:pointer;position:relative;padding-right:30px}
 .wallet .coins::after{content:'+';position:absolute;right:5px;top:50%;margin-top:-9px;width:18px;height:18px;border-radius:50%;background:linear-gradient(#9cf28a,#2fa046);color:#fff;font-size:14px;font-weight:900;line-height:18px;text-align:center;box-shadow:0 1px 0 #0a5a20}
@@ -1015,6 +1016,30 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 #liveBox .xbtn[hidden]{display:none}
 .lbico{font-size:54px;line-height:1;margin:4px 0 6px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.2))}
 .lbico:empty{display:none}
+/* avisos personalizados (ofertas antes de un nivel) */
+#liveBox.offer #lbRib{font-size:min(19px,5vw);white-space:nowrap}
+.lbcubi{width:92px;height:92px;display:block;margin:-6px auto -4px;animation:sob 1.1s ease-in-out infinite}
+@keyframes sob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(3px) rotate(2deg) scale(1.02,.97)}}
+.ofpack{position:relative;display:flex;gap:12px;align-items:center;margin:6px 4px 10px;padding:12px;border-radius:16px;background:linear-gradient(180deg,#ff7a8a,#e8455c);box-shadow:inset 0 0 0 3px #fff,0 6px 14px rgba(0,0,0,.3);color:#fff;text-align:left}
+.ofpack .ofi{font-size:42px;line-height:1;flex:none}.ofpack .oft{min-width:0}.ofpack .oft b{display:block;font-size:19px;font-weight:900}
+.ofpack .oft span{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:5px}
+.ofpack .oft span span,.wkit span{display:inline-flex;align-items:center;gap:3px;margin:0;font-weight:900;font-size:13.5px;background:rgba(0,0,0,.18);border-radius:8px;padding:2px 6px;white-space:nowrap}
+.ofpack .ball,.ofpack .coin,.ofpack .gem,.wkit .ball,.wkit .coin,.wkit .gem{width:19px;height:19px;margin:0}.ofpack .rk svg,.wkit .rk svg{display:block}
+.ofpack em{display:block;font-style:normal;font-size:11.5px;font-weight:900;color:#ffe36b;margin-top:5px}
+.ofpack .rtag,.wkoff .rtag{position:absolute;top:-10px;right:10px;background:#ffd23f;color:#5a2b00;font-size:11px;font-weight:900;font-style:normal;padding:5px 8px;border-radius:8px;transform:rotate(3deg);box-shadow:0 2px 0 #8a5a00}
+/* tienda: doble en la primera compra, oferta de la semana y etiquetas de valor */
+.x2ban{display:flex;gap:10px;align-items:center;margin:2px 4px 10px;padding:9px 12px;border-radius:14px;background:linear-gradient(180deg,#7df0b0,#2fc77a);color:#063a1e;font-size:13.5px;line-height:1.25;box-shadow:0 3px 0 #1a8a50,0 6px 14px rgba(0,0,0,.25);text-align:left}
+.x2ban i{font-style:normal;font-size:24px}.x2ban b{font-weight:900}
+.x2tag{display:block;font-style:normal;font-size:11px;font-weight:900;color:#7dffb8;margin-top:2px}
+.shopitem .xtra{display:inline-block;margin-left:6px;vertical-align:2px;font-style:normal;font-size:10px;font-weight:900;padding:2px 6px;border-radius:7px;background:#2fc77a;color:#fff}
+.wkoff{position:relative;margin:14px 4px 10px;padding:14px 12px 10px;border-radius:18px;text-align:left;color:#fff;background:linear-gradient(160deg,#3d9bff,#6a34e0);box-shadow:inset 0 0 0 3px #fff,0 0 0 3px #ffd23f,0 6px 16px rgba(0,0,0,.3)}
+.wkoff.done{filter:saturate(.5) brightness(.85)}
+.wkhead{display:flex;justify-content:space-between;align-items:center;gap:8px}.wkhead b{font-size:18px;font-weight:900}
+.wkcd{font-size:12px;font-weight:900;background:rgba(0,0,0,.25);border-radius:8px;padding:3px 7px;white-space:nowrap}
+.wkit{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.wkbuy{display:flex;align-items:center;justify-content:flex-end;gap:8px}.wkbuy s{font-size:12.5px;font-weight:800;opacity:.85}
+.wkx{font-size:12px;font-weight:900;color:#5a2b00;background:#ffd23f;border-radius:8px;padding:3px 7px}
+.wkbuy .btn{width:auto;margin:0;padding:9px 16px;font-size:17px}.wkok{font-weight:900;font-size:13px;color:#bfffd8}
 #lbTitle{margin:4px 0 0;font-size:21px;line-height:1.2}
 #lbTitle[hidden],#lbBody[hidden]{display:none}
 #lbBody{white-space:pre-line}

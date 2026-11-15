@@ -618,6 +618,18 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   1,99 €, Cofre de gemas 4,99 €, Tesoro de gemas 9,99 €, Cofre de monedas 4,99 €; `paidNoAds`). Los puñados y bolsas de
   0,99 € no. Los anuncios con premio siguen (son opcionales). La tienda lo avisa con un cartel y la etiqueta «🚫 + sin
   anuncios para siempre» en esos productos; «Quitar anuncios» ya no se enseña (quien lo compró lo conserva).
+- **Avisos personalizados antes de un nivel** (`maybeOffer`, sobre la pantalla del nivel): «¿Necesitas una ayuda?» (Cubi llorando,
+  a partir de 3 derrotas en el mismo nivel: Pack de ayuda 0,99 € o +2 bolas gratis con un vídeo), «¡A por el jefe!» (niveles de
+  jefe: Pack Cazajefes 2,99 € o 100 gemas, «SOLO HOY») y «¡Pocas ventajas!» (1 o ninguna, desde el nivel 15: Pack Arsenal 2,99 € o
+  100 gemas). Uno de cada tipo al día, 2 al día como mucho, nunca dos en el mismo nivel; no salen a menores de 13, en el tutorial,
+  clubes, eventos, desafío semanal ni iPhone. Lo comprado queda marcado en la pantalla del nivel. Prueba: `tools/offersflow.py`.
+- **Tienda**: el Pack de inicio va arriba del todo mientras no se compre; **el DOBLE en la primera compra** de gemas o monedas
+  (`x2`, `save.x2Used`); **Oferta de la semana** (`semanal`, 2,99 €, cambia cada lunes, una vez por semana, cuenta atrás y «valor
+  por separado» calculado con los precios de la tienda); etiquetas **+10 % / +20 % EXTRA** (Cofre de gemas 165, Tesoro 360,
+  Cofre de monedas 3.000) además de «MÁS POPULAR» y «MEJOR VALOR».
+- **Productos de Google Play que hay que crear** (Play Console › Monetizar › Productos › Productos integrados, todos consumibles
+  salvo `starter` y `noads`): `g1`, `g2`, `g3`, `c1`, `c2`, `starter`, `noads`, `ayuda`, `cazajefes`, `arsenal` y `semanal`.
+  Si un producto no existe en Play, el botón avisa de que la tienda no responde y no cobra nada.
 - **La tienda o el club se cerraban solos:** era la cuenta atrás de Navidad, que devolvía a la portada cada 30 s; ya estaba
   corregido en la versión del 13-11 (comprobado: la tienda y el club siguen abiertos 80 s).
 
@@ -716,6 +728,10 @@ por 3-5, que es justo donde se notaban los tirones.
   con el juego instalado desde Google Play (también en la prueba cerrada); con una APK suelta no hace nada.
 - **Desde el panel (Android e iPhone):** «Versión mínima» en el panel de administración: a quien tenga una compilación anterior
   le sale «¡NUEVA VERSIÓN!» con el botón que abre la tienda; si se marca «obligatoria», no puede seguir sin actualizar.
+
+- **Apuntar a lo que cruza el cielo** (pájaro, velero, globo, teleférico, mono, dragón y ovni): el dedo vale en una franja de al
+  menos ±6 % de la pantalla alrededor de su altura (antes, en el teleférico, unos ±25 px) y la diana se lleva a la altura a la que
+  estará cuando llegue la bola; el jugador solo tiene que adelantarse en horizontal. Prueba: `tools/skyaimflow.py` (15 de 15).
 
 ## Preparación para Google Play
 
