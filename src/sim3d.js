@@ -434,6 +434,9 @@
     ballHit(ball, other, v, px, py, pz) {
       const d = ball.userData, od = other.userData;
       if (d.dead) return;
+      // espejo: refleja CUALQUIER bola (también la bomba, la dorada y las de los mundos) antes de que haga nada más;
+      // antes la bomba explotaba al tocar el espejo
+      if (od.kind === 'mirror') { this.special(other, d.ball, ball, v); return; }
       if (this.pw && this.pw.boom && !d.boomed && od.kind !== 'island') { d.boomed = true; this.blast(px, py, pz); }
       if (d.ball === 'golden') { this.goldenHit(ball, other); return; }
       if (WBALLS[d.ball]) { this.worldBallHit(ball, other, v, px, py, pz); return; }

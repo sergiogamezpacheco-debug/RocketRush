@@ -3011,12 +3011,16 @@
   function iapQuery() { if (payNative() && Date.now() - iap.asked > 5000) { iap.asked = Date.now(); try { window.ChromaAndroid.billingQuery(JSON.stringify(IAP_IDS)); } catch (e) { /* nada */ } } }
   const iapPrice = s => iap.prices[s.id] || s.price;
   const iapOnce = id => id === 'noads' || id === 'starter';
+  // Cualquier compra con dinero (gemas, monedas, pack de inicio…) quita para siempre los anuncios entre niveles.
+  // Los anuncios con premio (los que eliges ver) siguen estando, porque son opcionales.
+  function paidNoAds() { if (save.adsRemoved) return false; save.adsRemoved = true; persist(); return true; }
   function iapGrant(id, token) {
     const it = SHOP.find(s => s.id === id); if (!it) return;
     save.iapDone = save.iapDone || [];
     if (token && save.iapDone.includes(token)) { try { window.ChromaAndroid.billingFinish(token, !iapOnce(id)); } catch (e) { /* nada */ } return; }
     it.grant(); if (token) { save.iapDone.push(token); save.iapDone = save.iapDone.slice(-60); }
-    stats().iap = (stats().iap || 0) + 1; persist(); setCoins(); Audio.win(); toast('¡Gracias por tu compra!', 2600);
+    const freed = paidNoAds();
+    stats().iap = (stats().iap || 0) + 1; persist(); setCoins(); Audio.win(); toast(freed ? '¡Gracias por tu compra! Ya no verás anuncios entre niveles' : '¡Gracias por tu compra!', 3000);
     if (token) try { window.ChromaAndroid.billingFinish(token, !iapOnce(id)); } catch (e) { /* nada */ }
     if ($('shop').classList.contains('on')) { const sc = $('shopList').scrollTop; openShop(); $('shopList').scrollTop = sc; }
     if ($('lose').classList.contains('on') && id === 'starter') showLose();
@@ -3038,20 +3042,20 @@
   // solo en la app de pruebas (TEST_MODE); por defecto, activadas (esa app no está en Google Play)
   const fakePay = () => TEST_MODE && save.fakePay !== false && !window.RR_REAL_PAY;   // RR_REAL_PAY: pruebas de Google Play simulado
   function iapBuy(it) {
-    if (fakePay()) { it.grant(); persist(); setCoins(); Audio.coin(); toast('Compra simulada hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
+    if (fakePay()) { it.grant(); paidNoAds(); persist(); setCoins(); Audio.coin(); toast('Compra simulada hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
     if (payNative()) {
       if (!iap.prices[it.id]) { iapQuery(); toast('La tienda de Google Play no responde. Comprueba la conexión y vuelve a probar.', 2800); return; }
       window.ChromaAndroid.billingBuy(it.id); return;
     }
-    if (TEST_MODE) { it.grant(); persist(); setCoins(); Audio.coin(); toast('Compra de prueba hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
+    if (TEST_MODE) { it.grant(); paidNoAds(); persist(); setCoins(); Audio.coin(); toast('Compra de prueba hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
     toast(IOS ? 'Las compras llegarán pronto a la app de iPhone y iPad.' : 'Las compras solo están disponibles en la app de Android.', 2600);
   }
   function openShop(focus) {
     iapQuery();
     $('shopNote').textContent = fakePay() ? 'Compras simuladas: no se cobra nada.' : payNative() ? 'Pagos seguros con Google Play.' : TEST_MODE ? 'Compras de prueba: no se cobra nada.' : IOS ? 'Las compras llegarán pronto a la app de iPhone y iPad.' : 'Las compras solo están disponibles en la app de Android.';
-    const items = SHOP.filter(s => !(s.once && save.starter) && !(s.id === 'noads' && save.adsRemoved));
+    const items = SHOP.filter(s => !(s.once && save.starter) && s.id !== 'noads');   // «Quitar anuncios» lo hace ya cualquier compra
     const SIC = { g1: '<i class="gem"></i>', g2: '<i class="gems2"></i>', g3: '<i class="chest crystal"></i>', starter: '<i class="chest gold"></i>', c1: '<i class="coin"></i>', c2: '<i class="chest wood"></i>', b1: '<i class="ball bBomb"></i>', b2: '<i class="ball bRainbow"></i>', b3: '<i class="ball bPlus2"></i>', b4: '<span style="display:inline-block;width:34px;height:34px">' + ROCKET_SVG.replace(/width="44" height="44"/, 'width="34" height="34"') + '</span>' };
-    const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}</b><span>${s.desc}</span></div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : iapPrice(s)}</button></div>`;
+    const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}</b><span>${s.desc}</span>${s.price && !save.adsRemoved ? '<em class="noadtag">🚫 + sin anuncios</em>' : ''}</div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : iapPrice(s)}</button></div>`;
     const wrow = k => {
       const open = wbOpen(k), have = save.boosters[k] || 0;
       return `<div class="shopitem wb ${open ? '' : 'locked'}"><div class="ball ${CSSB[k]}"></div><div><b>${WBALLS[k].name} <small>nv. ${wbLevel(k)}${have ? ' · tienes ' + have : ''}</small></b><span>${open ? WB_DESC[k] : 'Se desbloquea en el mundo ' + WBALLS[k].world}</span></div>` +
@@ -3063,13 +3067,15 @@
     const feat = st ? `<div class="feat"><div class="frays"></div><div class="ftag">OFERTA ÚNICA</div><div class="fic"><i class="chest gold"></i></div>
       <div class="ftx"><b>${st.name}</b><div class="fit"><span><i class="coin"></i>1.000</span><span><i class="ball bBomb"></i>×3</span><span><i class="ball bRainbow"></i>×3</span></div></div>
       <div class="fbuy"><button class="btn green" data-id="starter">${iapPrice(st)}</button><small>solo una vez</small></div></div>` : '';
+    const noAdsBan = save.adsRemoved ? '<div class="noadsban ok">✓ Sin anuncios entre niveles</div>'
+      : '<div class="noadsban"><i>🚫</i><span><b>Cualquier compra con dinero</b> quita para siempre los anuncios entre niveles.</span></div>';
     const rowT = s => TAG[s.id] ? row(s).replace('<div class="shopitem">', `<div class="shopitem hot"><i class="rtag">${TAG[s.id]}</i>`) : row(s);
     const by = ids => items.filter(s => ids.includes(s.id)).map(rowT).join('');
     const hw = hwActive(), xm = xmActive();
     $('shopTabs').innerHTML = (RH('shopTab') || '') + (xm ? `<button data-to="sXm" class="hwtab xmtab" aria-label="Navidad"><span class="xti">${treeSvg()}</span></button>` : '') + (hw ? '<button data-to="sHw" class="hwtab" aria-label="Halloween">🎃</button>' : '') + [['sTmp', 'emo:⏳', 'Temporales'], ['sOff', 'ico ico-fire', 'Ofertas'], ['sCan', 'emo:🎨', 'Cañones'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
       .map(([id, ic, t]) => `<button data-to="${id}">${ic.startsWith('emo:') ? `<i class="emo">${ic.slice(4)}</i>` : `<i class="${ic}"></i>`}${t}</button>`).join('');
     $('shopTabs').classList.toggle('withhw', hw || xm || !!RH('shopTab'));
-    $('shopList').innerHTML = (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + (RH('shopTop') || '') + tmpShopHtml() + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${feat}${by(['noads'])}` + canShopHtml() +
+    $('shopList').innerHTML = (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + (RH('shopTop') || '') + tmpShopHtml() + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${noAdsBan}${feat}` + canShopHtml() +
       `<div class="sechead" id="sGem"><span>Gemas · para el Pase Pro</span></div>${by(['g1', 'g2', 'g3'])}` +
       `<div class="sechead" id="sBall"><span>Potenciadores</span></div>${by(['b1', 'b2', 'b3'])}` +
       `<div class="sechead"><span>Bolas de los mundos</span></div>${WB_KEYS.map(wrow).join('')}` +

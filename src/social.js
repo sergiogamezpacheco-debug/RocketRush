@@ -207,7 +207,7 @@
       acc.textContent = T('Conectando…');
       try {
         const r = await Account.signIn();
-        if (r.switched && r.cloud) { w.hidden = true; accountBox({ kind: 'choose', cloud: r.cloud }); return; }
+        if (hasOld(r)) { w.hidden = true; accountBox({ kind: 'choose', cloud: r.cloud, server: r.server }); return; }
         X.Audio.win && X.Audio.win(); showAcc();
         if (prof().name) done();          // la cuenta ya tenía nombre
       } catch (e) { acc.textContent = e.code === 'CANCEL' ? '' : e.code === 'NO_APP' ? T(NO_APP_TXT()) : e.status === 0 ? T('Sin conexión a internet.') : T('No se ha podido entrar con Google. Prueba otra vez.'); }
@@ -258,6 +258,7 @@
   }
   let lastPushed = lsGet(PUSH_KEY) || '';
   async function push(force) {
+    if (holdSync) return;   // recién entrado en una cuenta con partida: primero se elige con cuál quedarse
     await token();
     await ensureCode();
     const p = prof();
@@ -1014,26 +1015,43 @@
     X.save.gacc = { email: r.email || j.email || '', name: r.name || j.displayName || '', at: Date.now() };
     if (switched) { X.save.codeUid = null; X.save.profUid = null; X.save.club = null; X.save.nameLc = null; X.save.clubReq = null; lastPushed = ''; lsSet(PUSH_KEY, ''); }
     X.persist();
-    const cloud = await cloudGet();
-    if (!switched || !cloud) { await cloudPut(true); dirty(800); }
-    return { switched, cloud };
+    if (!switched) { await cloudPut(true); dirty(800); return { switched, cloud: null, server: null }; }
+    // Esa cuenta de Google ya existía (otro móvil o reinstalación): se mira qué tenía —la copia completa del progreso y
+    // su perfil (nombre, avatar, país)— ANTES de subir nada de este móvil, y se pregunta con cuál quedarse.
+    const [cloud, server] = await Promise.all([cloudGet().catch(() => null), getDoc(`users/${auth.uid}`).catch(() => null)]);
+    if (!cloud && !(server && server.name)) { await cloudPut(true); dirty(800); return { switched, cloud: null, server: null }; }
+    holdSync = true;   // nada se sube hasta que el jugador elija (antes el perfil de este móvil pisaba el de la cuenta)
+    return { switched, cloud, server };
   }
+  let holdSync = false;
+  const hasOld = r => !!(r && r.switched && (r.cloud || (r.server && r.server.name)));
+  // quedarse con la partida de la cuenta: la copia completa si la hay; si no, al menos su nombre, avatar y país
+  function useOld(st) {
+    if (st.cloud) { Account.apply(st.cloud.data, st.cloud.lang); return true; }
+    const sv = st.server || {}, p = prof();
+    p.name = sv.name || p.name; if (sv.avatar) p.avatar = sv.avatar; if (sv.country) p.country = sv.country;
+    if (sv.name) X.save.nameLc = nameKey(sv.name);
+    X.save.welcomed = true; holdSync = false; X.persist();
+    cloudPut(true).catch(() => { /* se subirá luego */ }); dirty(800);
+    return false;
+  }
+  function useNew() { holdSync = false; cloudPut(true).catch(() => { /* se subirá luego */ }); dirty(800); }
   async function cloudGet() {
     const d = await getDoc(`saves/${auth.uid}`);
     if (!d) return null;
     let data = null; try { data = JSON.parse(d.data); } catch (e) { data = null; }
-    return data ? { data, at: d.at, lv: d.lv, stars: d.stars, dev: d.dev } : null;
+    return data ? { data, at: d.at, lv: d.lv, stars: d.stars, dev: d.dev, lang: d.lang || '' } : null;
   }
   let cloudT = 0, cloudBusy = false;
   async function cloudPut(force) {
-    if (!linked() || offline() || cloudBusy) return false;
+    if (!linked() || offline() || cloudBusy || holdSync) return false;
     const raw = JSON.stringify(X.save);
     if (raw.length > 900000) return false;
     if (!force && raw === cloudInfo.last) return false;
     cloudBusy = true;
     try {
       await token();
-      await setDoc(`saves/${auth.uid}`, { data: raw, at: new Date(), lv: Math.min(X.save.unlocked || 1, 100000), stars: X.starsTotal(), dev: devId() }, { merge: false });
+      await setDoc(`saves/${auth.uid}`, { data: raw, at: new Date(), lv: Math.min(X.save.unlocked || 1, 100000), stars: X.starsTotal(), dev: devId(), lang: window.I18N ? I18N.lang : '' }, { merge: false });
       cloudInfo = { last: raw, at: Date.now() }; lsSet(CLOUD_KEY, JSON.stringify({ at: cloudInfo.at, last: raw }));
       return true;
     } finally { cloudBusy = false; }
@@ -1041,10 +1059,11 @@
   function cloudSoon() { if (!linked()) return; clearTimeout(cloudT); cloudT = setTimeout(() => { cloudPut().catch(() => { /* se reintenta en el próximo cambio */ }); }, 60000); }
   // al salir del juego (Android lo avisa con ChromaPause) se sube lo que falte
   { const p0 = window.ChromaPause; window.ChromaPause = () => { if (p0) p0(); if (linked()) cloudPut().catch(() => {}); }; }
-  function cloudApply(data) {
-    // se queda con el progreso de la nube y vuelve a abrir el juego con él (la cuenta de Google se mantiene)
-    data = Object.assign({}, data, { gacc: X.save.gacc, birthYear: data.birthYear || X.save.birthYear });
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); lsSet(CLOUD_KEY, JSON.stringify({ at: Date.now(), last: JSON.stringify(data) })); } catch (e) { return; }
+  function cloudApply(data, lang) {
+    // se queda con el progreso de la nube —nivel, monedas, nombre, avatar, club, ajustes de sonido, gráficos…— y vuelve a
+    // abrir el juego con él (la cuenta de Google se mantiene). El idioma va aparte y también se recupera.
+    data = Object.assign({}, data, { gacc: X.save.gacc, birthYear: data.birthYear || X.save.birthYear, welcomed: true });
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); lsSet(CLOUD_KEY, JSON.stringify({ at: Date.now(), last: JSON.stringify(data) })); if (lang) localStorage.setItem('rocketrush.lang', lang); } catch (e) { return; }
     location.reload();
   }
   async function googleSignOut() {
@@ -1072,10 +1091,15 @@
     const draw = () => {
       msg('');
       if (state && state.kind === 'choose') {
-        const c = state.cloud, l = X.save;
-        setTxt('Ya tienes progreso guardado', 'Esta cuenta de Google ya tenía progreso de otro móvil. ¿Con cuál te quedas?',
-          `<div class="gacmp"><div><b>${T('En la nube')}</b>${T('Nivel')} ${c.lv || 1} · ⭐ ${c.stars || 0}<br>${fmtAgo(c.at)}</div><div><b>${T('En este móvil')}</b>${T('Nivel')} ${l.unlocked || 1} · ⭐ ${X.starsTotal()}</div></div>`);
-        btns([['useCloud', 'green', T('Usar el de la nube')], ['useLocal', 'gray small', T('Quedarme con el de este móvil')]]);
+        const c = state.cloud, sv = state.server || {}, l = X.save, cp = (c && c.data && c.data.prof) || {};
+        const nm = esc(cp.name || sv.name || ''), av = cp.avatar || sv.avatar || '', lv = c ? c.lv : (sv.stats && sv.stats.lv) || 0;
+        const club = c && c.data && c.data.club && c.data.club.name ? `<br>🛡️ <span translate="no">${esc(c.data.club.name)}</span>` : '';
+        const me = prof();
+        setTxt('Ya tenías una partida', 'Esta cuenta de Google ya tenía una partida. ¿Con cuál te quedas?',
+          `<div class="gacmp"><div><b>${T('En tu cuenta')}</b>${av} <span translate="no">${nm || '—'}</span><br>${lv ? T('Nivel') + ' ' + lv : ''}${c ? ' · ⭐ ' + (c.stars || 0) : ''}${club}${c ? '<br>' + fmtAgo(c.at) : ''}</div>` +
+          `<div><b>${T('En este móvil')}</b>${me.avatar || ''} <span translate="no">${esc(me.name || '—')}</span><br>${T('Nivel')} ${l.unlocked || 1} · ⭐ ${X.starsTotal()}</div></div>` +
+          `<p class="sub">${T(c ? 'Recuperas el progreso, el nombre, el avatar, el club, los ajustes y el idioma.' : 'Recuperas tu nombre, tu avatar y tu país (no había copia del progreso en la nube).')}</p>`);
+        btns([['useCloud', 'green', T('Recuperar mi partida')], ['useLocal', 'gray small', T('Quedarme con la de este móvil')]]);
         return;
       }
       if (X.save.kid) { setTxt('Cuenta', 'Guardar el progreso con Google no está disponible para tu edad.'); btns([['x', 'green', T('Cerrar')]]); return; }
@@ -1094,7 +1118,7 @@
         b.disabled = true; msg('Conectando…');
         try {
           const r = await Account.signIn();
-          if (r.switched && r.cloud) { state = { kind: 'choose', cloud: r.cloud }; draw(); return; }
+          if (hasOld(r)) { state = { kind: 'choose', cloud: r.cloud, server: r.server }; draw(); return; }
           X.toast(T('¡Listo! Tu progreso se guarda en tu cuenta de Google'), 3000); X.Audio.win && X.Audio.win(); state = null; draw(); refreshG();
         } catch (e) {
           b.disabled = false;
@@ -1102,13 +1126,16 @@
         }
         return;
       }
-      if (a === 'useCloud') { msg('Cargando…'); Account.apply(state.cloud.data); return; }
-      if (a === 'useLocal') { b.disabled = true; try { await Account.put(true); } catch (e) { /* se subirá luego */ } dirty(800); X.toast(T('¡Listo! Tu progreso se guarda en tu cuenta de Google'), 3000); state = null; draw(); refreshG(); if (!X.save.welcomed) { close(); welcome(); } return; }
+      if (a === 'useCloud') {
+        msg('Cargando…'); if (useOld(state)) return;
+        X.toast(T('¡Listo! Has recuperado tu nombre'), 3000); X.Audio.win && X.Audio.win(); state = null; draw(); refreshG(); close(); return;
+      }
+      if (a === 'useLocal') { b.disabled = true; useNew(); X.toast(T('¡Listo! Tu progreso se guarda en tu cuenta de Google'), 3000); state = null; draw(); refreshG(); if (!X.save.welcomed) { close(); welcome(); } return; }
       if (a === 'save') { b.disabled = true; msg('Guardando…'); try { await Account.put(true); msg('Guardado en la nube'); } catch (e) { msg('Sin conexión: se guardará más tarde.'); } b.disabled = false; draw(); msg('Guardado en la nube'); return; }
       if (a === 'restore') {
         if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = T('Toca otra vez: se cambia tu progreso por el de la nube'); return; }
         msg('Cargando…');
-        try { const c = await Account.get(); if (!c) { msg('No hay ninguna copia en la nube todavía.'); return; } Account.apply(c.data); } catch (e) { msg('Sin conexión a internet.'); }
+        try { const c = await Account.get(); if (!c) { msg('No hay ninguna copia en la nube todavía.'); return; } Account.apply(c.data, c.lang); } catch (e) { msg('Sin conexión a internet.'); }
         return;
       }
       if (a === 'out') {

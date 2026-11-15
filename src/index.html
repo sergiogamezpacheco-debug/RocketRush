@@ -223,7 +223,11 @@ h1,h2,h3{margin:0}
 .welin{display:block;width:100%;font:inherit;font-weight:900;font-size:19px;color:var(--ink);background:#fff8ec;border:3px solid var(--panel-edge);border-radius:14px;padding:9px 12px;text-align:center;text-transform:none}
 .welplat{display:flex;gap:8px;margin-top:4px}.welplat .btn{flex:1;font-size:15px;padding:9px 6px;gap:6px}
 .btn.fbsoon{background:linear-gradient(170deg,#7aa7f7,#4f78c9);opacity:.75;position:relative}.btn.fbsoon small{position:absolute;top:-9px;right:-4px;font-size:10px;background:#ffd23f;color:#2a1d5c;border-radius:8px;padding:1px 6px;text-shadow:none}
-.fbf{font:900 20px/1 Arial,sans-serif}.welacc{min-height:14px;color:#5fe36a!important;font-weight:800}
+.fbf{font:900 20px/1 Arial,sans-serif}.noadsban{display:flex;gap:10px;align-items:center;margin:4px 6px 10px;padding:9px 12px;border-radius:14px;background:linear-gradient(180deg,#ffe36b,#ffc23a);color:#4a2a00;font-size:13.5px;line-height:1.25;box-shadow:0 3px 0 #c98a10,0 6px 14px rgba(0,0,0,.25)}
+.noadsban i{font-style:normal;font-size:22px}.noadsban b{font-weight:900}.noadsban.ok{justify-content:center;background:rgba(80,220,140,.18);color:#bfffd8;box-shadow:none;font-weight:800}
+.noadtag{display:block;font-style:normal;font-size:11px;font-weight:800;color:#ffe36b;margin-top:2px}
+.welold{margin:-2px 0 8px;opacity:.9}
+.welacc{min-height:14px;color:#5fe36a!important;font-weight:800}
 .wellater{display:block;margin:6px auto 0;background:none;border:0;color:var(--lav);font:inherit;font-weight:800;font-size:13px;text-decoration:underline;cursor:pointer}
 .agsel{display:block;width:100%;margin:14px 0 4px;font-family:inherit;font-weight:900;font-size:20px;color:var(--ink);background:#efe6ff;border:3px solid var(--panel-edge);border-radius:16px;padding:10px 12px;text-align:center}
 .srow{display:flex;gap:8px}.srow .btn{flex:1;font-size:14px;padding:9px 6px}
@@ -1521,7 +1525,8 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 <div class="langpick" id="welcome" hidden><div class="panel wel"><div class="ribbon">¡BIENVENIDO!</div>
   <p class="sub welh">Elige tu nombre de jugador</p>
   <input id="welName" class="welin" maxlength="16" autocomplete="off" spellcheck="false" translate="no"><div class="snmsg" id="welMsg"></div>
-  <p class="sub welh">Guarda tu progreso para no perderlo nunca</p>
+  <p class="sub welh">Guarda tu progreso o recupera tu partida</p>
+  <p class="note welold">¿Ya jugabas en otro móvil? Entra con Google y recuperas tu progreso, tu nombre y tus ajustes.</p>
   <div class="welplat"><button class="btn gwhite small" id="welGoogle"><svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.3.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg><span>Google</span></button></div>
   <div class="note welacc" id="welAcc"></div>
   <button class="btn green" id="welGo">¡A JUGAR!</button>

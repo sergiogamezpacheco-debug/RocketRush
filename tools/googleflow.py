@@ -12,7 +12,7 @@ def page(p, fs, save=None):
     b = p.chromium.launch(args=['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'])
     pg = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=1).new_page()
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    init = "window.RR_AGE = 30; window.RR_LIVE_OFF = true; localStorage.setItem('rocketrush.lang','es');" + BRIDGE
+    init = "window.RR_AGE = 30; window.RR_LIVE_OFF = true; if (!localStorage.getItem('rocketrush.lang')) localStorage.setItem('rocketrush.lang','es');" + BRIDGE
     if save: init += "if (!sessionStorage.s) { sessionStorage.s = 1; localStorage.setItem('chromacrash3d.v1', JSON.stringify(%s)); }" % json.dumps(save)
     pg.add_init_script(init)
     pg.route('**/*googleapis.com/**', fs.handle)
@@ -45,8 +45,9 @@ with sync_playwright() as p:
     print('errores', errs[:5]); b.close()
     # 2) cuenta de Google con progreso de otro móvil
     fs = FakeFS(); fs.google_existing = 'GUSER'
-    cloud = {'unlocked': 250, 'coins': 9999, 'birthYear': 1990, 'pid': 'ABCDEFGH', 'stars': {'1': 3, '2': 3}}
-    fs.put('saves/GUSER', {'data': {'stringValue': json.dumps(cloud)}, 'lv': {'integerValue': '250'}, 'stars': {'integerValue': '600'}, 'at': {'timestampValue': '2026-10-30T10:00:00Z'}, 'dev': {'stringValue': 'otro'}})
+    cloud = {'unlocked': 250, 'coins': 9999, 'birthYear': 1990, 'pid': 'ABCDEFGH', 'stars': {'1': 3, '2': 3}, 'prof': {'name': 'Sergio GP', 'avatar': '🐲', 'country': 'ES'}, 'club': {'cid': 'C1', 'name': 'Los Titanes', 'role': 'leader'}, 'sound': False, 'welcomed': True}
+    fs.put('saves/GUSER', {'data': {'stringValue': json.dumps(cloud)}, 'lv': {'integerValue': '250'}, 'stars': {'integerValue': '600'}, 'at': {'timestampValue': '2026-10-30T10:00:00Z'}, 'dev': {'stringValue': 'otro'}, 'lang': {'stringValue': 'en'}})
+    fs.put('users/GUSER', {'name': {'stringValue': 'Sergio GP'}, 'avatar': {'stringValue': '🐲'}, 'country': {'stringValue': 'ES'}})
     b, pg, errs = page(p, fs, {'unlocked': 5, 'coins': 300, 'birthYear': 1990})
     pg.evaluate("async () => { await Social.sync(); }"); pg.wait_for_timeout(500)
     openacc(pg); pg.click('[data-ga=in]'); pg.wait_for_timeout(1800)
@@ -54,5 +55,24 @@ with sync_playwright() as p:
     pg.screenshot(path=OUT + 'google_choose.png')
     print('anónima borrada:', [d for d in fs.log if d[0] == 'POST' and 'delete' in d[1]][:2])
     pg.click('[data-ga=useCloud]'); pg.wait_for_timeout(1500); pg.wait_for_function('() => window.Social && window.ChromaGame', timeout=30000); pg.wait_for_timeout(1500)
-    print('tras recargar:', pg.evaluate("() => [ChromaGame.save().coins, ChromaGame.save().unlocked, Social.uid, Social.account.linked]"))
+    after = pg.evaluate("() => [ChromaGame.save().coins, ChromaGame.save().unlocked, Social.uid, Social.account.linked, ChromaGame.save().prof.name, ChromaGame.save().club && ChromaGame.save().club.name, ChromaGame.save().sound, localStorage.getItem('rocketrush.lang')]")
+    print('tras recargar:', after)
+    ok2 = after[0] == 9999 and after[1] >= 250 and after[4] == 'Sergio GP' and after[5] == 'Los Titanes' and after[6] is False and after[7] == 'en'
+    print(('OK  ' if ok2 else 'FALLO ') + 'recupera progreso, nombre, club, ajustes e idioma')
+    print('perfil de la cuenta intacto:', fs.docs['users/GUSER']['f']['name']['stringValue'])
+    print('errores', errs[:5]); b.close()
+    # 3) cuenta de Google con perfil (nombre) pero sin copia del progreso: también pregunta y recupera el nombre
+    fs = FakeFS(); fs.google_existing = 'GUSER'
+    fs.put('users/GUSER', {'name': {'stringValue': 'Sergio GP'}, 'avatar': {'stringValue': '🐲'}, 'country': {'stringValue': 'ES'}, 'stats': {'mapValue': {'fields': {'lv': {'integerValue': '120'}}}}})
+    fs.put('names/sergio gp', {'uid': {'stringValue': 'GUSER'}})
+    b, pg, errs = page(p, fs, {'unlocked': 5, 'coins': 300, 'birthYear': 1990, 'prof': {'name': 'Nuevo', 'avatar': '🦊', 'country': 'ES'}})
+    pg.evaluate("async () => { await Social.sync(); }"); pg.wait_for_timeout(500)
+    openacc(pg); pg.click('[data-ga=in]'); pg.wait_for_timeout(1800)
+    print('elegir (solo perfil):', st(pg), pg.evaluate("() => document.querySelector('.gacmp').innerText.replace(/\\n/g,' | ')"))
+    pg.screenshot(path=OUT + 'google_choose_perfil.png')
+    print('no se ha pisado el perfil antes de elegir:', fs.docs['users/GUSER']['f']['name']['stringValue'])
+    pg.click('[data-ga=useCloud]'); pg.wait_for_timeout(1500)
+    pg.evaluate("async () => { await Social.sync(); }"); pg.wait_for_timeout(800)
+    r3 = pg.evaluate("() => [ChromaGame.save().prof.name, ChromaGame.save().prof.avatar, ChromaGame.save().nameLc, ChromaGame.save().unlocked]")
+    print(('OK  ' if r3[:3] == ['Sergio GP', '🐲', 'sergio gp'] and r3[3] < 50 else 'FALLO ') + 'recupera nombre y avatar y conserva el progreso del móvil', r3, '· en el servidor:', fs.docs['users/GUSER']['f']['name']['stringValue'])
     print('errores', errs[:5]); b.close()

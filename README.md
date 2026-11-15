@@ -604,6 +604,22 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   y el contador (las reglas no dejan pasar de 30 ni inventar miembros). Probado contra el Firebase real en
   `tools/firebase_live.mjs`; la pantalla, con un Firestore de mentira en `tools/clubflow.py` (`tools/fakefs.py`).
 
+## Cambios del 15-11-2026
+
+- **Entrar con Google recupera tu partida.** Si la cuenta de Google ya tenía partida (otro móvil o reinstalación), antes de
+  subir nada de este móvil se pregunta con cuál quedarse, enseñando las dos (nombre, avatar, nivel, estrellas, club y
+  fecha). «Recuperar mi partida» trae el progreso entero, el nombre, el avatar, el club, los ajustes y el **idioma** (la
+  copia en la nube ahora lo guarda). Si la cuenta no tenía copia del progreso pero sí perfil, se recuperan al menos el
+  nombre, el avatar y el país. Antes, si no había copia, el perfil de este móvil pisaba el de la cuenta. La bienvenida lo
+  explica: «¿Ya jugabas en otro móvil? Entra con Google…». Prueba: `tools/googleflow.py` (3 casos).
+- **Espejos:** cualquier bola rebota en el espejo, también la bomba (antes explotaba al tocarlo), la dorada y las de los
+  mundos. Comprobado en los 6 primeros niveles con espejo.
+- **Cualquier compra con dinero quita para siempre los anuncios entre niveles** (`paidNoAds`). Los anuncios con premio
+  siguen (son opcionales). La tienda lo avisa con un cartel y una etiqueta «🚫 + sin anuncios» en cada compra con dinero;
+  el producto «Quitar anuncios» ya no se enseña (quien lo compró lo conserva y se restaura igual).
+- **La tienda o el club se cerraban solos:** era la cuenta atrás de Navidad, que devolvía a la portada cada 30 s; ya estaba
+  corregido en la versión del 13-11 (comprobado: la tienda y el club siguen abiertos 80 s).
+
 ## Liga de clubes por grupos (5 clubes al azar)
 
 Cuando empieza la liga (viernes), cada club entra en un **grupo de 5**: el suyo y 4 rivales al azar. Todos los del grupo ven
