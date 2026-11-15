@@ -1,0 +1,19 @@
+sesiones: 9HXgCSE7qOZaCcTC6dMNtk8sJeq1 ZOTPv9jrTAeF90itSbjfkMsQ74i1 · docs: []
+OK    Beto envía solicitud a Ana: Solicitud enviada. Cuando la acepte, aparecerá en tu lista de amigos.
+OK    repetir la solicitud: Ya le enviaste una solicitud. Falta que la acepte.
+OK    aviso de solicitud en la portada de Ana
+OK    Ana acepta: amigos ['Beto (prueba)'] · cuenta para la misión
+OK    Beto ve a Ana con sus datos: ['Ana (prueba) nivel 55']
+OK    clasificación mundial por nivel: ['🥇 👾 Jugador BAFG 🇪🇸 🏁 1022', '🥈 🐸 SGP22 🇪🇸 🏁 64', '🥉 🤖 Pedro 🇺🇸 🏁 56', '4 🦊 Ana (prueba) 🇿🇿 🏁 55', '5 🦄 Yazmi293 🇪🇸 🏁 52']
+ranking mejor tiro: ['🥇 👾 Johana 🇪🇸 💥 60', '🥈 🦄 Yazmi293 🇪🇸 💥 57', '🥉 👾 Pedro Sanchez 🇪🇸 💥 53', '4 👾 Jugador BAFG 🇪🇸 💥 51', '4 🐸 SGP22 🇪🇸 💥 51', '6 🤖 Pedro 🇺🇸 💥 45', '7 🦊 Ojuuu 🇪🇸 💥 39', '8 🐸 Rafael 🇪🇸 💥 30', '9 🤖 Alex 🇪🇸 💥 28', '10 🐵 Rubia 🇪🇸 💥 25', '10 👑 The Boss 🇪🇸 💥 25', '12 🦊 Ana (prueba) 🇿🇿 💥 20', '13 💣 Lupiña 🇪🇸 💥 12', '13 🐨 El zorro 🇪🇸 💥 12', '15 🦊 Beto (prueba) 🇿🇿 💥 6', '16 💣 Jugador GAPM 🇮🇹 💥 0', '16 🐧 Player RBWT 🇺🇸 💥 0', '16 🦄 Player RJLP 🇺🇸 💥 0', '16 🚀 Gknvf 🇪🇸 💥 0', '16 🚀 Rfcwvv 🇪🇸 💥 0', '16 🐵 Player H9XD 🇺🇸 💥 0', '16 🦖 Player 7AUB 🇺🇸 💥 0', '16 🦖 Player S3NC 🇺🇸 💥 0', '16 🦊 Player1 🇺🇸 💥 0', '16 🦖 Player 9LCX 🇺🇸 💥 0', '16 💣 Player FJF2 🇺🇸 💥 0', '16 🦄 Player ZCLK 🇺🇸 💥 0', '16 🦁 Player VS62 🇺🇸 💥 0', '16 🤖 Player 7EBK 🇺🇸 💥 0']
+ranking amigos: ['🥇 🦊 Ana (prueba) 🇿🇿 💥 20', '🥈 🦊 Beto (prueba) 🇿🇿 💥 6']
+OK    clasificación de mi país: ['🥇 🦊 Ana (prueba) 🇿🇿 💥 20', '🥈 🦊 Beto (prueba) 🇿🇿 💥 6'] 
+OK    perfil subido al servidor: Ana (prueba) 🐲
+OK    aviso sin conexión
+en inglés: Friends 1 | Beto (prueba) | Level 12 · ⭐ 0
+OK    quitar amigo
+limpieza: 200 200 200
+limpieza: 200 200 200
+OK    sin errores de la página []
+
+Todo bien

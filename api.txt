@@ -1,0 +1,149 @@
+base de datos: (default)
+OK    inicio de sesión anónimo
+OK    inicio de sesión anónimo
+OK    renovar sesión
+OK    crear perfil propio
+OK    crear perfil del otro jugador
+OK    rechaza un nombre de más de 20 letras
+OK    rechaza campos inventados en el perfil
+OK    nadie puede cambiar el perfil de otro
+OK    leer el perfil de otro jugador
+OK    sin sesión no se lee nada
+OK    reservar código de amigo
+OK    reservar el código del otro
+OK    no se puede robar un código ajeno
+OK    buscar a un jugador por su código
+OK    código inexistente → no encontrado
+OK    comprobar si ya hay solicitud (no existe)
+OK    no se puede pedir amistad en nombre de otro
+OK    una solicitud no puede nacer ya aceptada
+OK    enviar solicitud de amistad
+OK    quien la envía no puede aceptarla él mismo
+OK    listar mis amistades (campo a)
+OK    listar mis amistades (campo b)
+OK    no se pueden listar las amistades de todos
+OK    aceptar la solicitud
+OK    descargar los perfiles de los amigos
+OK    clasificación mundial
+OK    puesto en la clasificación mundial
+OK    clasificación por país · level (2 jugadores)
+OK    puesto por país · level
+OK    clasificación por país · stars (2 jugadores)
+OK    puesto por país · stars
+OK    clasificación por país · daily (2 jugadores)
+OK    puesto por país · daily
+OK    clasificación por país · wins (2 jugadores)
+OK    puesto por país · wins
+OK    clasificación por país · bestRun (2 jugadores)
+OK    puesto por país · bestRun
+OK    clasificación por país · bestShot (2 jugadores)
+OK    puesto por país · bestShot
+OK    clasificación por país · bosses (2 jugadores)
+OK    puesto por país · bosses
+OK    clasificación por país · lv (2 jugadores)
+OK    puesto por país · lv
+OK    el juego lee la configuración en directo sin cuenta
+OK    un jugador no puede cambiar la configuración
+OK    nadie puede hacerse administrador a sí mismo
+OK    inicio de sesión anónimo
+OK    dar de alta un administrador de prueba (cuenta de servicio)
+OK    el administrador ve que lo es
+OK    el administrador cambia la configuración
+OK    el administrador borra una configuración
+OK    un jugador no puede crear códigos regalo
+OK    el administrador crea un código regalo
+OK    el administrador crea un código caducado
+OK    un jugador no puede ver la lista de códigos
+OK    un jugador lee un código que conoce
+OK    no se pueden sumar dos usos de golpe
+OK    un jugador no puede cambiar el premio
+OK    canjear un código regalo
+OK    un código agotado ya no se canjea
+OK    un código caducado no se canjea
+OK    el administrador bloquea a un jugador
+OK    un jugador bloqueado ya no puede subir su perfil
+OK    el administrador lo desbloquea
+OK    quitar el campo de bloqueo
+OK    desbloqueado, vuelve a subir su perfil
+OK    el panel cuenta los jugadores (29)
+OK    el administrador borra un código
+OK    el administrador borra un código
+OK    reservar un nombre
+OK    nadie más puede coger un nombre reservado
+OK    no se reserva un nombre a nombre de otro
+OK    comprobar si un nombre está libre
+OK    nadie libera el nombre de otro
+OK    liberar mi nombre
+OK    un jugador mira si es probador (no lo es)
+OK    nadie mira si otro es probador
+OK    nadie se hace probador a sí mismo
+OK    el panel marca un probador
+OK    el probador lo ve
+OK    sin entrar con Google no se sube copia a la nube
+OK    nadie lee la copia de otro
+OK    denunciar a un jugador
+OK    no se puede denunciar dos veces al mismo
+OK    no se denuncia en nombre de otro
+OK    rechaza motivos inventados
+OK    un jugador no puede leer las denuncias
+OK    el panel lee las denuncias
+OK    un jugador no puede borrar denuncias
+OK    inicio de sesión anónimo
+OK    un club no puede nacer con miembros de más
+OK    no se crea un club a nombre de otro líder
+OK    crear un club (club + líder + nombre en un lote)
+OK    no puede haber dos clubes con el mismo nombre
+OK    buscar clubes abiertos
+OK    nadie entra ya como oficial
+OK    el contador no sube sin miembro nuevo
+OK    entrar en un club abierto
+OK    el club tiene 2 miembros
+OK    subir mi progreso de la semana
+OK    rechaza estrellas imposibles
+OK    un miembro no se asciende a sí mismo
+OK    nadie cambia el progreso de otro
+OK    un miembro no cambia los ajustes del club
+OK    sumar puntos de liga del club
+OK    rechaza puntos de liga imposibles
+OK    clasificación de la liga de clubes
+OK    el líder asciende a veterano
+OK    un veterano no cambia los ajustes
+OK    un veterano no degrada al líder
+OK    el líder asciende a colíder
+OK    el máximo del club no baja de 10
+OK    el máximo del club no pasa de 50
+OK    un colíder cambia los ajustes (máximo 50, con solicitud)
+OK    en un club con solicitud no se entra directamente
+OK    pedir entrar
+OK    un jugador no ve las solicitudes de otros
+OK    un oficial ve las solicitudes
+OK    un colíder acepta la solicitud
+OK    el club tiene 3 miembros
+OK    un colíder no nombra colíderes
+OK    un colíder asciende a veterano
+OK    un veterano no degrada a un colíder
+OK    cerrar el club
+OK    inicio de sesión anónimo
+OK    en un club cerrado no se puede pedir entrar
+OK    volver a abrir las solicitudes
+OK    alguien de fuera no mete al club en un grupo de liga
+OK    un grupo no puede nacer con el contador mal
+OK    un miembro abre un grupo de liga con su club
+OK    un club no entra en dos grupos de la misma liga
+OK    no se puede añadir a un grupo un club que no es tuyo
+OK    no se puede cerrar ni tocar un grupo sin entrar en él
+OK    cualquiera ve la clasificación de un grupo
+OK    un colíder no puede expulsar al líder
+OK    un colíder expulsa a un veterano
+OK    el líder cede el liderazgo
+OK    salir del club
+OK    el último en salir borra el club
+OK    el club ya no existe
+OK    borrar el jugador de prueba D
+OK    borrar el jugador de prueba E
+OK    quitar amigo
+OK    borrar el jugador de prueba
+OK    borrar el jugador de prueba
+OK    borrar el administrador de prueba
+
+Todo bien
