@@ -470,6 +470,7 @@ window.I18N_DATA = {
   "CRÉDITOS": ["CREDITS", "CRÉDITOS", "CRÉDITS", "CREDITS", "CREDITI"],
   "Créditos y licencias": ["Credits & licences", "Créditos e licenças", "Crédits et licences", "Credits & Lizenzen", "Crediti e licenze"],
   "Cualquier bola deshace la arena.": ["Any ball crumbles sand.", "Qualquer bola desfaz a areia.", "N'importe quelle balle fait s'effriter le sable.", "Jede Kugel lässt Sand zerfallen.", "Qualsiasi palla sgretola la sabbia."],
+  "Cualquier cofre o pack": ["Any chest or pack", "Qualquer baú ou pacote", "N'importe quel coffre ou pack", "Jede Truhe und jedes Paket", "Qualsiasi forziere o pacchetto"],
   "Cualquier compra con dinero": ["Any real-money purchase", "Qualquer compra com dinheiro", "Tout achat avec de l'argent", "Jeder Kauf mit Echtgeld", "Qualsiasi acquisto con denaro"],
   "Cuando te acepten aparecerás dentro.": ["Once they accept you, you'll be in.", "Quando te aceitarem, aparecerás lá dentro.", "Quand ils t'accepteront, tu seras dedans.", "Sobald sie dich annehmen, bist du drin.", "Quando ti accetteranno, sarai dentro."],
   "Cuatro camellos con patas de arena.": ["Four camels with sand legs.", "Quatro camelos com patas de areia.", "Quatre chameaux aux pattes de sable.", "Vier Kamele mit Sandbeinen.", "Quattro cammelli con le zampe di sabbia."],
@@ -1490,6 +1491,7 @@ window.I18N_DATA = {
   "Solo para probar. Se quita al publicar el juego.": ["For testing only. Removed when the game is published.", "Só para testar. É removido ao publicar o jogo.", "Pour tester seulement. Retiré à la publication du jeu.", "Nur zum Testen. Wird bei der Veröffentlichung entfernt.", "Solo per prova. Si rimuove alla pubblicazione."],
   "Solo pueden entrar o pedir entrar jugadores con este nivel o más.": ["Only players at this level or higher can join or ask to join.", "Só podem entrar ou pedir para entrar jogadores com este nível ou mais.", "Seuls les joueurs de ce niveau ou plus peuvent entrer ou demander à entrer.", "Nur Spieler ab dieser Stufe können beitreten oder anfragen.", "Possono entrare o chiedere di entrare solo i giocatori di questo livello o superiore."],
   "solo una vez": ["one time only", "só uma vez", "une seule fois", "nur einmal", "solo una volta"],
+  "solo una vez · sin anuncios": ["only once · no ads", "só uma vez · sem anúncios", "une seule fois · sans pubs", "nur einmal · ohne Werbung", "solo una volta · senza pubblicità"],
   "Sonido": ["Sound", "Som", "Son", "Ton", "Suono"],
   "Sonido {x}": ["Sound {x}", "Som {x}", "Son {x}", "Ton {x}", "Suono {x}"],
   "Sonido {x} · Vibración {x} · Música {x}": ["Sound {x} · Vibration {x} · Music {x}", "Som {x} · Vibração {x} · Música {x}", "Son {x} · Vibration {x} · Musique {x}", "Ton {x} · Vibration {x} · Musik {x}", "Suono {x} · Vibrazione {x} · Musica {x}"],
@@ -1969,5 +1971,6 @@ window.I18N_DATA = {
   "🗿 Galeón Colosal": ["🗿 Colossal Galleon", "🗿 Galeão Colossal", "🗿 Galion colossal", "🗿 Riesengaleone", "🗿 Galeone colossale"],
   "🚩 Denunciar o bloquear": ["🚩 Report or block", "🚩 Denunciar ou bloquear", "🚩 Signaler ou bloquer", "🚩 Melden oder blockieren", "🚩 Segnala o blocca"],
   "🚫 + sin anuncios": ["🚫 + no ads", "🚫 + sem anúncios", "🚫 + sans pubs", "🚫 + ohne Werbung", "🚫 + senza pubblicità"],
+  "🚫 + sin anuncios para siempre": ["🚫 + no ads forever", "🚫 + sem anúncios para sempre", "🚫 + sans pubs pour toujours", "🚫 + für immer ohne Werbung", "🚫 + senza pubblicità per sempre"],
   "🛒 CONSEGUIR MÁS": ["🛒 GET MORE", "🛒 OBTER MAIS", "🛒 EN OBTENIR PLUS", "🛒 MEHR HOLEN", "🛒 OTTIENINE ALTRI"],
 };

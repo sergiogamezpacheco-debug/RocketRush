@@ -614,9 +614,10 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
   explica: «¿Ya jugabas en otro móvil? Entra con Google…». Prueba: `tools/googleflow.py` (3 casos).
 - **Espejos:** cualquier bola rebota en el espejo, también la bomba (antes explotaba al tocarlo), la dorada y las de los
   mundos. Comprobado en los 6 primeros niveles con espejo.
-- **Cualquier compra con dinero quita para siempre los anuncios entre niveles** (`paidNoAds`). Los anuncios con premio
-  siguen (son opcionales). La tienda lo avisa con un cartel y una etiqueta «🚫 + sin anuncios» en cada compra con dinero;
-  el producto «Quitar anuncios» ya no se enseña (quien lo compró lo conserva y se restaura igual).
+- **Comprar cualquier cofre o pack quita para siempre los anuncios entre niveles** (`noAds: true` en `SHOP`: Pack de inicio
+  1,99 €, Cofre de gemas 4,99 €, Tesoro de gemas 9,99 €, Cofre de monedas 4,99 €; `paidNoAds`). Los puñados y bolsas de
+  0,99 € no. Los anuncios con premio siguen (son opcionales). La tienda lo avisa con un cartel y la etiqueta «🚫 + sin
+  anuncios para siempre» en esos productos; «Quitar anuncios» ya no se enseña (quien lo compró lo conserva).
 - **La tienda o el club se cerraban solos:** era la cuenta atrás de Navidad, que devolvía a la portada cada 30 s; ya estaba
   corregido en la versión del 13-11 (comprobado: la tienda y el club siguen abiertos 80 s).
 

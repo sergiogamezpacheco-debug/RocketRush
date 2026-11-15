@@ -2991,12 +2991,12 @@
   // ---------------- tienda ----------------
   const SHOP = [
     { id: 'g1', sec: 'gems', name: 'Puñado de gemas', desc: '30 gemas', gems: 30, price: '0,99 €', grant: () => { save.gems = (save.gems || 0) + 30; } },
-    { id: 'g2', sec: 'gems', name: 'Cofre de gemas', desc: '150 gemas: justo un Pase Pro', gems: 150, price: '4,99 €', grant: () => { save.gems = (save.gems || 0) + 150; } },
-    { id: 'g3', sec: 'gems', name: 'Tesoro de gemas', desc: '330 gemas (10 % extra)', gems: 330, price: '9,99 €', grant: () => { save.gems = (save.gems || 0) + 330; } },
+    { id: 'g2', sec: 'gems', name: 'Cofre de gemas', desc: '150 gemas: justo un Pase Pro', gems: 150, price: '4,99 €', noAds: true, grant: () => { save.gems = (save.gems || 0) + 150; } },
+    { id: 'g3', sec: 'gems', name: 'Tesoro de gemas', desc: '330 gemas (10 % extra)', gems: 330, price: '9,99 €', noAds: true, grant: () => { save.gems = (save.gems || 0) + 330; } },
     { id: 'noads', name: 'Quitar anuncios', desc: 'Sin anuncios entre niveles para siempre', price: '3,99 €', grant: () => { save.adsRemoved = true; } },
-    { id: 'starter', name: 'Pack de inicio', desc: '1.000 monedas + 3 bombas + 3 arcoíris', price: '1,99 €', once: true, grant: () => { save.coins += 1000; save.boosters.bomb += 3; save.boosters.rainbow += 3; save.starter = true; } },
+    { id: 'starter', name: 'Pack de inicio', desc: '1.000 monedas + 3 bombas + 3 arcoíris', price: '1,99 €', once: true, noAds: true, grant: () => { save.coins += 1000; save.boosters.bomb += 3; save.boosters.rainbow += 3; save.starter = true; } },
     { id: 'c1', name: 'Bolsa de monedas', desc: '500 monedas', price: '0,99 €', grant: () => { save.coins += 500; } },
-    { id: 'c2', name: 'Cofre de monedas', desc: '3.000 monedas', price: '4,99 €', grant: () => { save.coins += 3000; } },
+    { id: 'c2', name: 'Cofre de monedas', desc: '3.000 monedas', price: '4,99 €', noAds: true, grant: () => { save.coins += 3000; } },
     { id: 'b1', name: 'Bomba', desc: 'Potenciador para empezar un nivel', coins: 250, grant: () => { save.boosters.bomb++; } },
     { id: 'b2', name: 'Bola arcoíris', desc: 'Toma el color del primer bloque', coins: 300, grant: () => { save.boosters.rainbow++; } },
     { id: 'b3', name: '+2 bolas', desc: 'Empiezas con dos bolas más', coins: 200, grant: () => { save.boosters.extra++; } },
@@ -3011,15 +3011,15 @@
   function iapQuery() { if (payNative() && Date.now() - iap.asked > 5000) { iap.asked = Date.now(); try { window.ChromaAndroid.billingQuery(JSON.stringify(IAP_IDS)); } catch (e) { /* nada */ } } }
   const iapPrice = s => iap.prices[s.id] || s.price;
   const iapOnce = id => id === 'noads' || id === 'starter';
-  // Cualquier compra con dinero (gemas, monedas, pack de inicio…) quita para siempre los anuncios entre niveles.
-  // Los anuncios con premio (los que eliges ver) siguen estando, porque son opcionales.
-  function paidNoAds() { if (save.adsRemoved) return false; save.adsRemoved = true; persist(); return true; }
+  // Comprar cualquier COFRE o PACK (los de 1,99 € o más: noAds en SHOP) quita para siempre los anuncios entre niveles.
+  // Los puñados y bolsas de 0,99 € no. Los anuncios con premio (los que eliges ver) siguen, porque son opcionales.
+  function paidNoAds(it) { if (save.adsRemoved || !(it && it.noAds)) return false; save.adsRemoved = true; persist(); return true; }
   function iapGrant(id, token) {
     const it = SHOP.find(s => s.id === id); if (!it) return;
     save.iapDone = save.iapDone || [];
     if (token && save.iapDone.includes(token)) { try { window.ChromaAndroid.billingFinish(token, !iapOnce(id)); } catch (e) { /* nada */ } return; }
     it.grant(); if (token) { save.iapDone.push(token); save.iapDone = save.iapDone.slice(-60); }
-    const freed = paidNoAds();
+    const freed = paidNoAds(it);
     stats().iap = (stats().iap || 0) + 1; persist(); setCoins(); Audio.win(); toast(freed ? '¡Gracias por tu compra! Ya no verás anuncios entre niveles' : '¡Gracias por tu compra!', 3000);
     if (token) try { window.ChromaAndroid.billingFinish(token, !iapOnce(id)); } catch (e) { /* nada */ }
     if ($('shop').classList.contains('on')) { const sc = $('shopList').scrollTop; openShop(); $('shopList').scrollTop = sc; }
@@ -3042,12 +3042,12 @@
   // solo en la app de pruebas (TEST_MODE); por defecto, activadas (esa app no está en Google Play)
   const fakePay = () => TEST_MODE && save.fakePay !== false && !window.RR_REAL_PAY;   // RR_REAL_PAY: pruebas de Google Play simulado
   function iapBuy(it) {
-    if (fakePay()) { it.grant(); paidNoAds(); persist(); setCoins(); Audio.coin(); toast('Compra simulada hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
+    if (fakePay()) { it.grant(); paidNoAds(it); persist(); setCoins(); Audio.coin(); toast('Compra simulada hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
     if (payNative()) {
       if (!iap.prices[it.id]) { iapQuery(); toast('La tienda de Google Play no responde. Comprueba la conexión y vuelve a probar.', 2800); return; }
       window.ChromaAndroid.billingBuy(it.id); return;
     }
-    if (TEST_MODE) { it.grant(); paidNoAds(); persist(); setCoins(); Audio.coin(); toast('Compra de prueba hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
+    if (TEST_MODE) { it.grant(); paidNoAds(it); persist(); setCoins(); Audio.coin(); toast('Compra de prueba hecha (no se ha cobrado nada)'); if ($('shop').classList.contains('on')) openShop(); return true; }
     toast(IOS ? 'Las compras llegarán pronto a la app de iPhone y iPad.' : 'Las compras solo están disponibles en la app de Android.', 2600);
   }
   function openShop(focus) {
@@ -3055,7 +3055,7 @@
     $('shopNote').textContent = fakePay() ? 'Compras simuladas: no se cobra nada.' : payNative() ? 'Pagos seguros con Google Play.' : TEST_MODE ? 'Compras de prueba: no se cobra nada.' : IOS ? 'Las compras llegarán pronto a la app de iPhone y iPad.' : 'Las compras solo están disponibles en la app de Android.';
     const items = SHOP.filter(s => !(s.once && save.starter) && s.id !== 'noads');   // «Quitar anuncios» lo hace ya cualquier compra
     const SIC = { g1: '<i class="gem"></i>', g2: '<i class="gems2"></i>', g3: '<i class="chest crystal"></i>', starter: '<i class="chest gold"></i>', c1: '<i class="coin"></i>', c2: '<i class="chest wood"></i>', b1: '<i class="ball bBomb"></i>', b2: '<i class="ball bRainbow"></i>', b3: '<i class="ball bPlus2"></i>', b4: '<span style="display:inline-block;width:34px;height:34px">' + ROCKET_SVG.replace(/width="44" height="44"/, 'width="34" height="34"') + '</span>' };
-    const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}</b><span>${s.desc}</span>${s.price && !save.adsRemoved ? '<em class="noadtag">🚫 + sin anuncios</em>' : ''}</div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : iapPrice(s)}</button></div>`;
+    const row = s => `<div class="shopitem">${SIC[s.id] ? '<div class="sic">' + SIC[s.id] + '</div>' : ''}<div class="stx"><b>${s.name}</b><span>${s.desc}</span>${s.noAds && !save.adsRemoved ? '<em class="noadtag">🚫 + sin anuncios para siempre</em>' : ''}</div><button class="btn ${s.coins ? 'gold' : 'green'}" data-id="${s.id}">${s.coins ? '<i class="coin"></i>' + s.coins : iapPrice(s)}</button></div>`;
     const wrow = k => {
       const open = wbOpen(k), have = save.boosters[k] || 0;
       return `<div class="shopitem wb ${open ? '' : 'locked'}"><div class="ball ${CSSB[k]}"></div><div><b>${WBALLS[k].name} <small>nv. ${wbLevel(k)}${have ? ' · tienes ' + have : ''}</small></b><span>${open ? WB_DESC[k] : 'Se desbloquea en el mundo ' + WBALLS[k].world}</span></div>` +
@@ -3066,9 +3066,9 @@
     const st = items.find(s => s.id === 'starter');
     const feat = st ? `<div class="feat"><div class="frays"></div><div class="ftag">OFERTA ÚNICA</div><div class="fic"><i class="chest gold"></i></div>
       <div class="ftx"><b>${st.name}</b><div class="fit"><span><i class="coin"></i>1.000</span><span><i class="ball bBomb"></i>×3</span><span><i class="ball bRainbow"></i>×3</span></div></div>
-      <div class="fbuy"><button class="btn green" data-id="starter">${iapPrice(st)}</button><small>solo una vez</small></div></div>` : '';
+      <div class="fbuy"><button class="btn green" data-id="starter">${iapPrice(st)}</button><small>solo una vez${save.adsRemoved ? '' : ' · sin anuncios'}</small></div></div>` : '';
     const noAdsBan = save.adsRemoved ? '<div class="noadsban ok">✓ Sin anuncios entre niveles</div>'
-      : '<div class="noadsban"><i>🚫</i><span><b>Cualquier compra con dinero</b> quita para siempre los anuncios entre niveles.</span></div>';
+      : '<div class="noadsban"><i>🚫</i><span><b>Cualquier cofre o pack</b> quita para siempre los anuncios entre niveles.</span></div>';
     const rowT = s => TAG[s.id] ? row(s).replace('<div class="shopitem">', `<div class="shopitem hot"><i class="rtag">${TAG[s.id]}</i>`) : row(s);
     const by = ids => items.filter(s => ids.includes(s.id)).map(rowT).join('');
     const hw = hwActive(), xm = xmActive();

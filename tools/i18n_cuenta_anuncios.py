@@ -13,6 +13,8 @@ T = {
   "Cualquier compra con dinero": ("Any real-money purchase", "Qualquer compra com dinheiro", "Tout achat avec de l'argent", "Jeder Kauf mit Echtgeld", "Qualsiasi acquisto con denaro"),
   "quita para siempre los anuncios entre niveles.": ("removes the ads between levels forever.", "remove para sempre os anúncios entre níveis.", "supprime pour toujours les pubs entre les niveaux.", "entfernt die Werbung zwischen den Levels für immer.", "toglie per sempre la pubblicità tra i livelli."),
   "✓ Sin anuncios entre niveles": ("✓ No ads between levels", "✓ Sem anúncios entre níveis", "✓ Pas de pubs entre les niveaux", "✓ Keine Werbung zwischen den Levels", "✓ Niente pubblicità tra i livelli"),
-  "🚫 + sin anuncios": ("🚫 + no ads", "🚫 + sem anúncios", "🚫 + sans pubs", "🚫 + ohne Werbung", "🚫 + senza pubblicità"),
+  "🚫 + sin anuncios para siempre": ("🚫 + no ads forever", "🚫 + sem anúncios para sempre", "🚫 + sans pubs pour toujours", "🚫 + für immer ohne Werbung", "🚫 + senza pubblicità per sempre"),
+  "Cualquier cofre o pack": ("Any chest or pack", "Qualquer baú ou pacote", "N'importe quel coffre ou pack", "Jede Truhe und jedes Paket", "Qualsiasi forziere o pacchetto"),
+  "solo una vez · sin anuncios": ("only once · no ads", "só uma vez · sem anúncios", "une seule fois · sans pubs", "nur einmal · ohne Werbung", "solo una volta · senza pubblicità"),
   "¡Gracias por tu compra! Ya no verás anuncios entre niveles": ("Thanks for your purchase! No more ads between levels", "Obrigado pela compra! Você não verá mais anúncios entre níveis", "Merci pour ton achat ! Plus de pubs entre les niveaux", "Danke für deinen Kauf! Keine Werbung mehr zwischen den Levels", "Grazie per l'acquisto! Niente più pubblicità tra i livelli"),
 }
