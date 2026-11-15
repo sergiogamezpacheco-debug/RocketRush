@@ -1,6 +1,6 @@
 # Prueba de la tienda: doble en la primera compra, oferta de la semana (una vez por semana) y 0,99 € sin quitar anuncios
 from playwright.sync_api import sync_playwright
-OUT='/home/claude/chroma3d/tmp_scratch/'; errs=[]
+OUT='/home/claude/chroma3d/dist/shots/'; errs=[]
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     pg=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2).new_page(); pg.on('pageerror',lambda e: errs.append(str(e)))
