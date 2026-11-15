@@ -550,6 +550,10 @@ h1,h2,h3{margin:0}
 .world[data-biome=forest]{background:linear-gradient(160deg,rgba(110,220,170,.32),rgba(30,80,70,.36))}
 .world[data-biome=fair]{background:linear-gradient(160deg,rgba(255,170,110,.36),rgba(140,60,200,.3))}
 .world[data-biome=neon]{background:linear-gradient(160deg,rgba(90,220,255,.3),rgba(200,40,200,.3))}
+.world[data-biome=orchard]{background:linear-gradient(160deg,rgba(130,220,90,.38),rgba(230,60,50,.24))}
+.world[data-biome=reef]{background:linear-gradient(160deg,rgba(40,200,220,.36),rgba(10,60,120,.4))}
+.world[data-biome=toys]{background:linear-gradient(160deg,rgba(255,180,210,.4),rgba(220,160,90,.3))}
+.world[data-biome=dino]{background:linear-gradient(160deg,rgba(255,170,80,.38),rgba(110,80,40,.34))}
 .world.wfree{content-visibility:visible}
 .lv.boss{grid-column:span 2;aspect-ratio:2.1/1;flex-direction:row;gap:8px;justify-content:flex-start;padding:6px 10px;text-align:left;
   background:linear-gradient(160deg,#ff5a6e,#a0123a);border-color:#ffd23f;box-shadow:0 0 0 3px rgba(255,210,63,.35),0 6px 0 rgba(40,10,40,.5)}
@@ -1039,7 +1043,11 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 .wkit{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
 .wkbuy{display:flex;align-items:center;justify-content:flex-end;gap:8px}.wkbuy s{font-size:12.5px;font-weight:800;opacity:.85}
 .wkx{font-size:12px;font-weight:900;color:#5a2b00;background:#ffd23f;border-radius:8px;padding:3px 7px}
-.wkbuy .btn{width:auto;margin:0;padding:9px 16px;font-size:17px}.wkok{font-weight:900;font-size:13px;color:#bfffd8}
+.wkbuy .btn{width:auto;margin:0;padding:9px 16px;font-size:17px}
+.rdcard{display:flex;gap:10px;align-items:flex-start;margin:4px 4px 10px;padding:10px 12px;border-radius:16px;text-align:left;color:#fff;background:linear-gradient(160deg,#ff8a3d,#e8455c);box-shadow:inset 0 0 0 3px #fff,0 5px 12px rgba(0,0,0,.25)}
+.rdic{font-style:normal;font-size:30px;line-height:1;margin-top:2px}.rdtx{flex:1;min-width:0}.rdtx b{display:block;font-size:16px;font-weight:900}.rdtx small{display:block;font-size:12px;font-weight:700;opacity:.9}
+.rdrow{display:flex;gap:6px;margin-top:7px}.rdrow .lbinput{flex:1;min-width:0;margin:0;padding:8px 10px;font-size:15px;letter-spacing:1px}.rdrow .btn{width:auto;margin:0;padding:8px 12px;font-size:15px}
+.rdmsg{margin:5px 0 0;font-size:12.5px;font-weight:800;min-height:0}.rdmsg:empty{display:none}.wkok{font-weight:900;font-size:13px;color:#bfffd8}
 #lbTitle{margin:4px 0 0;font-size:21px;line-height:1.2}
 #lbTitle[hidden],#lbBody[hidden]{display:none}
 #lbBody{white-space:pre-line}

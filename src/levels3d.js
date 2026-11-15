@@ -490,9 +490,10 @@
   // Todo es determinista: el nivel N es siempre igual. La dificultad sigue la curva: 1 difícil, 4 medios y 5 fáciles por mundo.
   const GEN_BIOMES = ['sea', 'desert', 'snow', 'jungle', 'volcano', 'space'];
   // paisajes nuevos (desde el mundo 52): su contenido se parece al de un paisaje clásico
-  const BIOME_LIKE = { candy: 'sea', crystal: 'snow', temple: 'jungle', forest: 'jungle', fair: 'sea', neon: 'space' };
+  const BIOME_LIKE = { candy: 'sea', crystal: 'snow', temple: 'jungle', forest: 'jungle', fair: 'sea', neon: 'space', orchard: 'jungle', reef: 'sea', toys: 'sea', dino: 'volcano' };
   const BIOME_SUB = { sea: 'el mar', desert: 'el desierto', snow: 'la montaña nevada', jungle: 'la selva', volcano: 'el volcán', space: 'el espacio',
-    candy: 'la ciudad de caramelo', crystal: 'la cueva de cristales', temple: 'el templo antiguo', forest: 'el bosque encantado', fair: 'la feria', neon: 'la ciudad neón' };
+    candy: 'la ciudad de caramelo', crystal: 'la cueva de cristales', temple: 'el templo antiguo', forest: 'el bosque encantado', fair: 'la feria', neon: 'la ciudad neón',
+    orchard: 'el huerto frutal', reef: 'el arrecife', toys: 'la juguetería', dino: 'la era de los dinosaurios' };
   const WEATHER_NAME = { storm: 'tormenta', sandstorm: 'tormenta de arena', blizzard: 'ventisca', rain: 'lluvia', ash: 'lluvia de ceniza', meteors: 'meteoritos' };
   const VARIANTS = ['día', 'atardecer', 'noche', 'aurora'];
   const WORLD_NAMES = {
@@ -507,6 +508,10 @@
     forest: ['Setas gigantes', 'Claro de las hadas', 'Árbol hueco', 'Sendero de luciérnagas', 'Lago de la niebla', 'Bosque de cristal', 'Raíces mágicas', 'Corazón del bosque'],
     fair: ['Noria gigante', 'Tiovivo', 'Casa de los espejos', 'Montaña rusa', 'Tómbola', 'Carpa del circo', 'Coches de choque', 'Gran desfile'],
     neon: ['Avenida neón', 'Rascacielos', 'Barrio de los letreros', 'Puerto espacial', 'Autopista de luz', 'Torre de cristal', 'Metro elevado', 'Ciudad del futuro'],
+    orchard: ['Granja feliz', 'Campo de sandías', 'Viña dorada', 'Invernadero', 'Pomar', 'Huerta del abuelo', 'Mercado de fruta', 'Colmenar'],
+    reef: ['Jardín de coral', 'Cueva de las morenas', 'Bosque de algas', 'Barco hundido', 'Arrecife azul', 'Fosa profunda', 'Lecho de perlas', 'Ciudad de las medusas'],
+    toys: ['Cuarto de juegos', 'Estantería', 'Caja de juguetes', 'Tren de madera', 'Casa de muñecas', 'Alfombra de colores', 'Torre de cubos', 'Desván'],
+    dino: ['Valle jurásico', 'Nido de huevos', 'Ciénaga de helechos', 'Cráter humeante', 'Bosque de cícadas', 'Cementerio de fósiles', 'Llanura de ámbar', 'Volcán dormido'],
     space: ['Cinturón de asteroides', 'Luna roja', 'Estación orbital', 'Nebulosa', 'Planeta anillado', 'Cometa', 'Galaxia espiral', 'Polvo de estrellas', 'Marte', 'Satélites', 'Vía Láctea', 'Supernova', 'Agujero de gusano', 'Constelación', 'Órbita lunar', 'Confín del universo'],
   };
   const BIOME_ADJ = {
@@ -516,6 +521,8 @@
     candy: ['de caramelo', 'de chocolate', 'de gominola', 'de nata', 'de regaliz'], crystal: ['de cuarzo', 'de cristal', 'de amatista', 'de la geoda', 'de la gruta'],
     temple: ['del templo', 'de jade', 'del ídolo', 'de las ruinas', 'del sol'], forest: ['del bosque', 'de las hadas', 'de setas', 'de la niebla', 'de musgo'],
     fair: ['de la feria', 'del circo', 'de la noria', 'del tiovivo', 'de la tómbola'], neon: ['de neón', 'del futuro', 'de luz', 'del rascacielos', 'de la avenida'],
+    orchard: ['del huerto', 'de sandía', 'de la granja', 'de manzanas', 'de la cosecha'], reef: ['de coral', 'del arrecife', 'de las algas', 'de perlas', 'del fondo marino'],
+    toys: ['de juguete', 'de madera', 'de los cubos', 'del cuarto de juegos', 'de colores'], dino: ['de ámbar', 'jurásico', 'de los fósiles', 'del dinosaurio', 'prehistórico'],
   };
   const ARCH = {
     block: ['Muro', 'Bloque', 'Almacén', 'Fortín'], pyramid: ['Pirámide', 'Zigurat', 'Montaña', 'Colina'], stairs: ['Escalera', 'Rampa', 'Gradas', 'Ladera'],
@@ -593,12 +600,12 @@
     return { name: pick(ARCH[arch]) + ' ' + pick(BIOME_ADJ[look] || BIOME_ADJ[biome]), nb: Math.max(3, Math.min(14, nb)), target: Math.min(0.92, +target.toFixed(2)), gen: true, gid: n, tier, biome: look,
       goal: pick(TIPS[biome]), blocks };
   }
-  function genBonus(w, look) {
-    const biome = BIOME_LIKE[look] || look, r = seeded(w * 4441), cols = ['r', 'b', 'g', 'y', 'p'].sort(() => r() - 0.5).slice(0, 3);
+  function genBonus(w, look, cb) {
+    const biome = BIOME_LIKE[cb || look] || cb || look, r = seeded(w * 4441), cols = ['r', 'b', 'g', 'y', 'p'].sort(() => r() - 0.5).slice(0, 3);
     const W = 4 + (r() * 2 | 0), D = 3, H = 3 + (r() * 2 | 0);
     let blocks = box3(0, 0, 0, W, D, H, P.rand(cols, w), { map: (ch, i, j) => ((i + j * 2) % 4 === 1 ? 'o' : ch) });
     if (biome === 'space') blocks = flat(box3(0, 0, 0, W, D, 2, P.rand(cols, w)), flo(box3(0, 0, 3, W, D, 2, P.checker(['o', cols[0], cols[1]]))));
-    return { name: 'Tesoro ' + (BIOME_ADJ[look] || BIOME_ADJ[biome])[w % 5], nb: 6, target: 0.75, gen: true, biome: look, goal: 'Nivel extra: los bloques de oro sueltan monedas.', blocks };
+    return { name: 'Tesoro ' + (BIOME_ADJ[look] || BIOME_ADJ[biome])[w % 5], sn: 'Tesoro ' + (BIOME_ADJ[cb || look] || BIOME_ADJ[biome])[w % 5], nb: 6, target: 0.75, gen: true, biome: look, goal: 'Nivel extra: los bloques de oro sueltan monedas.', blocks };
   }
 
   // bolas automáticas: reparto equilibrado según cuántos bloques hay de cada color
@@ -615,7 +622,7 @@
     const rem = cols.slice().sort((a, b) => (n * cnt[b] / total % 1) - (n * cnt[a] / total % 1));
     for (let i = 0; given < n; i++) { want[rem[i % rem.length]]++; given++; }
     for (let i = 0; given > n; i++) { const c = cols[i % cols.length]; if (want[c] > 1) { want[c]--; given--; } }
-    const r = seeded(l.name.length * 131 + n * 7);
+    const r = seeded((l.sn || l.name).length * 131 + n * 7);
     let s = '', last = '', last2 = '';
     for (let i = 0; i < n; i++) {
       const opts = cols.filter(c => want[c] > 0);
@@ -655,12 +662,12 @@
     if (!l._colored) {
       l._colored = true;
       const cols = [...new Set(l.blocks.filter(b => b.c && !b.t || b.t === 'st' || b.t === 'bm' || b.t === 'i').map(b => b.c))];
-      const r = seeded(l.name.length * 977 + 3);
+      const r = seeded((l.sn || l.name).length * 977 + 3);   // sn: nombre de antes (paisajes cambiados desde el 52)
       let q = Math.floor(r() * 5);
       for (const b of l.blocks) if ((b.t === 'prize' || b.t === 'cham' || b.t === 'lock' || b.t === 'totem' || b.t === 'vine') && !b.c) b.c = (cols.length ? cols : ['r', 'b'])[q++ % (cols.length || 2)];
     }
     if (l.balls0 === undefined) l.balls0 = l.balls || '';
-    const t = l.gen ? (GTUNE[l.gid] && { nb: GTUNE[l.gid][0], target: GTUNE[l.gid][1] }) : TUNE[l.name];
+    const t = l.gen ? (GTUNE[l.gid] && { nb: GTUNE[l.gid][0], target: GTUNE[l.gid][1] }) : TUNE[l.sn || l.name];
     if (t) { if (t.nb) l.nb = t.nb; if (t.target) l.target = t.target; }
     if (l.nb && (!l.balls || l.balls.length !== l.nb)) {
       const base = l.balls0 || '';
@@ -687,7 +694,13 @@
   const HAND_BONUS = BONUS.splice(0);
   const NWORLDS = 100;
   const CLASSIC = ['sea', 'desert', 'snow', 'jungle', 'volcano', 'space'];
-  const FRESH = ['candy', 'crystal', 'temple', 'forest', 'fair', 'neon'];
+  const FRESH = ['candy', 'crystal', 'temple', 'forest', 'fair', 'neon', 'orchard', 'reef', 'toys', 'dino'];
+  // Desde el mundo 52 (grupos 17-33) el orden va escrito a mano. Los 4 paisajes nuevos (huerto, arrecife, juguetería y
+  // dinosaurios) ocupan huecos de paisajes repetidos; cada mundo conserva el contenido de antes (estructura, dificultad y
+  // ajuste: `cb`, el paisaje de antes) y su clima, y solo cambia lo que se ve. Los dinosaurios ocupan una vuelta del volcán
+  // y se quedan su lluvia de ceniza.
+  const OLD_LATE = ['candy', 'sea', 'crystal', 'desert', 'temple', 'snow', 'forest', 'jungle', 'fair', 'volcano', 'neon', 'space', 'candy', 'sea', 'crystal', 'desert', 'temple'];
+  const LATE = ['candy', 'sea', 'orchard', 'desert', 'crystal', 'snow', 'reef', 'jungle', 'temple', 'dino', 'toys', 'space', 'forest', 'sea', 'fair', 'desert', 'neon'];
   const WEATHER = { sea: 'storm', desert: 'sandstorm', snow: 'blizzard', jungle: 'rain', volcano: 'ash', space: 'meteors' };
   const LIGHTS = ['día', 'atardecer', 'noche'];
   const WSIZE = w => (w === 1 ? 5 : w === 2 ? 6 : w === 3 ? 8 : 10);
@@ -696,8 +709,8 @@
     const g = Math.floor((w - 1) / 3), light = LIGHTS[(w - 1) % 3];
     let biome, weather = null;
     if (g < 17) { biome = CLASSIC[g % 6]; if (g >= 6) weather = WEATHER[biome]; }
-    else { const h = (g - 17) % 12; if (h % 2 === 0) biome = FRESH[h / 2]; else { biome = CLASSIC[(h - 1) / 2]; weather = WEATHER[biome]; } }
-    return { g, biome, light, weather, boss: ['ship', 'pyramid', 'golem'][g % 3] };
+    else { const cb = OLD_LATE[g - 17]; biome = LATE[g - 17]; weather = WEATHER[cb] || null; return { g, biome, cb, light, weather, boss: ['ship', 'pyramid', 'golem'][g % 3] }; }
+    return { g, biome, cb: biome, light, weather, boss: ['ship', 'pyramid', 'golem'][g % 3] };
   }
 
   // ---- niveles de estreno de los bloques nuevos (siempre fáciles) ----
@@ -787,9 +800,9 @@
 
   // ---- jefes: tres tipos que rotan por paisaje; el nombre y el aspecto cambian con el paisaje ----
   const BOSS_NAMES = {
-    ship: { sea: 'Capitán Bloquebarba', jungle: 'Barcaza del río', candy: 'Galeón de caramelo', forest: 'Barca encantada', fair: 'Barco de feria', neon: 'Crucero de neón' },
-    pyramid: { desert: 'Faraón Arenas', volcano: 'Fortaleza de obsidiana', crystal: 'Geoda gigante', temple: 'Zigurat perdido', sea: 'Pirámide hundida', snow: 'Pirámide de hielo' },
-    golem: { snow: 'Gólem de hielo', space: 'Robot lunar', volcano: 'Gólem de magma', temple: 'Guardián del templo', neon: 'Mecha de neón', candy: 'Gólem de gominola' },
+    ship: { sea: 'Capitán Bloquebarba', jungle: 'Barcaza del río', candy: 'Galeón de caramelo', forest: 'Barca encantada', fair: 'Barco de feria', neon: 'Crucero de neón', crystal: 'Galeón de cristal', toys: 'Barco de juguete', reef: 'Galeón hundido' },
+    pyramid: { desert: 'Faraón Arenas', volcano: 'Fortaleza de obsidiana', crystal: 'Geoda gigante', temple: 'Zigurat perdido', sea: 'Pirámide hundida', snow: 'Pirámide de hielo', orchard: 'Pirámide del huerto', fair: 'Pirámide de la feria', dino: 'Faraón de ámbar', toys: 'Torre de cubos' },
+    golem: { snow: 'Gólem de hielo', space: 'Robot lunar', volcano: 'Gólem de magma', temple: 'Guardián del templo', neon: 'Mecha de neón', candy: 'Gólem de gominola', reef: 'Gólem de coral', dino: 'Gólem de ámbar', forest: 'Gólem de musgo', orchard: 'Gólem de fruta' },
   };
   const BOSS_DEFAULT = { ship: 'Galeón pirata', pyramid: 'Pirámide del faraón', golem: 'Gólem de roca' };
   // recolorea los bloques de color para que ningún grupo (contando los que se tocan por una esquina) pase de maxG; determinista
@@ -913,19 +926,26 @@
       } else if (info.g < 6 && info.biome !== 'sea' && handBio[info.biome].length && slot % 3 === 2) l = handBio[info.biome].shift();
       else if (info.g < 6 && generic.length) l = generic.shift();
       else if (info.g < 6 && handBio[info.biome] && handBio[info.biome].length) l = handBio[info.biome].shift();
-      else l = genLevel(gn++, info.biome, extrasFor(info.biome));
+      else {
+        l = genLevel(gn++, info.cb, extrasFor(info.cb));
+        if (info.cb !== info.biome) {                  // mismo nivel que antes; solo cambia el apellido del nombre
+          const A0 = BIOME_ADJ[info.cb] || BIOME_ADJ[BIOME_LIKE[info.cb]], i = A0.findIndex(a => l.name.endsWith(' ' + a));
+          if (i >= 0) { l.sn = l.name; l.name = l.name.slice(0, l.name.length - A0[i].length) + BIOME_ADJ[info.biome][i]; }
+        }
+      }
       const pend = pending.filter(q => q.at === LEVELS.length);
       for (const q of pend) if (!l.debut && l.tier !== 'hard') inject(l, q.ch, q.n); else q.at++;
       Object.assign(l, { world: w, pos: p, biome: info.biome, variant: info.light, weather: info.weather });
       LEVELS.push(l);
     }
     if (isBossWorld(w)) { for (const q of pending) if (q.at === LEVELS.length) q.at++; }
-    if (isBossWorld(w)) LEVELS.push(Object.assign(bossLevel(info.boss, info.biome, info.g), { world: w, pos: size + 1, biome: info.biome, variant: info.light, weather: info.weather }));
+    if (isBossWorld(w)) LEVELS.push(Object.assign(bossLevel(info.boss, info.biome, info.g), { world: w, pos: size + 1, biome: info.biome, variant: info.light, weather: info.weather },
+      info.cb !== info.biome ? { sn: (BOSS_NAMES[info.boss] && BOSS_NAMES[info.boss][info.cb]) || BOSS_DEFAULT[info.boss] } : {}));
     const list = WORLD_NAMES[info.biome] || WORLD_NAMES.sea;
     nameUse[info.biome] = (nameUse[info.biome] || 0) + 1;
     const name = FIRST_NAMES[w] || list[(nameUse[info.biome] + w) % list.length];
     WORLDS.push({ n: w, name, sub: BIOME_SUB[info.biome] + ' · ' + info.light + (info.weather ? ' · ' + WEATHER_NAME[info.weather] : ''), biome: info.biome, variant: info.light, weather: info.weather,
-      first, last: LEVELS.length, size: LEVELS.length - first + 1, boss: isBossWorld(w) ? LEVELS.length : 0, bossKind: isBossWorld(w) ? info.boss : null, fresh: FRESH.includes(info.biome) });
+      first, last: LEVELS.length, size: LEVELS.length - first + 1, boss: isBossWorld(w) ? LEVELS.length : 0, bossKind: isBossWorld(w) ? info.boss : null, fresh: FRESH.includes(info.biome), cb: info.cb });
   }
   // números, dificultad y ajuste fino
   LEVELS.forEach((l, i) => {
@@ -939,7 +959,7 @@
   const handBonusBy = { sea: HAND_BONUS.slice(0, 5), desert: [HAND_BONUS[5]], snow: [HAND_BONUS[6]], jungle: [HAND_BONUS[7]], volcano: [HAND_BONUS[8]], space: [HAND_BONUS[9]] };
   for (let w = 1; w <= NWORLDS; w++) {
     const W = WORLDS[w - 1];
-    const l = (handBonusBy[W.biome] && handBonusBy[W.biome].length) ? handBonusBy[W.biome].shift() : genBonus(w, W.biome);
+    const l = (handBonusBy[W.biome] && handBonusBy[W.biome].length) ? handBonusBy[W.biome].shift() : genBonus(w, W.biome, W.cb);
     l.biome = W.biome; l.variant = W.variant; l.weather = W.weather;
     BONUS.push(l);
   }

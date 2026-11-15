@@ -2,7 +2,7 @@
 
 Puzle de física en 3D para Android, en primera persona desde detrás de un cañón. Disparas bolas de colores contra castillos de bloques de gominola: si la bola toca un bloque de su color, revienta todo el grupo conectado de ese color y la estructura se derrumba con física real. Hay que derribar un porcentaje de la estructura con las bolas disponibles.
 
-**Contenido:** 50 niveles en 5 mundos (Plaza mayor, Feria del castillo, Almacén helado, Puerto y Palacio de cristal) y 5 niveles extra, uno por mundo, que solo se abren con 3 estrellas en los 10 niveles de ese mundo. Los niveles extra tienen bloques de oro que sueltan monedas y dan el triple de premio la primera vez.
+**Contenido (noviembre de 2026):** 100 mundos y 1.023 niveles (34 jefes incluidos) más 100 niveles extra, uno por mundo, que se abren con 3 estrellas en todos los niveles de ese mundo. 16 paisajes: los 6 clásicos (mar, desierto, nieve, selva, volcán y espacio), 6 desde el mundo 52 (caramelo, cristal, templo, bosque, feria y neón) y 4 nuevos (huerto frutal, arrecife, juguetería y era de los dinosaurios; ver «Mundos nuevos»). Eventos de Halloween y Navidad, clubes, amigos y tienda con Google Play. Las secciones de abajo están por orden de llegada: cuando una más nueva cambia algo, manda la nueva.
 
 ## Qué hay en esta carpeta
 
@@ -13,7 +13,8 @@ Puzle de física en 3D para Android, en primera persona desde detrás de un cañ
 | `tools/` | `build.js` junta todo en `dist/index.html`; `check3d.js` comprueba que los niveles no se caen solos; `curve3d.js` mide la dificultad con un jugador simulado; `tune.js` y `mergetune.js` ajustan bolas y objetivo de cada nivel; `shots.py`, `uiflow.py` hacen capturas y recorren los menús en Chromium |
 | `ios/` | App de iPhone y iPad con el mismo juego (Swift + WKWebView, se compila en GitHub con `ios.yml`, sin Mac). Ver `ios/LEEME.md` |
 | `android/` | App Android mínima que carga el juego sin conexión (pantalla completa, vibración, botón atrás) |
-| `.github/workflows/apk.yml` | Compila la APK automáticamente en GitHub |
+| `.github/workflows/` | Compilaciones (APK de pruebas, AAB de Google Play, iOS), Firebase (reglas, índices, pruebas reales) y web |
+| `firebase/`, `site/`, `store/` | Reglas de Firestore · web pública, legales y panel `/admin` · ficha de Google Play |
 
 ## Probar en el navegador
 
@@ -55,7 +56,7 @@ Durante la partida, de vez en cuando cruza un pájaro rápido por detrás de la 
 
 - **Gemas** (moneda premium): 25 % de probabilidad por partida, garantizada tras 2 partidas sin ninguna. Van dentro de un cubo de cristal de color con marco dorado, donde se ve girar la gema (una esmeralda), y hay que derribarlo. En los niveles extra hay 1 asegurada y hasta 3. La tirada se guarda hasta que la partida acaba, así que salir y volver a entrar no da gemas extra.
 - **Pase**: temporadas de 28 días con 30 niveles que se suben con estrellas. La pista gratis da monedas, potenciadores, gemas y una bola dorada. La pista Pro cuesta 150 gemas (≈ 4,99 €) y da mucho más, incluidos 3 cañones exclusivos. Al acabar la temporada se entrega lo ganado sin reclamar y el pase empieza de cero.
-- **Tienda de gemas**: 30 (0,99 €), 150 (4,99 €) y 330 (9,99 €). Son compras de prueba en el prototipo; en Google Play irán con Play Billing.
+- **Tienda de gemas**: 30 (0,99 €), 165 (4,99 €, +10 %) y 360 (9,99 €, +20 %), con Google Play Billing (ver «Cambios del 15-11-2026»).
 
 ## Cañones y bolas: mejoras, cañones con más fuerza, aspectos y «Temporales»
 
@@ -268,7 +269,7 @@ Icono elegido: **bloque de gelatina morada** que ocupa todo el icono, con «ROCK
 
 ## Nombre: Rocket Rush
 
-Todo lo que ve el jugador dice **Rocket Rush**: nombre de la app, portada, icono, versión en Ajustes, texto para compartir y archivo de la APK. Los códigos de amigo ahora empiezan por `RR-`, y los antiguos `CC-` siguen valiendo. El identificador de la app es `com.rocketrush.game`: es el que aparece en el enlace de Google Play y no se puede cambiar después de publicar. Antes era `com.chromacrash.game3d`, así que la primera APK con el nombre nuevo (1.0.16) se instala como una app distinta: hay que desinstalar la antigua. Por dentro se mantienen dos nombres internos que no se ven: la clave del guardado (`chromacrash3d.v1`) y el puente con Android (`ChromaAndroid`).
+Todo lo que ve el jugador dice **Rocket Rush**: nombre de la app, portada, icono, versión en Ajustes, texto para compartir y archivo de la APK. Los códigos de amigo ahora empiezan por `RR-`, y los antiguos `CC-` siguen valiendo. El identificador de la app es `com.lostanarchygames.rocketrush` (ver «Paquete nuevo» en «Amigos, clasificaciones y perfil»): es el que aparece en el enlace de Google Play y no se puede cambiar después de publicar. Antes fue `com.rocketrush.game` y, antes, `com.chromacrash.game3d`. Por dentro se mantienen dos nombres internos que no se ven: la clave del guardado (`chromacrash3d.v1`) y el puente con Android (`ChromaAndroid`).
 
 ## Iconos del juego (estilo «caramelo brillante»)
 
@@ -286,7 +287,7 @@ Todas las ventanas (nivel, racha, tienda, pausa, victoria, derrota, ajustes) son
 - **Panel**: fondo morado con confeti, toldo de rayas rojas y blancas arriba y bombillas encendidas alrededor que parpadean. El título va en un letrero de neón con la mascota al lado.
 - **Tickets**: las filas de la tienda, las misiones y los días de la racha son tickets con muescas a los lados. En la racha, los tickets van unidos por un camino de puntos. Los precios son etiquetas colgantes.
 - **Ventajas** antes de jugar: casetas con aro rojo y blanco; la elegida, con aro verde.
-- **Tienda**: monedero arriba y pestañas (Ofertas, Gemas, Bolas, Monedas) que bajan a su sección. El Pack de inicio sale como oferta destacada, con rayos girando, y hay etiquetas «MÁS POPULAR» y «MEJOR VALOR». No hay descuentos inventados ni cuentas atrás falsas: en Google Play no están permitidos.
+- **Tienda**: monedero arriba y pestañas (Ofertas, Gemas, Bolas, Monedas) que bajan a su sección. El Pack de inicio sale como oferta destacada, con rayos girando, y hay etiquetas «MÁS POPULAR» y «MEJOR VALOR». No hay descuentos inventados ni cuentas atrás falsas: la de la Oferta de la semana es real (acaba el lunes) y su «valor» se calcula con los precios de la propia tienda.
 - **Racha**: fila de próximos cofres, con los 5 siguientes.
 - **Monedero** del mapa, el pase y las misiones: lleva un «+» verde que abre la tienda en monedas o en gemas.
 - La cabecera del pase, la de misiones y el cartel de la portada también llevan bombillas.
@@ -634,6 +635,32 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
 - **La tienda o el club se cerraban solos:** era la cuenta atrás de Navidad, que devolvía a la portada cada 30 s; ya estaba
   corregido en la versión del 13-11 (comprobado: la tienda y el club siguen abiertos 80 s).
 
+## Mundos nuevos: huerto frutal, arrecife, juguetería y dinosaurios
+
+Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en `LATE` de `src/levels3d.js`):
+
+| Mundos | Paisaje | Bloques de colores | Cruza el cielo | Ambiente | Jefe |
+|---|---|---|---|---|---|
+| 58-60 | Huerto frutal | Fruta: sandía (verde), tomate (rojo), piña (amarillo), arándano (azul), uva (morado), con caras | Abeja con cesta | Árboles frutales, granero, molino, pétalos | Pirámide del huerto |
+| 70-72 | Arrecife | Escamas de pez, con caras | Submarino (el pájaro es un pez) | Corales, algas, peces, burbujas, rayos de luz | Gólem de coral |
+| 79-81 | Era de los dinosaurios | Ámbar con fósiles (sin caras) | Pterodáctilo con cesta | Volcán, helechos, cícadas, braquiosaurios; lluvia de ceniza | Gólem de ámbar |
+| 82-84 | Juguetería | Cubos de madera con letras A-E (sin caras) | Avión de juguete con caja | Cuarto de juegos, cubos y ceras gigantes, pelotas, confeti | Barco de juguete |
+
+- **El contenido no cambia.** Ocupan huecos de paisajes que se repetían (y los dinosaurios, una vuelta del volcán, con su ceniza):
+  cada nivel conserva su estructura, bolas, objetivo, dificultad y ajuste. Por eso `worldInfo` guarda `cb` (el paisaje de antes)
+  para generar el nivel, y `sn` (el nombre de antes) para las semillas y el ajuste; solo cambian el paisaje que se ve y el
+  apellido del nombre. Comprobado: los 1.123 niveles (normales y extra) son idénticos a los de antes en estructura, bolas y objetivo.
+- Otros paisajes cambian de sitio desde el 64 (cristal, templo, bosque, feria y neón): ahora cada uno sale una vez.
+- Los bloques usan su propio material (`Mundos.skin`); los especiales (hielo, rayas, bomba, gema…) y las bolas no cambian.
+  En la portada y los eventos, la gominola de siempre.
+- Prueba: `tools/mundosflow.py` (captura de cada paisaje con su objeto del cielo y tiro que lo alcanza).
+
+## Canjear código desde la tienda
+
+- Tarjeta «¿Tienes un código regalo?» arriba de Ofertas y pestaña «🎟️ Código». Usa los mismos códigos del panel que
+  Ajustes › Canjear código (`giftcodes`, `Social.redeem`, `save.codesUsed`). No sale a menores de 13 ni sin funciones en línea.
+- Prueba: `tools/redeemshopflow.py`.
+
 ## Liga de clubes por grupos (5 clubes al azar)
 
 Cuando empieza la liga (viernes), cada club entra en un **grupo de 5**: el suyo y 4 rivales al azar. Todos los del grupo ven
@@ -739,7 +766,8 @@ por 3-5, que es justo donde se notaban los tirones.
 - **Android 16 (API 36)**, AGP 8.11 y Gradle 8.13: `MainActivity` con borde a borde, barras ocultas, márgenes de la muesca
   al juego (`--sat/--sar/--sab/--sal`) y gesto atrás predictivo.
 - **Compras** (`Billing.java`, Play Billing 8): precios de Play en la moneda del jugador, entrega, confirmación o consumo y
-  restaurar (quitar anuncios y pack de inicio). Productos: g1, g2, g3, c1, c2, starter (una vez) y noads (una vez).
+  restaurar (quitar anuncios y pack de inicio). Productos (11): g1, g2, g3, c1, c2, ayuda, cazajefes, arsenal, semanal, starter (una vez)
+  y noads (una vez, ya no se vende pero se restaura).
 - **Anuncios** (`Ads.java`): AdMob con el formulario de consentimiento de Google (UMP). Con premio e intersticial reales;
   sin personalizar a menores de 16 y para todos los públicos a menores de 13. Cuenta `pub-8884472900712050`:
   app `ca-app-pub-8884472900712050~3759414973`, intersticial «Entre niveles» `…/9342914146` (solo imagen y texto: cortos)

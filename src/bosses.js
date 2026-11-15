@@ -15,7 +15,7 @@
   const PC = { r: { hex: 0xff4f6d, css: '#ff4f6d', name: 'ROJO' }, b: { hex: 0x3d9bff, css: '#3d9bff', name: 'AZUL' }, g: { hex: 0x5fd45a, css: '#5fd45a', name: 'VERDE' }, y: { hex: 0xffd23f, css: '#e8b400', name: 'AMARILLO' }, p: { hex: 0xa66bff, css: '#a66bff', name: 'MORADO' } };
   const MASK = { y: 8.4, r: 1.05 }, HITS = 5, NEED = [4, 5, 6, 7, 8], ROT = 2, CURSE = 3;
   // color de la roca del gólem según el paisaje
-  const GOLEM_SKIN = { snow: [0xbfe0ff, 0.2, 0.2], space: [0xb8bcd0, 0.8, 0.3], candy: [0xffa8d8, 0, 0.4], temple: [0x9aa86a, 0, 0.9], neon: [0x3a3a5a, 0.7, 0.3], volcano: [0x3b3236, 0, 0.9], desert: [0xd8b078, 0, 0.9] };
+  const GOLEM_SKIN = { snow: [0xbfe0ff, 0.2, 0.2], space: [0xb8bcd0, 0.8, 0.3], candy: [0xffa8d8, 0, 0.4], temple: [0x9aa86a, 0, 0.9], neon: [0x3a3a5a, 0.7, 0.3], volcano: [0x3b3236, 0, 0.9], desert: [0xd8b078, 0, 0.9], reef: [0xff8aa8, 0, 0.7], dino: [0xd8902a, 0.1, 0.25], forest: [0x5a7a4a, 0, 0.9], orchard: [0x8ac84a, 0, 0.6] };
   const css = `
   body.bossmode #meter{visibility:hidden}
   #bossBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 64px);width:min(94vw,460px);z-index:4;display:none;pointer-events:none}
@@ -172,7 +172,7 @@
     const sh = new THREE.Shape();
     sh.moveTo(-4.3, 1.55); sh.lineTo(3.95, 1.55); sh.lineTo(3.85, 0.9); sh.quadraticCurveTo(3.4, -0.05, 2.4, -0.1);
     sh.lineTo(-2.2, -0.1); sh.quadraticCurveTo(-3.6, 0.1, -4.3, 1.55);
-    const HULL = { candy: 0xff8ac8, neon: 0x2a2a48, fair: 0xd8463a, forest: 0x5a7a3a };
+    const HULL = { candy: 0xff8ac8, neon: 0x2a2a48, fair: 0xd8463a, forest: 0x5a7a3a, crystal: 0x8a6ad8, toys: 0xe8372c, reef: 0x3a6a6a };
     const wood = new THREE.MeshStandardMaterial({ color: HULL[S.L.biome] || 0x9a5f2c, roughness: 0.75 }), dark = new THREE.MeshStandardMaterial({ color: 0x5e3416, roughness: 0.8 });
     const hull = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 3.1, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 2 }), wood);
     hull.position.z = -1.55; hull.castShadow = hull.receiveShadow = true; g.add(hull);

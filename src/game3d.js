@@ -1098,7 +1098,9 @@
     return { set, update, build };
   })();
   const BIOMES = { sea: { env: [sea, decor], platform: island } };
-  const biomeBuilders = { desert: buildDesert, snow: buildSnow, jungle: buildJungle, volcano: buildVolcano, space: buildSpace, candy: buildCandy, crystal: buildCrystal, temple: buildTemple, forest: buildForest, fair: buildFair, neon: buildNeon, halloween: () => window.Halloween ? window.Halloween.build() : null, xmas: () => window.Christmas ? window.Christmas.build() : null };
+  const biomeBuilders = { desert: buildDesert, snow: buildSnow, jungle: buildJungle, volcano: buildVolcano, space: buildSpace, candy: buildCandy, crystal: buildCrystal, temple: buildTemple, forest: buildForest, fair: buildFair, neon: buildNeon, halloween: () => window.Halloween ? window.Halloween.build() : null,
+    orchard: () => window.Mundos ? window.Mundos.build('orchard') : null, reef: () => window.Mundos ? window.Mundos.build('reef') : null,
+    toys: () => window.Mundos ? window.Mundos.build('toys') : null, dino: () => window.Mundos ? window.Mundos.build('dino') : null, xmas: () => window.Christmas ? window.Christmas.build() : null };
   let biome = 'sea';
   function setBiome(name) {
     if (!BIOMES[name] && biomeBuilders[name]) BIOMES[name] = biomeBuilders[name]();
@@ -1456,7 +1458,12 @@
     fair: { top: 0x3a2a8f, mid: 0xb06ad6, hor: 0xffc08a, fog: 0xd8a0d0, sea: 0x4a3ab0, sun: 0xffe0b8, hemi: [0xf0d8ff, 0x6a4a6a], biome: 'fair', fogNear: 45, fogFar: 150 },
     halloween: { top: 0x090316, mid: 0x2a0f4a, hor: 0x8a2a5a, fog: 0x2a1240, sea: 0x1c1036, sun: 0xc8b4ff, hemi: [0x9a7ae0, 0x1a0a24], biome: 'halloween', fogNear: 45, fogFar: 190, sunI: 1.6, hemiI: 0.8, stars: true },
     xmas: { top: 0x050a2a, mid: 0x14306e, hor: 0x5a6ab8, fog: 0x22305e, sea: 0x14306e, sun: 0xd0dcff, hemi: [0xb8c8ff, 0x3a3a5a], biome: 'xmas', fogNear: 60, fogFar: 240, sunI: 1.5, hemiI: 1.0, stars: true },
-    neon: { top: 0x070a24, mid: 0x1a1a52, hor: 0x7a2a9a, fog: 0x1a1240, sea: 0x101a50, sun: 0xb8c8ff, hemi: [0xa0b0ff, 0x2a1a4a], biome: 'neon', fogNear: 40, fogFar: 160, sunI: 1.5, hemiI: 0.9 } };
+    neon: { top: 0x070a24, mid: 0x1a1a52, hor: 0x7a2a9a, fog: 0x1a1240, sea: 0x101a50, sun: 0xb8c8ff, hemi: [0xa0b0ff, 0x2a1a4a], biome: 'neon', fogNear: 40, fogFar: 160, sunI: 1.5, hemiI: 0.9 },
+    // paisajes nuevos (src/mundos.js)
+    orchard: { top: 0x4fb8ff, mid: 0xa8e4ff, hor: 0xf0fbd8, fog: 0xcdf0c8, sea: 0x3aa8d8, sun: 0xfff6d8, hemi: [0xfff6d8, 0x5aa040], biome: 'orchard', fogNear: 50, fogFar: 170 },
+    reef: { top: 0x03203f, mid: 0x0a5a8a, hor: 0x1aa6b8, fog: 0x0d6e8e, sea: 0x0d6e8e, sun: 0xbff4ff, hemi: [0x7fe8ff, 0x0a3050], biome: 'reef', fogNear: 20, fogFar: 85, sunI: 1.9, hemiI: 1.15 },
+    toys: { top: 0xffb8d8, mid: 0xffd8c0, hor: 0xfff0d0, fog: 0xffe2d0, sea: 0xffc8d8, sun: 0xfff4e0, hemi: [0xfff0e0, 0xc07850], biome: 'toys', fogNear: 60, fogFar: 260 },
+    dino: { top: 0x6a3a2a, mid: 0xd88a4a, hor: 0xffc070, fog: 0xe0a060, sea: 0x8a5a2a, sun: 0xffd8a0, hemi: [0xffe0b0, 0x5a3a1a], biome: 'dino', fogNear: 40, fogFar: 170 } };
   const mixC = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
   function themeFor(world) {
     const W = G.hwWorld || (G.level && G.level.hw) ? { biome: 'halloween', variant: 'noche' } : G.xmWorld || (G.level && G.level.xm) ? { biome: 'xmas', variant: 'xm' } : (WORLDS[world - 1] || { biome: 'sea', variant: 'día' });
@@ -1626,6 +1633,8 @@
     if (d.kind === 'prism' || d.kind === 'gift') g.userData.sparkle = true;
     return g;
   }
+  // piel de los bloques de colores en los paisajes nuevos (src/mundos.js); en la portada y el resto, la gominola de siempre
+  const blockSkin = () => (window.Mundos && G.level && !G.level.hw && !G.level.xm ? window.Mundos.skin(biome) : null);
   function buildLevelView() {
     clearLevelView();
     G.candies = []; G.candyHosts = 0;
@@ -1652,6 +1661,8 @@
       else if (d.cham) mat = jellyCham[d.c];
       else if (d.ice && d.hp > 1) mat = iceMat[d.c];
       else mat = d.stripe ? jellyStripe[d.c] : d.bomb ? jellyBomb[d.c] : jelly[d.c];
+      const SK = blockSkin();
+      if (SK && mat === jelly[d.c] && SK.mat[d.c]) mat = SK.mat[d.c];
       if (d.gem && d.kind === 'block') mat = gemCubeMat[d.c];
       const g = new THREE.Group();
       const geo = d.kind === 'tnt' ? new THREE.BoxGeometry(d.w, d.h, d.d) : roundedGeo(d.w, d.h, d.d);
@@ -1677,7 +1688,7 @@
         const gem = new THREE.Mesh(gemGeo, gemMat); gem.scale.setScalar(Math.min(d.w, d.h, d.d) * 0.62); gem.rotation.z = 0.15;
         g.add(gem); g.userData.gemMesh = gem;
         g.add(gemFrame(d.w, d.h, d.d));
-      } else if (d.kind === 'block' && Math.min(d.w, d.h) >= 0.38) {
+      } else if (d.kind === 'block' && Math.min(d.w, d.h) >= 0.38 && !(SK && SK.noFace && mat === SK.mat[d.c])) {
         const fs = Math.min(d.w, d.h) * 0.92;
         const face = new THREE.Mesh(faceGeo, new THREE.MeshBasicMaterial({ map: d.cham ? chamFaceTex : FACES[d.c].normal, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
         face.scale.set(fs, fs, 1); face.position.z = d.d / 2 + 0.006; g.add(face);
@@ -1728,7 +1739,7 @@
         const s = 1 + Math.min(0.3, g.userData.pop * 0.3); g.scale.set(s, s, s);
         g.userData.body.material = MAT.pop;
       }
-      if (d.ice && d.hp <= 1 && !d.popping && g.userData.body.material !== jelly[d.c]) g.userData.body.material = jelly[d.c];
+      if (d.ice && d.hp <= 1 && !d.popping && g.userData.body.material === iceMat[d.c]) { const SK = blockSkin(); g.userData.body.material = (SK && SK.mat[d.c]) || jelly[d.c]; }
       if (g.userData.gemMesh) {
         const gm = g.userData.gemMesh; gm.rotation.y = t * 1.6 + d.id; gm.position.y = Math.sin(t * 2.2 + d.id) * d.h * 0.05;
         if (!d.popping && Math.random() < 0.025) spawnSprite(b.position.x + rnd(-0.3, 0.3), b.position.y + rnd(-0.2, 0.35), b.position.z + d.d / 2 + 0.1, 0xc9ffe6, 0.55, 0.55, 0.4, { add: true });
@@ -1900,14 +1911,18 @@
     return g;
   }
   // ---------- objetos que cruzan el cielo en los mundos 6-10 (llevan a la vista las 2 bolas del premio) ----------
-  const CARRIER_NAMES = { desert: 'globo', snow: 'teleférico', jungle: 'mono', volcano: 'dragón', space: 'ovni' };
-  const CARRIER_TITLES = { desert: '¡GLOBO!', snow: '¡TELEFÉRICO!', jungle: '¡MONO!', volcano: '¡DRAGÓN!', space: '¡OVNI!' };
+  const CARRIER_NAMES = { desert: 'globo', snow: 'teleférico', jungle: 'mono', volcano: 'dragón', space: 'ovni', orchard: 'abeja', reef: 'submarino', toys: 'avión de juguete', dino: 'pterodáctilo' };
+  const CARRIER_TITLES = { desert: '¡GLOBO!', snow: '¡TELEFÉRICO!', jungle: '¡MONO!', volcano: '¡DRAGÓN!', space: '¡OVNI!', orchard: '¡ABEJA!', reef: '¡SUBMARINO!', toys: '¡AVIÓN!', dino: '¡PTERODÁCTILO!' };
   const CARRIER_HINT = {
     desert: '¡Un globo con 2 bolas en la cesta! Si le das, son tuyas. Apunta por delante',
     snow: '¡Un teleférico con 2 bolas dentro! Si le das, son tuyas. Apunta por delante',
     jungle: '¡Un mono en tirolina con 2 bolas! Si le das, son tuyas. Apunta por delante',
     volcano: '¡Un dragón lleva 2 bolas en una cesta! Si le das, son tuyas. Apunta por delante',
     space: '¡Un ovni con 2 bolas en la cúpula! Si le das, son tuyas. Apunta por delante',
+    orchard: '¡Una abeja lleva 2 bolas en una cesta! Si le das, son tuyas. Apunta por delante',
+    reef: '¡Un submarino con 2 bolas dentro! Si le das, son tuyas. Apunta por delante',
+    toys: '¡Un avión de juguete lleva 2 bolas en una caja! Si le das, son tuyas. Apunta por delante',
+    dino: '¡Un pterodáctilo lleva 2 bolas en una cesta! Si le das, son tuyas. Apunta por delante',
   };
   function carrierBalls(g, K, balls) {
     g.userData.balls = [];
@@ -1986,6 +2001,7 @@
       const beam = new THREE.Mesh(new THREE.ConeGeometry(0.9, 2.4, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0x9ff7ff, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
       beam.position.y = -1.3; g.add(beam);
     }
+    else if (window.Mundos) window.Mundos.carrier(m.carrier, g, K);
     carrierBalls(g, K, m.balls);
     g.scale.setScalar(K.s);
     outer.traverse(o => { if (o.isMesh) o.castShadow = false; });
@@ -2001,6 +2017,7 @@
     else if (m.carrier === 'jungle') { g.rotation.z = Math.sin(t * 3 + m.ph) * 0.12 - 0.08 * m.dir; }
     else if (m.carrier === 'volcano') { const f = Math.sin(t * 9 + m.ph) * 0.8; g.userData.wings[0].rotation.x = -f; g.userData.wings[1].rotation.x = f; }
     else if (m.carrier === 'space') { g.rotation.z = Math.sin(t * 2 + m.ph) * 0.08; g.userData.lights.forEach((l, i) => { l.visible = Math.sin(t * 8 + i) > 0; }); }
+    else if (window.Mundos) window.Mundos.syncCarrier(m, g, t);
     g.userData.balls.forEach((b, i) => { b.position.y = K.balls[i][1] + Math.abs(Math.sin(t * 3 + i * 1.7)) * 0.04; });
     if (!m.active) {   // alcanzado: cae dando vueltas y las bolas salen volando hacia ti
       const k = sim.t - m.hitT;
@@ -2034,7 +2051,7 @@
         syncCarrier(m, g, sim); continue;
       }
       const HW = biome === 'halloween' && window.Halloween, XMB = biome === 'xmas' && window.Christmas;
-      if (!g) { g = m.kind === 'bird' ? (XMB ? XMB.makeBird() : HW ? HW.makeWitch() : biome === 'space' ? makeSatellite() : makeBird()) : HW ? HW.makePirate(m) : makeShip(m); g.rotation.y = m.dir > 0 ? 0 : Math.PI; scene.add(g); G.moverMeshes.set(m.id, g); }
+      if (!g) { g = m.kind === 'bird' ? (XMB ? XMB.makeBird() : HW ? HW.makeWitch() : biome === 'space' ? makeSatellite() : biome === 'reef' && window.Mundos ? window.Mundos.makeFish() : makeBird()) : HW ? HW.makePirate(m) : makeShip(m); g.rotation.y = m.dir > 0 ? 0 : Math.PI; scene.add(g); G.moverMeshes.set(m.id, g); }
       g.position.set(m.x, m.y, m.z);
       if (m.kind === 'bird') {
         const f = m.active ? (biome === 'space' ? 0 : Math.sin(G.t * 16 + m.ph) * 0.9) : 0.2;
@@ -2278,7 +2295,7 @@
           if (e.carrier) {
             const key = 'c_' + e.carrier, nm = { r: 'roja', b: 'azul', g: 'verde', y: 'amarilla', p: 'morada', bomb: 'bomba', rainbow: 'arcoíris' };
             if (!save.seen[key]) { save.seen[key] = true; persist(); showHint(CARRIER_HINT[e.carrier], 4500); }
-            else showHint('Pasa un ' + CARRIER_NAMES[e.carrier] + ' con bola ' + e.balls.map(k => nm[k] || k).join(' y bola '), 3000);
+            else showHint((e.carrier === 'orchard' ? 'Pasa una ' : 'Pasa un ') + CARRIER_NAMES[e.carrier] + ' con bola ' + e.balls.map(k => nm[k] || k).join(' y bola '), 3000);
             break;
           }
           if (!save.seen[e.kind]) {
@@ -2363,8 +2380,8 @@
     const MOVER_PX = Math.max(46, H * 0.06);
     for (const m of (G.sim && G.sim.movers) || []) {
       if (!m.active) continue;
-      const AIM = { desert: [1.8, 2.6], snow: [0.4, 1.6], jungle: [-0.8, 1.6], volcano: [-0.25, 1.5], space: [0.3, 1.3] };
-      const SNAP = { desert: [0.7, 0.3], snow: [-0.1, 0.25], jungle: [-1.0, 0.25], volcano: [-0.45, 0.25], space: [0.2, 0.25] };
+      const AIM = { desert: [1.8, 2.6], snow: [0.4, 1.6], jungle: [-0.8, 1.6], volcano: [-0.25, 1.5], space: [0.3, 1.3], orchard: [-0.2, 1.5], reef: [0.1, 1.3], toys: [-0.3, 1.3], dino: [-0.25, 1.5] };
+      const SNAP = { desert: [0.7, 0.3], snow: [-0.1, 0.25], jungle: [-1.0, 0.25], volcano: [-0.45, 0.25], space: [0.2, 0.25], orchard: [-0.45, 0.25], reef: [0.05, 0.25], toys: [-0.5, 0.25], dino: [-0.5, 0.25] };
       const cy = m.kind === 'bird' ? m.y : m.carrier ? m.y + AIM[m.carrier][0] : m.y + 1.9 * C.SHIP_S, band = m.kind === 'bird' ? 1.8 : m.carrier ? AIM[m.carrier][1] : 2.1 * C.SHIP_S;
       if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -m.z), p)) continue;
       const sy = _v.set(p.x, cy, m.z).project(camera).y, ty = (-sy * 0.5 + 0.5) * H;
@@ -3006,7 +3023,7 @@
     w10: 'Abre un agujero negro que se traga lo que tiene cerca.',
   };
   const BIOME_BALL = { desert: 'w6', snow: 'w7', jungle: 'w8', volcano: 'w9', space: 'w10' };
-  const FRESH_BALL = { candy: 'w2', crystal: 'w5', temple: 'w4', forest: 'w8', fair: 'w2', neon: 'w10' };
+  const FRESH_BALL = { candy: 'w2', crystal: 'w5', temple: 'w4', forest: 'w8', fair: 'w2', neon: 'w10', orchard: 'w8', reef: 'w4', toys: 'w2', dino: 'w9' };
   function worldBallOf(w) {
     const W = WORLDS[w - 1]; if (!W) return 'w1';
     if (W.biome === 'sea') return 'w' + (1 + Math.min(4, Math.floor((w - 1) / 3) % 5));
@@ -3129,6 +3146,10 @@
       <div class="fbuy"><button class="btn green" data-id="starter">${iapPrice(st)}</button><small>solo una vez${save.adsRemoved ? '' : ' · sin anuncios'}</small></div></div>` : '';
     const noAdsBan = save.adsRemoved ? '<div class="noadsban ok">✓ Sin anuncios entre niveles</div>'
       : '<div class="noadsban"><i>🚫</i><span><b>Cualquier cofre o pack</b> quita para siempre los anuncios entre niveles.</span></div>';
+    // canjear un código regalo también desde la tienda (los mismos códigos del panel que en Ajustes)
+    const online = !save.kid && !save.noOnline;
+    const codeCard = online ? `<div class="rdcard" id="sRedeem"><i class="rdic">🎟️</i><div class="rdtx"><b>¿Tienes un código regalo?</b><small>Escríbelo aquí y recoge tu premio</small>
+      <div class="rdrow"><input id="shCode" class="lbinput" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ROCKET2026"><button class="btn green" id="shRedeem">CANJEAR</button></div><p class="rdmsg" id="shMsg"></p></div></div>` : '';
     const x2Ban = x2 ? '<div class="x2ban"><i>🎁</i><span><b>¡El DOBLE en tu primera compra!</b> Cualquier paquete de gemas o monedas te da el doble.</span></div>' : '';
     const wp = weekPack(), wIt = SHOP.find(s => s.id === 'semanal'), wPr = iapPrice(wIt), wEur = / ?€$/.test(wPr) ? +wPr.replace(/[^\d,]/g, '').replace(',', '.') : 0;
     const wkCard = `<div class="wkoff${wp.bought ? ' done' : ''}"><i class="rtag">OFERTA DE LA SEMANA</i><div class="wkhead"><b>Oferta de la semana</b><small class="wkcd">⏳ ${leftTxt(wp.end - Date.now())}</small></div>
@@ -3138,11 +3159,11 @@
     const rowT = s => TAG[s.id] ? row(s).replace('<div class="shopitem">', `<div class="shopitem hot"><i class="rtag">${TAG[s.id]}</i>`) : row(s);
     const by = ids => items.filter(s => ids.includes(s.id)).map(rowT).join('');
     const hw = hwActive(), xm = xmActive();
-    $('shopTabs').innerHTML = (RH('shopTab') || '') + (xm ? `<button data-to="sXm" class="hwtab xmtab" aria-label="Navidad"><span class="xti">${treeSvg()}</span></button>` : '') + (hw ? '<button data-to="sHw" class="hwtab" aria-label="Halloween">🎃</button>' : '') + [['sTmp', 'emo:⏳', 'Temporales'], ['sOff', 'ico ico-fire', 'Ofertas'], ['sCan', 'emo:🎨', 'Cañones'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']]
+    $('shopTabs').innerHTML = (RH('shopTab') || '') + (xm ? `<button data-to="sXm" class="hwtab xmtab" aria-label="Navidad"><span class="xti">${treeSvg()}</span></button>` : '') + (hw ? '<button data-to="sHw" class="hwtab" aria-label="Halloween">🎃</button>' : '') + [['sTmp', 'emo:⏳', 'Temporales'], ['sOff', 'ico ico-fire', 'Ofertas'], ['sCan', 'emo:🎨', 'Cañones'], ['sGem', 'gem', 'Gemas'], ['sBall', 'ball bB', 'Bolas'], ['sCoin', 'coin', 'Monedas']].concat(online ? [['sRedeem', 'emo:🎟️', 'Código']] : [])
       .map(([id, ic, t]) => `<button data-to="${id}">${ic.startsWith('emo:') ? `<i class="emo">${ic.slice(4)}</i>` : `<i class="${ic}"></i>`}${t}</button>`).join('');
     $('shopTabs').classList.toggle('withhw', hw || xm || !!RH('shopTab'));
     // el Pack de inicio (la forma más barata de quitar los anuncios), arriba del todo mientras no se haya comprado
-    $('shopList').innerHTML = feat + x2Ban + (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + (RH('shopTop') || '') + tmpShopHtml() + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${noAdsBan}${wkCard}` + canShopHtml() +
+    $('shopList').innerHTML = feat + x2Ban + (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + (RH('shopTop') || '') + tmpShopHtml() + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${codeCard}${noAdsBan}${wkCard}` + canShopHtml() +
       `<div class="sechead" id="sGem"><span>Gemas · para el Pase Pro</span></div>${by(['g1', 'g2', 'g3'])}` +
       `<div class="sechead" id="sBall"><span>Potenciadores</span></div>${by(['b1', 'b2', 'b3'])}` +
       `<div class="sechead"><span>Bolas de los mundos</span></div>${WB_KEYS.map(wrow).join('')}` +
@@ -3156,6 +3177,10 @@
     $('shopTabs').querySelector('button').classList.add('on');
     RH('shopBind', $('shopList'));
     bindCos($('shopList'), to => { const sc = $('shopList').scrollTop; openShop(to); if (!to) $('shopList').scrollTop = sc; });
+    if ($('shRedeem')) {
+      $('shRedeem').addEventListener('click', () => { Audio.init(); Audio.click(); doRedeem($('shCode'), $('shMsg')); });
+      $('shCode').addEventListener('keydown', e => { if (e.key === 'Enter') doRedeem($('shCode'), $('shMsg')); });
+    }
     $('shopList').querySelectorAll('button[data-hw]').forEach(b => b.addEventListener('click', () => { Audio.init(); hwBuy(b.dataset.hw); }));
     $('shopList').querySelectorAll('button[data-xm]').forEach(b => b.addEventListener('click', () => { Audio.init(); xmBuy(b.dataset.xm); }));
     $('shopList').querySelectorAll('button[data-wb]').forEach(b => b.addEventListener('click', () => {
@@ -3173,7 +3198,7 @@
       openShop();
     }));
     setCoins(); $('shop').classList.add('on');
-    if (focus) goTab({ gems: 'sGem', coins: 'sCoin', balls: 'sBall', hw: 'sHw', xm: 'sXm', tmp: 'sTmp', can: 'sCan', bskin: 'sBskin', trail: 'sTrail', mini: 'sMini' }[focus] || 'sOff');
+    if (focus) goTab({ gems: 'sGem', coins: 'sCoin', balls: 'sBall', hw: 'sHw', xm: 'sXm', tmp: 'sTmp', code: 'sRedeem', can: 'sCan', bskin: 'sBskin', trail: 'sTrail', mini: 'sMini' }[focus] || 'sOff');
   }
 
   // ---------------- cañones y bolas: mejoras, cañones con más fuerza, aspectos y la pestaña «Temporales» ----------------
@@ -3732,8 +3757,9 @@
       btns: [{ t: 'CANJEAR', fn: doRedeem }, { t: 'Cerrar', cls: 'gray', fn: () => { $('liveBox').classList.remove('on'); $('settings').classList.add('on'); } }] });
     setTimeout(() => { const i = $('lbCode'); if (i) i.focus(); }, 50);
   }
-  async function doRedeem() {
-    const inp = $('lbCode'), msg = $('lbMsg'); if (!inp) return;
+  // canjear un código regalo (Ajustes y tienda): `inp` es la caja donde se escribe y `msg` donde sale la respuesta
+  async function doRedeem(inp, msg) {
+    inp = inp && inp.nodeType ? inp : $('lbCode'); msg = msg && msg.nodeType ? msg : $('lbMsg'); if (!inp) return;
     const code = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     const say = t => { msg.textContent = lt(t); };
     if (code.length < 4) { say('El código no es válido'); return; }
@@ -4995,7 +5021,7 @@
   }
 
   // los jefes (bosses.js) usan estas piezas del juego
-  window.RRGame = { auxLight, testBuild: TEST_MODE, showRewarded, startLevel, openPre: id => openPre(id), hideAll, liveUi: () => liveUi(), updateTitle: () => updateTitle(), dayKey: () => dayKey(), leftTxt: ms => leftTxt(ms), liveCfg: () => liveCfg(), liveWin: o => liveWin(o), cosApi: { def: cosDef, owned: cosOwned, tSave: () => tSave(), bSave: () => bSave(), canSave: () => canSave() }, cubiFrames, openShop, goMap, mountCol, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, gpuMotion, scene, TEX, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
+  window.RRGame = { auxLight, testBuild: TEST_MODE, showRewarded, startLevel, openPre: id => openPre(id), hideAll, liveUi: () => liveUi(), updateTitle: () => updateTitle(), dayKey: () => dayKey(), leftTxt: ms => leftTxt(ms), liveCfg: () => liveCfg(), liveWin: o => liveWin(o), cosApi: { def: cosDef, owned: cosOwned, tSave: () => tSave(), bSave: () => bSave(), canSave: () => canSave() }, cubiFrames, openShop, goMap, mountCol, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, gpuMotion, scene, TEX, ground, around, splashCol, stripes, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
     stats, plState, starsTotal, countLv, LEVELS, myCode, openPre: id => openPre(id), setTester, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,
@@ -5029,6 +5055,7 @@
     for (const k of Object.keys(C.CARRIERS || {})) add(() => makeCarrier({ carrier: k, kind: 'carrier', balls: ['r', 'b'], dir: 1, x: 0, y: 0, z: 0 }));
     if (window.Halloween) { add(() => window.Halloween.makeWitch()); add(() => window.Halloween.makePirate({ balls: ['r', 'b'], dir: 1 })); }
     if (window.Christmas && window.Christmas.makeBird) add(() => window.Christmas.makeBird());
+    if (window.Mundos) { add(() => window.Mundos.makeFish()); add(() => window.Mundos.warm()); }
     for (const k of new Set(Object.keys(jelly).concat(Object.keys(SPECIAL_MAT)))) add(() => makeBallMesh(k, 0.34));
     for (const k of Object.keys(NEWK)) if (k !== 'lockDeco' && k !== 'tikiDeco') add(() => newKindMesh({ kind: k, id: 1, w: 1, h: 1, d: 1, c: 'r', a: 1 }));
     add(() => newKindMesh({ kind: 'portal', id: 1, w: 1, h: 1, d: 1 }));
