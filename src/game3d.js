@@ -126,6 +126,7 @@
       star(i) { if (!ok()) return; tone(784 * Math.pow(2, i * 4 / 12), 0.35, 'triangle', 0.25, 1.01); tone(1568 * Math.pow(2, i * 4 / 12), 0.2, 'sine', 0.1, 1); },
       coin() { if (!ok()) return; tone(1320, 0.08, 'square', 0.07, 1); tone(1760, 0.12, 'square', 0.07, 1, 0.06); },
       chirp() { if (!ok()) return; tone(2200, 0.09, 'sine', 0.12, 1.5); tone(2600, 0.08, 'sine', 0.1, 1.4, 0.12); tone(2300, 0.1, 'sine', 0.1, 1.6, 0.24); },
+      blub() { if (!ok()) return; tone(380, 0.08, 'sine', 0.13, 1.9); tone(470, 0.08, 'sine', 0.11, 1.9, 0.11); tone(590, 0.09, 'sine', 0.09, 2, 0.22); },   // burbujas (el pez del arrecife)
       horn() { if (!ok()) return; tone(165, 0.9, 'sawtooth', 0.08, 0.98); tone(220, 0.9, 'triangle', 0.08, 0.98); },
       // risa de bruja: «ji-ji-ji-ji» con voz nasal (diente de sierra por dos filtros de formante) que va bajando
       cackle() {
@@ -2290,12 +2291,18 @@
           G.shake = 0.7; vibe([40, 30, 80]); Audio.special(); Audio.explode();
           break;
         case 'moverSpawn':
-          if (e.kind === 'bird') { if (biome === 'halloween') Audio.cackle(); else Audio.chirp(); } else Audio.horn();
+          if (e.kind === 'bird') { if (biome === 'halloween') Audio.cackle(); else if (biome === 'reef') Audio.blub(); else Audio.chirp(); } else Audio.horn();
           save.seen = save.seen || {};
           if (e.carrier) {
             const key = 'c_' + e.carrier, nm = { r: 'roja', b: 'azul', g: 'verde', y: 'amarilla', p: 'morada', bomb: 'bomba', rainbow: 'arcoíris' };
             if (!save.seen[key]) { save.seen[key] = true; persist(); showHint(CARRIER_HINT[e.carrier], 4500); }
             else showHint((e.carrier === 'orchard' ? 'Pasa una ' : 'Pasa un ') + CARRIER_NAMES[e.carrier] + ' con bola ' + e.balls.map(k => nm[k] || k).join(' y bola '), 3000);
+            break;
+          }
+          // en el arrecife el pájaro es un pez y en el espacio un satélite: aviso propio la primera vez
+          if (e.kind === 'bird' && (biome === 'reef' || biome === 'space')) {
+            const k = biome === 'reef' ? 'fish' : 'satellite';
+            if (!save.seen[k]) { save.seen[k] = true; persist(); showHint(biome === 'reef' ? '¡Un pez! Si le das, ganas 2 bolas. Apunta por delante de él' : '¡Un satélite! Si le das, ganas 2 bolas. Apunta por delante de él', 4500); }
             break;
           }
           if (!save.seen[e.kind]) {
@@ -2322,7 +2329,7 @@
             else { for (let i = 0; i < 4; i++) spawnSprite(e.x + rnd(-1.5, 1.5), C.SEA_Y + 0.4, e.z, 0xffffff, 1.8, 1.4, 1.1, { vy: 1.6, alpha: 0.8 }); Audio.splash(2); Audio.explode(); }
           }
           spawnSprite(e.x, e.y + 0.5, e.z, 0xffe27a, e.kind === 'bird' ? 2.5 : 5, 1.2, 0.4, { add: true, alpha: 1 });
-          centerText((e.kind === 'bird' ? (biome === 'space' ? '¡SATÉLITE!' : biome === 'halloween' ? '¡BRUJA!' : '¡PÁJARO!') : mv && mv.carrier ? CARRIER_TITLES[mv.carrier] : biome === 'halloween' ? '¡GALEÓN!' : '¡VELERO!') + ' +2 BOLAS', '#ffe27a', 28);
+          centerText((e.kind === 'bird' ? (biome === 'space' ? '¡SATÉLITE!' : biome === 'reef' ? '¡PEZ!' : biome === 'halloween' ? '¡BRUJA!' : '¡PÁJARO!') : mv && mv.carrier ? CARRIER_TITLES[mv.carrier] : biome === 'halloween' ? '¡GALEÓN!' : '¡VELERO!') + ' +2 BOLAS', '#ffe27a', 28);
           showHint('Has ganado: bola ' + e.balls.map(k => names[k] || k).join(' y bola '), 2800);
           Audio.special(); vibe([30, 30, 60]); lastTray = '';
           break;

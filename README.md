@@ -654,6 +654,8 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
 - Los bloques usan su propio material (`Mundos.skin`); los especiales (hielo, rayas, bomba, gema…) y las bolas no cambian.
   En la portada y los eventos, la gominola de siempre.
 - Prueba: `tools/mundosflow.py` (captura de cada paisaje con su objeto del cielo y tiro que lo alcanza).
+- En el arrecife el pájaro es un pez: aviso «¡Un pez!» la primera vez (también si ya se había visto el del pájaro),
+  «¡PEZ! +2 BOLAS» al darle y sonido de burbujas. En el espacio, igual con el satélite. Prueba: `tools/pezflow.py`.
 
 ## Canjear código desde la tienda
 
