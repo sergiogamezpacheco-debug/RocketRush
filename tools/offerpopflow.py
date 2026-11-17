@@ -8,7 +8,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist'])
     for tag,lv,extra in CASES:
         pg=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2).new_page(); pg.on('pageerror',lambda e: errs.append(str(e)))
-        sv={'unlocked':60,'played':30,'birthYear':1990,'coins':4200,'gems':135,'tut':{'main':True,'tips':{'daily':1,'club':1,'shop':1}}}; sv.update(extra)
+        sv={'unlocked':60,'played':30,'birthYear':1990,'coins':4200,'gems':235,'tut':{'main':True,'tips':{'daily':1,'club':1,'shop':1}}}; sv.update(extra)
         pg.add_init_script("window.RR_OFFERS = true; window.RR_AGE = 30; window.RR_LIVE_OFF = true; window.RR_NO_INTRO = true; localStorage.setItem('rocketrush.lang','es'); localStorage.setItem('chromacrash3d.v1', JSON.stringify(%s))" % json.dumps(sv))
         pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(3500)
         pg.evaluate("() => document.getElementById('daily').classList.remove('on')")

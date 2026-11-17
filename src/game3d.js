@@ -3062,8 +3062,8 @@
     { id: 'b4', name: 'Cohete de salida', desc: 'Al empezar revienta la fila con más bloques', coins: 200, grant: () => { save.boosters.rocket = (save.boosters.rocket || 0) + 1; } },
     // packs de los avisos personalizados (antes de un nivel) y la oferta de la semana: no salen en la lista de la tienda
     { id: 'ayuda', offer: true, name: 'Pack de ayuda', price: '0,99 €', has: { bomb: 1, rainbow: 1, extra: 1 }, grant: () => grant({ bomb: 1, rainbow: 1, extra: 1 }) },
-    { id: 'cazajefes', offer: true, name: 'Pack Cazajefes', price: '2,99 €', gemsAlt: 100, noAds: true, has: { bomb: 3, rocket: 2, rainbow: 2 }, grant: () => grant({ bomb: 3, rocket: 2, rainbow: 2 }) },
-    { id: 'arsenal', offer: true, name: 'Pack Arsenal', price: '2,99 €', gemsAlt: 100, noAds: true, has: { bomb: 5, rainbow: 5, extra: 5 }, grant: () => grant({ bomb: 5, rainbow: 5, extra: 5 }) },
+    { id: 'cazajefes', offer: true, name: 'Pack Cazajefes', price: '2,99 €', gemsAlt: 200, noAds: true, has: { bomb: 3, rocket: 2, rainbow: 2 }, grant: () => grant({ bomb: 3, rocket: 2, rainbow: 2 }) },
+    { id: 'arsenal', offer: true, name: 'Pack Arsenal', price: '2,99 €', gemsAlt: 200, noAds: true, has: { bomb: 5, rainbow: 5, extra: 5 }, grant: () => grant({ bomb: 5, rainbow: 5, extra: 5 }) },
     { id: 'semanal', offer: true, name: 'Oferta de la semana', price: '2,99 €', noAds: true, grant: () => { const w = weekPack(); grant(w.has); save.weekBuy = w.wk; } },
   ];
   // compras con Google Play: el precio que se ve es el de Play (en la moneda del jugador); el premio se da cuando Play
