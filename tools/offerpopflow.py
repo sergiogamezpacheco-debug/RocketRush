@@ -14,10 +14,14 @@ with sync_playwright() as p:
         pg.evaluate("() => document.getElementById('daily').classList.remove('on')")
         pg.evaluate(f"() => RRGame.openPre({lv})"); pg.wait_for_timeout(1800)
         print(tag, pg.evaluate("() => document.getElementById('liveBox').className"))
-        pg.screenshot(path=OUT+f'of2_{tag}.png')
+        pg.wait_for_timeout(1500); pg.screenshot(path=OUT+f'of2_{tag}.png', timeout=90000)
         if tag=='jefe':
-            # comprar con gemas: se cierra y quedan marcadas
+            # el aviso dice que con gemas no se quitan los anuncios
+            pg.wait_for_selector('#liveBox.on .ofgem', timeout=15000)
+            print(' nota gemas:', pg.inner_text('#liveBox .ofpack em') + ' | ' + pg.inner_text('#liveBox .ofgem'))
+            # comprar con gemas: se cierra, quedan marcadas y NO quita los anuncios
             pg.click('#lbBtns .btn.gold'); pg.wait_for_timeout(700)
+            print(' anuncios quitados al pagar con gemas:', pg.evaluate("() => !!RRGame.save.adsRemoved"), '(debe ser False)')
             print(' tras gemas:', pg.evaluate("() => [document.getElementById('liveBox').classList.contains('on'), RRGame.save.gems, JSON.stringify(RRGame.save.boosters), [...document.querySelectorAll('#preBoosters .boost.sel')].map(e=>e.dataset.k).join(',')]"))
             pg.screenshot(path=OUT+'of2_jefe_tras.png')
             # reabrir: no sale otra vez hoy

@@ -622,7 +622,7 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
 - **Avisos personalizados antes de un nivel** (`maybeOffer`, sobre la pantalla del nivel): «¿Necesitas una ayuda?» (Cubi llorando,
   a partir de 3 derrotas en el mismo nivel: Pack de ayuda 0,99 € o +2 bolas gratis con un vídeo), «¡A por el jefe!» (niveles de
   jefe: Pack Cazajefes 2,99 € o 100 gemas, «SOLO HOY») y «¡Pocas ventajas!» (1 o ninguna, desde el nivel 15: Pack Arsenal 2,99 € o
-  100 gemas). Uno de cada tipo al día, 2 al día como mucho, nunca dos en el mismo nivel; no salen a menores de 13, en el tutorial,
+  100 gemas; pagar con gemas no quita los anuncios, y el aviso lo dice). Uno de cada tipo al día, 2 al día como mucho, nunca dos en el mismo nivel; no salen a menores de 13, en el tutorial,
   clubes, eventos, desafío semanal ni iPhone. Lo comprado queda marcado en la pantalla del nivel. En las pruebas automáticas no
   salen salvo con `window.RR_OFFERS = true`. Prueba: `tools/offerpopflow.py` (y la tienda: `tools/offersflow.py`).
 - **Tienda**: el Pack de inicio va arriba del todo mientras no se compre; **el DOBLE en la primera compra** de gemas o monedas

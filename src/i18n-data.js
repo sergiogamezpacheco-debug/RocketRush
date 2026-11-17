@@ -2020,6 +2020,7 @@ window.I18N_DATA = {
   "¡Venid a demoler!": ["Come and demolish!", "Venham demolir!", "Venez démolir !", "Kommt zum Abreißen!", "Venite a demolire!"],
   "¡{x} DE GOLPE!": ["{x} AT ONCE!", "{x} DE UMA VEZ!", "{x} D'UN COUP !", "{x} AUF EINMAL!", "{x} IN UN COLPO!"],
   "¡{x} es tuyo!": ["{x} is yours!", "{x} é teu!", "{x} est à toi !", "{x} gehört dir!", "{x} è tuo!"],
+  "¡{x} es tuyo! (con gemas no se quitan los anuncios)": ["{x} is yours! (gems don't remove ads)", "{x} é teu! (com gemas os anúncios continuam)", "{x} est à toi ! (avec des gemmes, les pubs restent)", "{x} gehört dir! (mit Edelsteinen bleibt die Werbung)", "{x} è tuo! (con le gemme la pubblicità resta)"],
   "¡Únete a mi club de Rocket Rush!": ["Join my Rocket Rush club!", "Junta-te ao meu clube de Rocket Rush!", "Rejoins mon club Rocket Rush !", "Tritt meinem Rocket-Rush-Club bei!", "Unisciti al mio club di Rocket Rush!"],
   "· +1 bola dorada": ["· +1 golden ball", "· +1 bola dourada", "· +1 balle dorée", "· +1 goldene Kugel", "· +1 palla d'oro"],
   "· +1 bomba · +1 arcoíris": ["· +1 bomb · +1 rainbow", "· +1 bomba · +1 arco-íris", "· +1 bombe · +1 arc-en-ciel", "· +1 Bombe · +1 Regenbogen", "· +1 bomba · +1 arcobaleno"],
@@ -2078,6 +2079,7 @@ window.I18N_DATA = {
   "🏆 Liga del fin de semana": ["🏆 Weekend league", "🏆 Liga de fim de semana", "🏆 Ligue du week-end", "🏆 Wochenendliga", "🏆 Lega del fine settimana"],
   "🏔️ Expedición semanal": ["🏔️ Weekly expedition", "🏔️ Expedição semanal", "🏔️ Expédition de la semaine", "🏔️ Wochenexpedition", "🏔️ Spedizione settimanale"],
   "👥 Miembros": ["👥 Members", "👥 Membros", "👥 Membres", "👥 Mitglieder", "👥 Membri"],
+  "💎 Con gemas no se quitan los anuncios": ["💎 Paying with gems doesn't remove ads", "💎 Com gemas os anúncios não são removidos", "💎 Avec des gemmes, les pubs restent", "💎 Mit Edelsteinen bleibt die Werbung", "💎 Con le gemme la pubblicità resta"],
   "💥 Más daño": ["💥 Top damage", "💥 Mais dano", "💥 Plus de dégâts", "💥 Meister Schaden", "💥 Più danni"],
   "💥 {x} de daño al jefe colosal": ["💥 {x} damage to the colossal boss", "💥 {x} de dano ao chefe colossal", "💥 {x} dégâts au boss colossal", "💥 {x} Schaden am Riesenboss", "💥 {x} danni al boss colossale"],
   "📣 Esta semana": ["📣 This week", "📣 Esta semana", "📣 Cette semaine", "📣 Diese Woche", "📣 Questa settimana"],
@@ -2090,5 +2092,6 @@ window.I18N_DATA = {
   "🚩 Denunciar o bloquear": ["🚩 Report or block", "🚩 Denunciar ou bloquear", "🚩 Signaler ou bloquer", "🚩 Melden oder blockieren", "🚩 Segnala o blocca"],
   "🚫 + sin anuncios": ["🚫 + no ads", "🚫 + sem anúncios", "🚫 + sans pubs", "🚫 + ohne Werbung", "🚫 + senza pubblicità"],
   "🚫 + sin anuncios para siempre": ["🚫 + no ads forever", "🚫 + sem anúncios para sempre", "🚫 + sans pubs pour toujours", "🚫 + für immer ohne Werbung", "🚫 + senza pubblicità per sempre"],
+  "🚫 + sin anuncios para siempre pagando con dinero": ["🚫 + no ads forever when paying with money", "🚫 + sem anúncios para sempre pagando com dinheiro", "🚫 + sans pubs pour toujours en payant avec de l'argent", "🚫 + für immer werbefrei bei Zahlung mit Geld", "🚫 + senza pubblicità per sempre pagando con denaro"],
   "🛒 CONSEGUIR MÁS": ["🛒 GET MORE", "🛒 OBTER MAIS", "🛒 EN OBTENIR PLUS", "🛒 MEHR HOLEN", "🛒 OTTIENINE ALTRI"],
 };

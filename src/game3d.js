@@ -3690,17 +3690,18 @@
     if (boostersLeft() <= 1 && (save.unlocked || 1) >= 15 && !st.seen.low) return 'low';
     return null;
   }
-  const offerPack = it => `<div class="ofpack${it.id === 'cazajefes' ? ' hot' : ''}">${it.id === 'cazajefes' ? '<i class="rtag">SOLO HOY</i>' : ''}<div class="ofi">${{ ayuda: '🎒', cazajefes: '🏴‍☠️', arsenal: '🧨' }[it.id]}</div><div class="oft"><b>${it.name}</b><span>${packChips(it.has)}</span>${it.noAds && !save.adsRemoved ? '<em>🚫 + sin anuncios para siempre</em>' : ''}</div></div>`;
+  const offerPack = it => `<div class="ofpack${it.id === 'cazajefes' ? ' hot' : ''}">${it.id === 'cazajefes' ? '<i class="rtag">SOLO HOY</i>' : ''}<div class="ofi">${{ ayuda: '🎒', cazajefes: '🏴‍☠️', arsenal: '🧨' }[it.id]}</div><div class="oft"><b>${it.name}</b><span>${packChips(it.has)}</span>${it.noAds && !save.adsRemoved ? (it.gemsAlt ? '<em>🚫 + sin anuncios para siempre pagando con dinero</em><small class="ofgem">💎 Con gemas no se quitan los anuncios</small>' : '<em>🚫 + sin anuncios para siempre</em>') : ''}</div></div>`;
   function offerClose() { $('liveBox').classList.remove('on', 'offer'); }
   function offerBought(it) {
     offerClose();
     if ($('pre').classList.contains('on') && G.preId) { const id = G.preId; openPre(id, true); preSelect(Object.keys(it.has || {})); }
   }
+  // pagar un pack con gemas: da lo mismo que con dinero, pero NO quita los anuncios (no pasa por paidNoAds ni cuenta como compra)
   function offerGems(it) {
     const g = it.gemsAlt;
     if ((save.gems || 0) < g) { toast(`Te faltan ${g - (save.gems || 0)} gemas`, 2400); return; }
     save.gems -= g; it.grant(); persist(); setCoins(); Audio.win(); vibe([20, 20, 40]);
-    toast('¡' + it.name + ' es tuyo!', 2200); offerBought(it);
+    toast(save.adsRemoved ? '¡' + it.name + ' es tuyo!' : '¡' + it.name + ' es tuyo! (con gemas no se quitan los anuncios)', 2600); offerBought(it);
   }
   function maybeOffer(L) {
     const kind = offerFor(L); if (!kind || $('liveBox').classList.contains('on')) return;
