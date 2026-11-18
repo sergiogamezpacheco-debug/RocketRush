@@ -561,6 +561,10 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
 
 ## Evento de Navidad (del 27 de noviembre al 6 de enero a las 23:59, se cambia desde el panel)
 
+- **Adelantado solo en la app de pruebas** («RR Pruebas»): `apk.yml` compila con `node tools/build.js --xm-pruebas`, que pone la
+  fecha del día en `XM_PRUEBAS` y el evento empieza ya. Google Play (`--release`, que ignora la opción), iOS, el artefacto y las
+  pruebas siguen con el 27 de noviembre (o lo que diga el panel). Prueba: `tools/xmpruebasflow.py`.
+
 - **Empieza solo el 27 de noviembre a las 00:00** (hora de España). Las 3 semanas antes, el árbol ya sale en la portada con la
   cuenta atrás hasta el inicio (chapa azul); al tocarlo avisa «¡La Navidad llega en …!». Si el panel tenía guardado el antiguo
   inicio (1 de diciembre), el juego y el panel lo cambian por el 27 de noviembre.

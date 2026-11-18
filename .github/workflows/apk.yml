@@ -19,7 +19,7 @@ jobs:
         env:
           APP_VERSION: 1.0.${{ github.run_number }}
         run: |
-          node tools/build.js
+          node tools/build.js --xm-pruebas    # Navidad adelantada solo en la app de pruebas
           mkdir -p android/app/src/main/assets
           cp dist/index.html android/app/src/main/assets/index.html
 

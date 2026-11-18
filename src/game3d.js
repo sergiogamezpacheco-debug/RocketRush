@@ -3933,7 +3933,10 @@
   const XM_SOON = 21 * 864e5;
   const XML = Levels.XM || [];
   const xmCfg = () => (window.Live && window.Live.cfg.xm) || null;
-  function xmStart() { const c = xmCfg(); return c && c.start != null && +c.start !== XM_OLD_START ? +c.start : XM_START; }
+  // App de pruebas de Android («RR Pruebas»): la compila apk.yml con `build.js --xm-pruebas`, que pone aquí la fecha de hoy y adelanta
+  // el evento solo en esa app. La de Google Play, iOS, el artefacto y las pruebas siguen con las fechas normales (o las del panel).
+  const XM_PRUEBAS = 0;
+  function xmStart() { const c = xmCfg(), s = c && c.start != null && +c.start !== XM_OLD_START ? +c.start : XM_START; return XM_PRUEBAS ? Math.min(s, XM_PRUEBAS) : s; }
   function xmEnd() { const c = xmCfg(); return c && c.end ? +c.end : XM_END; }
   function xmActive() {
     if (!XML.length) return false;
