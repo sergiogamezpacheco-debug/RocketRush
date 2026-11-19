@@ -562,11 +562,13 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
 ## Evento de Navidad (del 27 de noviembre al 6 de enero a las 23:59, se cambia desde el panel)
 
 - **Jefe Cascanueces** (los dos gólems de Navidad: Cascanueces Mayor, 3 vidas, y General Cascanueces, 4): ya no tiene núcleos
-  de lava (se escondían detrás de los bloques). **Sonriendo es inmune** (aro dorado; la bola rebota en la cara): cada tiro que
-  rompe algún bloque suma (`rompe bloques 1/3`). Con 3 **se enfada** (cara roja, cejas fruncidas, vapor y diana): un tiro a la
+  de lava (se escondían detrás de los bloques). **Sonriendo es inmune** (aro dorado; la bola rebota en la cara). Debajo de su
+  vida hay **3 barras**: cada bloque derribado llena una; un tiro que no derriba nada no cuenta y uno que derriba 5 llena las 3
+  (lo que sobra se pierde). No hay contador de tiempo ni golpe sísmico. Con las 3 **se enfada** en ese momento (cara roja, cejas
+  fruncidas, vapor y diana): un tiro a la
   cara le quita una vida, le traen regalos nuevos (hasta 10 bloques en los huecos de su cuerpo) y +3 bolas, y vuelve a sonreír.
-  **2 tiros fallados** enfadado y vuelve a sonreír sin perder vida. Si se queda casi sin bloques, también le caen regalos nuevos.
-  El golpe sísmico sigue. La cara tiene su zona de toque (`X.aimObjs`), que va antes que lo que cruza el cielo: tocarla ya no
+  **2 tiros fallados** enfadado (barras rojas de fallos; el tiro que lo enfada no cuenta) y vuelve a sonreír sin perder vida. Si se
+  queda casi sin bloques, también le caen regalos nuevos. La cara tiene su zona de toque (`X.aimObjs`), que va antes que lo que cruza el cielo: tocarla ya no
   manda la bola a la lejanía. La cámara está más atrás para que se vea la cabeza entera. Cubi lo explica la primera vez
   (consejo `nut` del tutorial) y el cartel del jefe dice cómo ganarle. Código: `initNut`/`nutTick` en `bosses.js` y las caras en
   `christmas.js`. Prueba: `tools/nutflow.py`.

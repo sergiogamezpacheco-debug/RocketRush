@@ -83,7 +83,7 @@
       rect: () => { const S = window.Bosses.state(), f = S && S.xm && S.xm.face; if (!f || !window.THREE) return null; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; const p = new THREE.Vector3();
         for (const [dx, dy] of [[-1.1, -1.1], [1.1, -1.1], [-1.1, 1.3], [1.1, 1.3]]) { p.set(f.x + dx, f.y + dy, f.z + 0.7).project(X.camera); const sx = (p.x * 0.5 + 0.5) * innerWidth, sy = (-p.y * 0.5 + 0.5) * innerHeight; x0 = Math.min(x0, sx); y0 = Math.min(y0, sy); x1 = Math.max(x1, sx); y1 = Math.max(y1, sy); }
         return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; },
-      title: '¡El Cascanueces!', text: 'Mientras sonríe es inmune. Rompe bloques en 3 tiros y se enfadará: entonces dispárale a la cara y le quitarás una vida. Si fallas 2 tiros, vuelve a sonreír.' },
+      title: '¡El Cascanueces!', text: 'Mientras sonríe es inmune. Cada bloque que derribas llena una de sus 3 barras (un tiro puede llenarlas todas). Con las 3 se enfada: dispárale a la cara y le quitarás una vida. Si fallas 2 tiros, vuelve a sonreír.' },
     boss: { when: () => playReady() && X.G.level && X.G.level.boss && X.G.sim && X.G.sim.state === 'play', title: '¡Un jefe!', text: 'Los jefes tienen su barra de vida arriba. Lee lo que pide cada uno y derríbalo antes de quedarte sin bolas.' },
   };
 

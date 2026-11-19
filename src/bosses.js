@@ -10,7 +10,7 @@
     pyramid: 'Rompe bloques del color de su escudo antes de que cambie (cada 2 tiros) para abrirlo y dispara a la máscara de oro. Cinco golpes y cae. Cuidado con su maldición de arena.',
     golem: 'Camina de lado a lado. Sus 3 núcleos de lava se encienden de uno en uno: revienta el encendido antes de que cargue el golpe sísmico, o derriba todos sus bloques de colores.',
     golemArmor: 'Camina de lado a lado. Sus 3 núcleos de lava se encienden de uno en uno y llevan coraza: dale varias veces al encendido, o derriba todos sus bloques de colores.',
-    nut: 'Mientras sonríe es inmune. Rompe bloques en 3 tiros y se enfadará: entonces dispárale a la cara para quitarle una vida. Si fallas 2 tiros, vuelve a sonreír.',
+    nut: 'Mientras sonríe es inmune. Cada bloque que derribas llena una barra (un tiro puede llenar las 3): con las 3 se enfada y entonces dispárale a la cara para quitarle una vida. Si fallas 2 tiros, vuelve a sonreír.',
   };
   // colores del escudo del faraón
   const PC = { r: { hex: 0xff4f6d, css: '#ff4f6d', name: 'ROJO' }, b: { hex: 0x3d9bff, css: '#3d9bff', name: 'AZUL' }, g: { hex: 0x5fd45a, css: '#5fd45a', name: 'VERDE' }, y: { hex: 0xffd23f, css: '#e8b400', name: 'AMARILLO' }, p: { hex: 0xa66bff, css: '#a66bff', name: 'MORADO' } };
@@ -41,6 +41,11 @@
   .chg{width:150px;height:14px;border-radius:8px;border:3px solid var(--panel-edge);background:#3a2a5a;overflow:hidden}
   .chg i{display:block;height:100%;background:linear-gradient(90deg,#ffb03a,#ff4a1a)}
   .chg.full i{animation:chgf .25s infinite alternate}
+  .npips{display:inline-flex;gap:5px;align-items:center}
+  .npips i{display:block;width:30px;height:14px;border-radius:6px;border:3px solid var(--panel-edge);background:#3a2a5a}
+  .npips.prog i.on{background:linear-gradient(180deg,#fff6c0,#ffd23f 55%,#e89a00);box-shadow:0 0 8px #ffd23f;animation:npop .35s ease-out}
+  .npips.miss i.on{background:#ff3a4a;box-shadow:0 0 8px #ff3a4a;animation:npop .35s ease-out}
+  @keyframes npop{0%{transform:scale(1.8)}100%{transform:scale(1)}}
   @keyframes chgf{to{filter:brightness(1.8)}}
   .shchip{padding:3px 10px;border-radius:999px;border:3px solid var(--panel-edge);color:#fff;-webkit-text-stroke:3px var(--panel-edge);paint-order:stroke fill}
 
@@ -538,14 +543,14 @@
     const px0 = S.plat ? S.plat.position.x : 0;
     S.nutSlots = S.sim.blocks.filter(b => b.userData.kind === 'block').map(b => ({ x: b.position.x - px0, y: b.position.y, z: b.position.z }));
     S.refillT = 0;
-    S.mood = 'happy'; S.prog = 0; S.miss = 0; S.wasOpen = false; S.broke = false; S.faceHit = false; S.faceFlash = 0;
+    S.mood = 'happy'; S.prog = 0; S.miss = 0; S.wasOpen = false; S.angryAt = 0; S.missShot = -1; S.faceHit = false; S.faceFlash = 0;
   }
   function nutHappy(title, sub) {
     S.mood = 'happy'; S.prog = 0; S.miss = 0;
-    if (title) banner(title, sub || 'Rompe bloques en ' + NUT_NEED + ' tiros para enfadarlo');
+    if (title) banner(title, sub || 'Derriba ' + NUT_NEED + ' bloques para enfadarlo');
   }
   function nutAngry() {
-    S.mood = 'angry'; S.miss = 0;
+    S.mood = 'angry'; S.miss = 0; S.angryAt = S.sim.shots;      // solo cuentan como fallo los tiros disparados después de enfadarse
     banner('¡EL CASCANUECES SE ENFADA!', 'Dispárale a la cara: tienes ' + NUT_MISS + ' tiros');
     X.Audio.horn && X.Audio.horn(); G.shake = Math.max(G.shake, 0.4);
   }
@@ -617,17 +622,13 @@
       if (n < 12 && nutRefill(10) && f) ft(f.x, f.y + 1.5, f.z, '¡REGALOS NUEVOS!', '#ffe27a', 24);
     }
     // cuenta por tiros: un tiro empieza al disparar y acaba cuando no queda nada en juego
-    if (sim.shotOpen && !S.wasOpen) { S.broke = false; S.faceHit = false; }
-    if (!sim.shotOpen && S.wasOpen && !S.done && S.livesLeft > 0) {
-      if (S.mood === 'happy' && S.broke) {
-        S.prog++;
-        if (f) ft(f.x, f.y + 1.5, f.z, S.prog + '/' + NUT_NEED, '#ffe27a', 26);
-        if (S.prog >= NUT_NEED) nutAngry();
-      } else if (S.mood === 'angry' && !S.faceHit) {
-        S.miss++;
-        if (f) ft(f.x, f.y + 1.5, f.z, '¡FALLO! ' + S.miss + '/' + NUT_MISS, '#ff6a7a', 24);
-        if (S.miss >= NUT_MISS) nutHappy('¡HA VUELTO A SONREÍR!', 'Rompe bloques en ' + NUT_NEED + ' tiros para enfadarlo otra vez');
-      }
+    if (sim.shotOpen && !S.wasOpen) S.faceHit = false;
+    // un tiro enfadado que no da en la cara es un fallo (no cuenta el tiro que lo ha enfadado)
+    if (!sim.shotOpen && S.wasOpen && !S.done && S.livesLeft > 0 && S.mood === 'angry' && !S.faceHit && sim.shots > S.angryAt && sim.shots !== S.missShot) {
+      S.missShot = sim.shots;
+      S.miss++;
+      if (f) ft(f.x, f.y + 1.5, f.z, '¡FALLO! ' + S.miss + '/' + NUT_MISS, '#ff6a7a', 24);
+      if (S.miss >= NUT_MISS) nutHappy('¡HA VUELTO A SONREÍR!', 'Derriba ' + NUT_NEED + ' bloques para enfadarlo otra vez');
     }
     S.wasOpen = sim.shotOpen;
   }
@@ -652,7 +653,7 @@
     }
     if (coreMat) coreMat.emissiveIntensity = 1.4 + Math.sin(S.t * (4 + S.charge * 10)) * 0.6 + S.charge * 1.5;
     if (S.light) { S.light.position.x = S.plat ? S.plat.position.x : 0; S.light.intensity = 4 + S.charge * 10; }
-    if (moving && !S.done) S.charge = Math.min(1, S.charge + dt / (9 - 3.5 * S.d));
+    if (moving && !S.done && !S.nut) S.charge = Math.min(1, S.charge + dt / (9 - 3.5 * S.d));   // el Cascanueces no cuenta tiempo: solo tiros
     if (S.charge >= 1 && !S.done) {
       S.charge = 0;
       const px = S.plat ? S.plat.position.x : 0, cp = G.level.cannon;
@@ -663,7 +664,11 @@
       if (sim.queue.length > 1) { sim.queue.pop(); X.refreshTray(); ft(cp.x, cp.y + 1, cp.z - 2, '-1 BOLA', '#ff4f6d', 26); }
     }
     const chg = `<span class="chg${S.charge > 0.85 ? ' full' : ''}"><i style="width:${Math.round(S.charge * 100)}%"></i></span>`;
-    S.sub = S.nut ? (S.mood === 'angry' ? `<span style="color:#ff6a7a">😠 ¡A LA CARA!</span><span style="color:#ff6a7a">fallos ${S.miss}/${NUT_MISS}</span>${chg}` : `<span style="color:#ffe27a">😊 INMUNE</span><span style="color:#ffe27a">rompe bloques ${S.prog}/${NUT_NEED}</span>${chg}`)
+    // Cascanueces: el contador no es de tiempo. Sonriendo, 3 barras: cada bloque derribado llena una (lo que sobra de un tiro se
+    // pierde); enfadado, los fallos
+    const pips = (n, of, cls) => `<span class="npips ${cls}">${Array.from({ length: of }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
+    S.sub = S.nut ? (S.mood === 'angry' ? `<span style="color:#ff6a7a">😠 ¡A LA CARA!</span><span style="color:#ff6a7a">FALLOS</span>${pips(S.miss, NUT_MISS, 'miss')}`
+      : `<span style="color:#ffe27a">😊 INMUNE</span><span style="color:#ffe27a">BLOQUES</span>${pips(S.prog, NUT_NEED, 'prog')}`)
       : `<span>GOLPE SÍSMICO</span>${chg}${S.stun > 0 ? '<span style="color:#ffd23f">¡ATURDIDO!</span>' : ''}`;
   }
 
@@ -679,7 +684,12 @@
         else if (d.popping && S.t - S.immuneT > 0.9) { S.immuneT = S.t; ft(p.x, p.y + 0.6, p.z, '¡INMUNE!', '#e6e2f5', 20); }
       }
     } else if (S.key === 'golem' && S.nut) {
-      if (d.kind === 'block' && S.mood === 'happy' && S.sim.shotOpen) S.broke = true;      // este tiro ha roto algún bloque
+      // cada bloque derribado llena una barra; con las 3 se enfada en ese mismo momento (lo que sobre de ese tiro se pierde)
+      if (d.kind === 'block' && S.mood === 'happy' && !S.done && S.livesLeft > 0 && S.prog < NUT_NEED) {
+        S.prog++;
+        const p = b.position; ft(p.x, p.y + 0.6, p.z, '🎁 ' + S.prog + '/' + NUT_NEED, '#ffe27a', 26);
+        if (S.prog >= NUT_NEED) nutAngry();
+      }
     } else if (S.key === 'golem') {
       if (S.cores.includes(d.id) && !S.done && S.coresHit < S.cores.length) {   // un núcleo (encendido, o sellado que alguna explosión ha roto): cuenta y se enciende otro
         S.coresHit++; S.charge = 0; S.stun = 2.5;

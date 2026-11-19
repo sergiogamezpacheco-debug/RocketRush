@@ -42,9 +42,20 @@ with sync_playwright() as p:
     print('   bloques al empezar:', pg.evaluate("() => ChromaGame.G.sim.liveBlocks().filter(o=>o.userData.kind==='block').length"))
     shoot_face(); st=pg.evaluate("() => { const S=Bosses.state(); return [S.mood, S.livesLeft, S.prog]; }")
     chk('sonriendo no le quita vida', st[1]==3, st)
-    for k in range(3): shoot_block()
-    st=pg.evaluate("() => { const S=Bosses.state(); return [S.mood, S.prog, S.livesLeft]; }")
-    chk('3 tiros que rompen bloques: se enfada', st[0]=='angry', st)
+    pg.evaluate("() => { Bosses.state().prog = 0; }")
+    # un tiro que no derriba nada no cuenta
+    pg.evaluate("() => { const s=ChromaGame.G.sim; s.sinceFire=9; s.fire(6, 2, 9); }")
+    for i in range(160):
+        pg.evaluate("() => ChromaGame.tick(1/30,true)")
+        if not pg.evaluate("() => ChromaGame.G.sim.shotOpen"): break
+    chk('un tiro que no derriba nada no cuenta', pg.evaluate("() => Bosses.state().prog") == 0, pg.evaluate("() => [Bosses.state().prog, Bosses.state().mood]"))
+    # cada bloque derribado llena una barra; con 3 se enfada en ese momento (lo que sobra se pierde)
+    n0=pg.evaluate("() => ChromaGame.G.sim.liveBlocks().filter(o=>o.userData.kind==='block').length")
+    shots=0
+    while shots < 3 and pg.evaluate("() => Bosses.state().mood") == 'happy': shoot_block(); shots += 1
+    n1=pg.evaluate("() => ChromaGame.G.sim.liveBlocks().filter(o=>o.userData.kind==='block').length")
+    st=pg.evaluate("() => { const S=Bosses.state(); return [S.mood, S.prog, S.miss]; }")
+    chk('3 bloques derribados: se enfada (máximo 3 barras)', st[0]=='angry' and st[1]==3 and st[2]==0, [st, 'tiros', shots, 'bloques', n0 - n1])
     pg.evaluate("() => { for (let i=0;i<5;i++) ChromaGame.tick(1/30, true); document.getElementById('bossBanner').classList.remove('on'); ChromaGame.render(); }"); pg.screenshot(path=OUT+'nut_enfadado.png')
     q0=pg.evaluate("() => [ChromaGame.G.sim.queue.length, ChromaGame.G.sim.liveBlocks().filter(o=>o.userData.kind==='block').length]")
     shoot_face(); st=pg.evaluate("() => { const S=Bosses.state(); return [S.mood, S.livesLeft, document.getElementById('bbPhase').textContent]; }")
@@ -52,7 +63,8 @@ with sync_playwright() as p:
     pg.evaluate("() => { for (let i=0;i<90;i++) ChromaGame.tick(1/30,true); }")
     q1=pg.evaluate("() => [ChromaGame.G.sim.queue.length, ChromaGame.G.sim.liveBlocks().filter(o=>o.userData.kind==='block').length]")
     chk('le caen regalos nuevos y +3 bolas', (q1[1] > q0[1] or q0[1] >= 20) and q1[0] == q0[0] - 1 + 3, [q0, q1])
-    for k in range(3): shoot_block()
+    shots=0
+    while shots < 3 and pg.evaluate("() => Bosses.state().mood") == 'happy': shoot_block(); shots += 1
     st=pg.evaluate("() => { const S=Bosses.state(), s=ChromaGame.G.sim; return [S.mood, S.prog, S.done, s.queue.length, s.liveBlocks().filter(o=>o.userData.kind==='block').length]; }")
     chk('otra vez enfadado', st[0]=='angry', st)
     for k in range(2): shoot_block()
@@ -60,6 +72,7 @@ with sync_playwright() as p:
     chk('2 fallos: vuelve a sonreír sin perder vida', st[0]=='happy' and st[3]==2, st)
     # el General Cascanueces tiene 4 vidas
     pg.evaluate("() => { ChromaGame.startLevel(30040, []); for (let i=0;i<60;i++) ChromaGame.tick(1/30, true); }")
+    chk('no cuenta tiempo: sin golpe sísmico', pg.evaluate("() => Bosses.state().charge") == 0)
     chk('General Cascanueces: 4 vidas', pg.evaluate("() => [Bosses.state().nut, Bosses.state().lives]")==[True,4])
     b.close()
 print('errores', errs[:3]); print('TODO BIEN' if all(ok) and not errs else 'FALLOS')
