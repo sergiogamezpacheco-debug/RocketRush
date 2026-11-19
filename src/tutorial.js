@@ -13,7 +13,7 @@
   const dimOpen = () => !!document.querySelector('.screen.dim.on') || on('chestOpen') || on('ad') || ($('langPick') && !$('langPick').hidden) || ($('welcome') && !$('welcome').hidden) || ($('ageGate') && !$('ageGate').hidden) || on('gAcc');
 
   // ---------- estado guardado ----------
-  const TIP_KEYS = ['candy', 'xgift', 'shop', 'pass', 'missions', 'social', 'daily', 'hw', 'xm', 'boss', 'club', 'clubIn', 'clubEx', 'clubBoss', 'clubLg'];
+  const TIP_KEYS = ['candy', 'xgift', 'shop', 'pass', 'missions', 'social', 'daily', 'hw', 'xm', 'nut', 'boss', 'club', 'clubIn', 'clubEx', 'clubBoss', 'clubLg'];
   function st() {
     const s = X.save;
     if (!s.tut) {
@@ -78,6 +78,12 @@
     clubEx: { when: () => clubReady() && window.Club.inClub && window.Club.tab === 'ex', target: () => ['#clubList .klday'], title: 'Expedición', text: 'De lunes a viernes se abren 10 niveles cada día. Tus estrellas llenan el cofre del club y cada una te da 15 monedas al acabar la semana.' },
     clubBoss: { when: () => clubReady() && window.Club.inClub && window.Club.tab === 'boss', target: () => visible(['clubAttack']).length ? ['#clubAttack'] : ['#clubList .klbosscard'], point: true, title: 'Jefe colosal', text: 'Todo el club ataca al mismo jefe. Tienes 3 ataques al día: cuanta más vida le quites, más daño sumas para el club.' },
     clubLg: { when: () => clubReady() && window.Club.inClub && window.Club.tab === 'lg', target: () => ['#clubHead .kltabs'], title: 'Liga del fin de semana', text: 'De viernes a lunes, 10 niveles difíciles. Gana el club que más estrellas consiga entre todos sus miembros.' },
+    // jefe Cascanueces (Navidad): Cubi señala la cara y explica cómo se le gana
+    nut: { when: () => { const B = window.Bosses, S = B && B.state && B.state(); return playReady() && S && S.nut && S.xm && S.xm.face && X.G.sim && X.G.sim.state === 'play' && S.introT <= 0; },
+      rect: () => { const S = window.Bosses.state(), f = S && S.xm && S.xm.face; if (!f || !window.THREE) return null; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; const p = new THREE.Vector3();
+        for (const [dx, dy] of [[-1.1, -1.1], [1.1, -1.1], [-1.1, 1.3], [1.1, 1.3]]) { p.set(f.x + dx, f.y + dy, f.z + 0.7).project(X.camera); const sx = (p.x * 0.5 + 0.5) * innerWidth, sy = (-p.y * 0.5 + 0.5) * innerHeight; x0 = Math.min(x0, sx); y0 = Math.min(y0, sy); x1 = Math.max(x1, sx); y1 = Math.max(y1, sy); }
+        return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; },
+      title: '¡El Cascanueces!', text: 'Mientras sonríe es inmune. Rompe bloques en 3 tiros y se enfadará: entonces dispárale a la cara y le quitarás una vida. Si fallas 2 tiros, vuelve a sonreír.' },
     boss: { when: () => playReady() && X.G.level && X.G.level.boss && X.G.sim && X.G.sim.state === 'play', title: '¡Un jefe!', text: 'Los jefes tienen su barra de vida arriba. Lee lo que pide cada uno y derríbalo antes de quedarte sin bolas.' },
   };
 

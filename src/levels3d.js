@@ -1036,7 +1036,7 @@
     Object.assign(l, { id: 30000 + i, xm: true, world: 0, pos: i, zone: z, zoneName: XM_ZONES[z], biome: 'xmas', variant: 'noche', weather: null });
     l.hard = l.tier === 'hard';
     finalize(l);
-    if (l.boss) { l.target = 1.5; if (l.boss === 'golem') { l.cannon.z = Math.min(14.5, l.cannon.z + 0.8); l.viewTop = Math.max(...l.blocks.map(b => b.y + b.h / 2)) + 4.2; } }
+    if (l.boss) { l.target = 1.5; if (l.boss === 'golem') { l.cannon.z = Math.min(15.5, l.cannon.z + 2.6); l.viewTop = Math.max(...l.blocks.map(b => b.y + b.h / 2)) + 5.6; } }
     XM.push(l);
   }
   ALL.push(...XM);

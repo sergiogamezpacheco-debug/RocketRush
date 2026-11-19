@@ -10,6 +10,7 @@
     pyramid: 'Rompe bloques del color de su escudo antes de que cambie (cada 2 tiros) para abrirlo y dispara a la máscara de oro. Cinco golpes y cae. Cuidado con su maldición de arena.',
     golem: 'Camina de lado a lado. Sus 3 núcleos de lava se encienden de uno en uno: revienta el encendido antes de que cargue el golpe sísmico, o derriba todos sus bloques de colores.',
     golemArmor: 'Camina de lado a lado. Sus 3 núcleos de lava se encienden de uno en uno y llevan coraza: dale varias veces al encendido, o derriba todos sus bloques de colores.',
+    nut: 'Mientras sonríe es inmune. Rompe bloques en 3 tiros y se enfadará: entonces dispárale a la cara para quitarle una vida. Si fallas 2 tiros, vuelve a sonreír.',
   };
   // colores del escudo del faraón
   const PC = { r: { hex: 0xff4f6d, css: '#ff4f6d', name: 'ROJO' }, b: { hex: 0x3d9bff, css: '#3d9bff', name: 'AZUL' }, g: { hex: 0x5fd45a, css: '#5fd45a', name: 'VERDE' }, y: { hex: 0xffd23f, css: '#e8b400', name: 'AMARILLO' }, p: { hex: 0xa66bff, css: '#a66bff', name: 'MORADO' } };
@@ -102,11 +103,11 @@
     document.body.classList.add('bossmode');
     $('hudLevel').textContent = 'JEFE';
     $('bbName').textContent = L.bossName;
-    const segs = S.key === 'ship' ? [50] : S.key === 'pyramid' ? [20, 40, 60, 80] : [33.33, 66.66];
+    const segs = S.key === 'ship' ? [50] : S.key === 'pyramid' ? [20, 40, 60, 80] : S.nut ? Array.from({ length: S.lives - 1 }, (_, i) => (i + 1) * 100 / S.lives) : [33.33, 66.66];
     $('bbSegs').innerHTML = segs.map(x => `<div class="bbSeg" style="left:${x}%"></div>`).join('');
     $('bossBar').classList.add('on');
     const intro = $('bossIntro');
-    intro.innerHTML = `<span class="biTag">JEFE FINAL</span><div class="biName">${L.bossName}</div><div class="biRule">${RULES[S.key === 'golem' && S.armor ? 'golemArmor' : S.key]}</div>`;
+    intro.innerHTML = `<span class="biTag">JEFE FINAL</span><div class="biName">${L.bossName}</div><div class="biRule">${RULES[S.nut ? 'nut' : S.key === 'golem' && S.armor ? 'golemArmor' : S.key]}</div>`;
     intro.classList.remove('on'); void intro.offsetWidth; intro.classList.add('on');
     S.introT = 3.4;
     X.Audio.horn && X.Audio.horn();
@@ -487,7 +488,9 @@
     sealedMat = sealedMat || new THREE.MeshStandardMaterial({ color: 0x4a2a1c, emissive: 0x1a0600, roughness: 0.85 });
     for (const id of S.cores) { const d = sim.blocks[id].userData; d.kind = 'stone'; d.sealed = true; const m = G.meshes[id]; if (m) m.userData.body.material = sealedMat; }
     S.activeCore = null;
-    nextCore(true);
+    // Navidad: el Cascanueces no tiene núcleos (se quedan sellados, como parte del cuerpo): se le pega en la cara (initNut)
+    S.nut = !!S.L.xm;
+    if (S.nut) initNut(); else nextCore(true);
     const sk = GOLEM_SKIN[S.L.biome];
     if (sk) { const rock = new THREE.MeshStandardMaterial({ color: sk[0], metalness: sk[1], roughness: sk[2] }); for (const b of sim.blocks) if (b.userData.kind === 'stone') { const m = G.meshes[b.userData.id]; if (m) m.userData.body.material = rock; } }
     // la luz del gólem es la luz de apoyo del juego (siempre en la escena): añadir una luz nueva obligaría a recompilar todos los shaders
@@ -527,13 +530,116 @@
       }
     });
   }
+  // ---------- Cascanueces (Navidad): sonriendo es inmune; 3 tiros que rompen bloques lo enfadan; enfadado, a la cara ----------
+  const NUT_NEED = 3, NUT_MISS = 2, NUT_R = 1.05;
+  function initNut() {
+    S.lives = S.d >= 0.5 ? 4 : 3; S.livesLeft = S.lives;
+    // huecos de su cuerpo (relativos a la losa que camina): ahí le caen regalos nuevos para que siempre haya bloques que romper
+    const px0 = S.plat ? S.plat.position.x : 0;
+    S.nutSlots = S.sim.blocks.filter(b => b.userData.kind === 'block').map(b => ({ x: b.position.x - px0, y: b.position.y, z: b.position.z }));
+    S.refillT = 0;
+    S.mood = 'happy'; S.prog = 0; S.miss = 0; S.wasOpen = false; S.broke = false; S.faceHit = false; S.faceFlash = 0;
+  }
+  function nutHappy(title, sub) {
+    S.mood = 'happy'; S.prog = 0; S.miss = 0;
+    if (title) banner(title, sub || 'Rompe bloques en ' + NUT_NEED + ' tiros para enfadarlo');
+  }
+  function nutAngry() {
+    S.mood = 'angry'; S.miss = 0;
+    banner('¡EL CASCANUECES SE ENFADA!', 'Dispárale a la cara: tienes ' + NUT_MISS + ' tiros');
+    X.Audio.horn && X.Audio.horn(); G.shake = Math.max(G.shake, 0.4);
+  }
+  // le caen regalos nuevos en los huecos de su cuerpo (como la arena del faraón)
+  function nutRefill(n) {
+    const sim = S.sim, live = sim.liveBlocks(), px = S.plat ? S.plat.position.x - S.px0 : 0;
+    const free = S.nutSlots.map(s => ({ x: s.x + px, y: s.y, z: s.z })).filter(s => !live.some(b => Math.abs(b.position.x - s.x) < 0.8 && Math.abs(b.position.y - s.y) < 0.8 && Math.abs(b.position.z - s.z) < 0.8)
+      && !sim.balls.some(b => Math.hypot(b.position.x - s.x, b.position.y - s.y, b.position.z - s.z) < 1.2));
+    free.sort((a, b) => a.y - b.y || Math.abs(a.x - px) - Math.abs(b.x - px));
+    let cols = [...new Set(live.map(b => b.userData.c).filter(c => PC[c]))]; if (cols.length < 3) cols = Object.keys(PC);
+    let k = 0;
+    for (const s of free.slice(0, n)) {
+      const same = c => live.filter(b => b.userData.c === c && Math.abs(b.position.x - s.x) < 1.6 && Math.abs(b.position.y - s.y) < 1.6 && Math.abs(b.position.z - s.z) < 1.6).length;
+      const pool = cols.slice().sort(() => Math.random() - 0.5); let c = pool[0]; for (const q of pool) if (same(q) < same(c)) c = q;
+      live.push({ position: s, userData: { c } });
+      const delay = 0.15 + k * 0.08; k++;
+      sim.later(delay, () => {
+        if (!S || S.sim !== sim || S.done) return;
+        const dx = S.plat ? S.plat.position.x - S.px0 - px : 0;           // ha seguido caminando
+        const body = sim.addBlock({ x: s.x + dx, y: s.y + 0.04, z: s.z, w: 1, h: 1, d: 1, c });
+        if (body.material) body.material.friction = 1; body.linearDamping = Math.max(body.linearDamping, 0.08);
+        X.addBlockView(body.userData);
+        for (let i = 0; i < 4; i++) X.spawnSprite(s.x + dx + rnd(-0.5, 0.5), s.y + rnd(0.3, 1.4), s.z + rnd(-0.3, 0.6), 0xffffff, 0.6, 1.4, 0.7, { vy: -1.5, alpha: 0.8 });
+      });
+    }
+    if (k) X.Audio.thud && X.Audio.thud(4, true);
+    S.refillT = 4;
+    return k;
+  }
+  function nutHitFace(ball) {
+    const sim = S.sim, f = S.xm.face;
+    sim.killBall(ball, false);
+    S.faceHit = true; S.livesLeft--; S.faceFlash = 1; S.stun = 2.5; S.charge = 0;
+    G.shake = Math.max(G.shake, 0.9); X.Audio.explode && X.Audio.explode(); X.Audio.crown && X.Audio.crown(); X.vibe && X.vibe([60, 40, 100]);
+    X.spawnSprite(f.x, f.y, f.z + 0.8, 0xffe27a, 3, 1.4, 0.4, { add: true });
+    X.spawnDebris(f.x, f.y, f.z + 0.6, 0xffffff, 16, 6, 0.14, 1);
+    for (let r = 0; r < 2; r++) X.spawnRing(f.x, f.y, f.z + 0.6, 0xff4f6d, 2.4 + r * 1.4, 0.4 + r * 0.2);
+    ft(f.x, f.y + 1.6, f.z, S.livesLeft > 0 ? '¡EN TODA LA CARA!' : '¡K.O.!', '#ffd23f', 30);
+    if (S.livesLeft <= 0) { S.hp = 0; return; }
+    nutHappy('¡VUELVE A SONREÍR!', 'Le traen regalos nuevos · +3 bolas');
+    sim.later(0.9, () => {
+      if (!S || S.sim !== sim || S.done) return;
+      nutRefill(10);
+      const n = {}; for (const b of sim.liveBlocks()) if (b.userData.kind === 'block' && b.userData.c) n[b.userData.c] = (n[b.userData.c] || 0) + 1;
+      const top = Object.keys(n).sort((a, b) => n[b] - n[a]);
+      sim.giveBalls([top[0] || 'r', top[1] || top[0] || 'b', top[0] || 'y']); X.refreshTray();
+    });
+  }
+  function nutTick(dt) {
+    const sim = S.sim, f = S.xm && S.xm.face;
+    S.hp = Math.max(0, S.livesLeft / S.lives);
+    S.faceFlash = Math.max(0, S.faceFlash - dt * 2.5);
+    // bolas contra la cara: enfadado, le quita una vida; sonriendo, rebota
+    if (f && !S.done) for (const b of sim.balls.slice()) {
+      const d = b.userData, p = b.position;
+      if (d.dead || d.faceT > S.t) continue;
+      const dx = p.x - f.x, dy = p.y - f.y, dz = p.z - f.z, dist = Math.hypot(dx, dy, dz);
+      if (dist > NUT_R + 0.34) continue;
+      if (S.mood === 'angry') { nutHitFace(b); break; }
+      d.faceT = S.t + 0.5;
+      const nx = dx / dist, ny = dy / dist, nz = dz / dist, vn = b.velocity.x * nx + b.velocity.y * ny + b.velocity.z * nz;
+      if (vn < 0) { b.velocity.x -= 1.6 * vn * nx; b.velocity.y -= 1.6 * vn * ny; b.velocity.z -= 1.6 * vn * nz; }
+      ft(f.x, f.y + 1.5, f.z, '¡INMUNE!', '#ffe27a', 22); X.Audio.thud && X.Audio.thud(5, true);
+    }
+    // sin apenas bloques que romper: le caen regalos nuevos (nunca se queda sin poder enfadarse)
+    S.refillT -= dt;
+    if (!S.done && S.refillT <= 0 && sim.balls.length === 0 && sim.pending.length === 0) {
+      let n = 0; for (const b of sim.liveBlocks()) if (b.userData.kind === 'block' && !b.userData.popping) n++;
+      if (n < 12 && nutRefill(10) && f) ft(f.x, f.y + 1.5, f.z, '¡REGALOS NUEVOS!', '#ffe27a', 24);
+    }
+    // cuenta por tiros: un tiro empieza al disparar y acaba cuando no queda nada en juego
+    if (sim.shotOpen && !S.wasOpen) { S.broke = false; S.faceHit = false; }
+    if (!sim.shotOpen && S.wasOpen && !S.done && S.livesLeft > 0) {
+      if (S.mood === 'happy' && S.broke) {
+        S.prog++;
+        if (f) ft(f.x, f.y + 1.5, f.z, S.prog + '/' + NUT_NEED, '#ffe27a', 26);
+        if (S.prog >= NUT_NEED) nutAngry();
+      } else if (S.mood === 'angry' && !S.faceHit) {
+        S.miss++;
+        if (f) ft(f.x, f.y + 1.5, f.z, '¡FALLO! ' + S.miss + '/' + NUT_MISS, '#ff6a7a', 24);
+        if (S.miss >= NUT_MISS) nutHappy('¡HA VUELTO A SONREÍR!', 'Rompe bloques en ' + NUT_NEED + ' tiros para enfadarlo otra vez');
+      }
+    }
+    S.wasOpen = sim.shotOpen;
+  }
   function golemTick(dt) {
     const sim = S.sim;
-    if (!S.done) looseCores(dt);
-    S.hp = Math.max(0, (S.cores.length - S.coresHit) / S.cores.length);
+    if (!S.done && !S.nut) looseCores(dt);
+    if (S.nut) nutTick(dt);
+    else S.hp = Math.max(0, (S.cores.length - S.coresHit) / S.cores.length);
     // sin bloques de colores en pie, el gólem está desmontado: cae solo
-    if (!S.done && S.introT <= 0 && !sim.liveBlocks().some(b => b.userData.kind === 'block' && !b.userData.popping && b.position.y > -1)) {
-      S.coresHit = S.cores.length; S.hp = 0; banner('¡GÓLEM DESMONTADO!', 'Sin cuerpo no hay núcleos que lo aguanten');
+    if (!S.done && !S.nut && S.introT <= 0 && !sim.liveBlocks().some(b => b.userData.kind === 'block' && !b.userData.popping && b.position.y > -1)) {
+      S.coresHit = S.cores.length; S.hp = 0; if (S.nut) S.livesLeft = 0;
+      banner(S.nut ? '¡CASCANUECES DESMONTADO!' : '¡GÓLEM DESMONTADO!', S.nut ? 'Sin cuerpo no se tiene en pie' : 'Sin cuerpo no hay núcleos que lo aguanten');
     }
     if (S.stun > 0) S.stun -= dt;
     const moving = S.stun <= 0 && !S.done && S.introT <= 0;
@@ -556,7 +662,9 @@
       banner('¡GOLPE SÍSMICO!', 'Te ha quitado una bola');
       if (sim.queue.length > 1) { sim.queue.pop(); X.refreshTray(); ft(cp.x, cp.y + 1, cp.z - 2, '-1 BOLA', '#ff4f6d', 26); }
     }
-    S.sub = `<span>GOLPE SÍSMICO</span><span class="chg${S.charge > 0.85 ? ' full' : ''}"><i style="width:${Math.round(S.charge * 100)}%"></i></span>${S.stun > 0 ? '<span style="color:#ffd23f">¡ATURDIDO!</span>' : ''}`;
+    const chg = `<span class="chg${S.charge > 0.85 ? ' full' : ''}"><i style="width:${Math.round(S.charge * 100)}%"></i></span>`;
+    S.sub = S.nut ? (S.mood === 'angry' ? `<span style="color:#ff6a7a">😠 ¡A LA CARA!</span><span style="color:#ff6a7a">fallos ${S.miss}/${NUT_MISS}</span>${chg}` : `<span style="color:#ffe27a">😊 INMUNE</span><span style="color:#ffe27a">rompe bloques ${S.prog}/${NUT_NEED}</span>${chg}`)
+      : `<span>GOLPE SÍSMICO</span>${chg}${S.stun > 0 ? '<span style="color:#ffd23f">¡ATURDIDO!</span>' : ''}`;
   }
 
   function onRemoved(b, d) {
@@ -570,6 +678,8 @@
         if (d.c === S.shieldC) { S.prog++; if (S.prog <= need) ft(p.x, p.y + 0.6, p.z, S.prog + '/' + need, PC[d.c].css, 22); if (S.prog >= need) openShield(); }
         else if (d.popping && S.t - S.immuneT > 0.9) { S.immuneT = S.t; ft(p.x, p.y + 0.6, p.z, '¡INMUNE!', '#e6e2f5', 20); }
       }
+    } else if (S.key === 'golem' && S.nut) {
+      if (d.kind === 'block' && S.mood === 'happy' && S.sim.shotOpen) S.broke = true;      // este tiro ha roto algún bloque
     } else if (S.key === 'golem') {
       if (S.cores.includes(d.id) && !S.done && S.coresHit < S.cores.length) {   // un núcleo (encendido, o sellado que alguna explosión ha roto): cuenta y se enciende otro
         S.coresHit++; S.charge = 0; S.stun = 2.5;
@@ -586,7 +696,7 @@
     const w = (pct * 100).toFixed(1) + '%', txt = Math.ceil(pct * 100) + '%';
     if (S.barW !== w) { S.barW = w; $('bbFill').style.width = w; $('bbLag').style.width = w; }
     if ($('bbPct').__esv !== txt) { $('bbPct').__esv = txt; $('bbPct').textContent = txt; }
-    const ph = S.key === 'ship' ? 'FASE ' + S.phase + '/2' : S.key === 'pyramid' ? 'GOLPES ' + (S.hits || 0) + '/' + HITS : 'NÚCLEOS ' + ((S.cores ? S.cores.length : 3) - (S.coresHit || 0)) + '/' + (S.cores ? S.cores.length : 3);
+    const ph = S.key === 'ship' ? 'FASE ' + S.phase + '/2' : S.key === 'pyramid' ? 'GOLPES ' + (S.hits || 0) + '/' + HITS : S.nut ? 'VIDA ' + S.livesLeft + '/' + S.lives : 'NÚCLEOS ' + ((S.cores ? S.cores.length : 3) - (S.coresHit || 0)) + '/' + (S.cores ? S.cores.length : 3);
     if ($('bbPhase').__esv !== ph) { $('bbPhase').__esv = ph; $('bbPhase').textContent = ph; }
     if (S.sub !== S.subShown || force) { $('bbSub').innerHTML = S.sub || ''; S.subShown = S.sub; }
   }

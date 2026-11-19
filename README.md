@@ -561,6 +561,16 @@ Firebase simulado) y, en GitHub, `tools/firebase_live.mjs` prueba las reglas del
 
 ## Evento de Navidad (del 27 de noviembre al 6 de enero a las 23:59, se cambia desde el panel)
 
+- **Jefe Cascanueces** (los dos gólems de Navidad: Cascanueces Mayor, 3 vidas, y General Cascanueces, 4): ya no tiene núcleos
+  de lava (se escondían detrás de los bloques). **Sonriendo es inmune** (aro dorado; la bola rebota en la cara): cada tiro que
+  rompe algún bloque suma (`rompe bloques 1/3`). Con 3 **se enfada** (cara roja, cejas fruncidas, vapor y diana): un tiro a la
+  cara le quita una vida, le traen regalos nuevos (hasta 10 bloques en los huecos de su cuerpo) y +3 bolas, y vuelve a sonreír.
+  **2 tiros fallados** enfadado y vuelve a sonreír sin perder vida. Si se queda casi sin bloques, también le caen regalos nuevos.
+  El golpe sísmico sigue. La cara tiene su zona de toque (`X.aimObjs`), que va antes que lo que cruza el cielo: tocarla ya no
+  manda la bola a la lejanía. La cámara está más atrás para que se vea la cabeza entera. Cubi lo explica la primera vez
+  (consejo `nut` del tutorial) y el cartel del jefe dice cómo ganarle. Código: `initNut`/`nutTick` en `bosses.js` y las caras en
+  `christmas.js`. Prueba: `tools/nutflow.py`.
+
 - **Adelantado solo en la app de pruebas** («RR Pruebas»): `apk.yml` compila con `node tools/build.js --xm-pruebas`, que pone la
   fecha del día en `XM_PRUEBAS` y el evento empieza ya. Google Play (`--release`, que ignora la opción), iOS, el artefacto y las
   pruebas siguen con el 27 de noviembre (o lo que diga el panel). Prueba: `tools/xmpruebasflow.py`.

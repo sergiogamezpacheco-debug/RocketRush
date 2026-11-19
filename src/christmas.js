@@ -306,7 +306,26 @@
         deco.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 12, 0.32, 10), red)); deco.add(mesh(new T.SphereGeometry(0.4, 12, 10), M.white, pts[2].x, pts[2].y + 0.15, pts[2].z));
         const ep = mesh(new T.CylinderGeometry(0.55, 0.55, 0.2, 16), M.gold, cx + sx * (box.max.x - cx + 0.1), top - 3.2, cz); ep.rotation.z = sx * 0.4; deco.add(ep);
       }
-      S.xm = { deco, x0: S.slab ? S.slab.position.x : 0, top0: top, cx, dy: 0 };
+      S.xm = { deco, x0: S.slab ? S.slab.position.x : 0, top0: top, cx, cz, dy: 0, hd, mood: null };
+      // caras del combate (bosses.js, S.nut): sonriendo (inmune, aro dorado) y enfadado (rojo, vapor y diana); zona de tiro invisible
+      const kids = hd.children, F = S.xm.f = { eyes: [kids[1], kids[4]], brows: [kids[2], kids[5]], cheeks: [kids[3], kids[6]], jaw, teeth: kids.slice(9, 15), skin: kids[0], happy: [], angry: [] };
+      F.eyeM = kids[1].material; F.skinM = kids[0].material; F.cheekM = kids[3].material;
+      F.eyeRed = std(0xff2020, { emissive: 0xff0000, emissiveIntensity: 1.2 }); F.skinRed = std(0xff9a7a, { emissive: 0x801000, emissiveIntensity: 0.35 }); F.cheekPink = std(0xff6f8a);
+      const hp = o => { hd.add(o); F.happy.push(o); return o; }, an = o => { hd.add(o); F.angry.push(o); return o; };
+      for (const sx of [-1, 1]) hp(mesh(new T.TorusGeometry(0.15, 0.045, 8, 16, Math.PI), M.black, sx * 0.36, 1.3, 0.97));
+      const smile = hp(mesh(new T.TorusGeometry(0.42, 0.11, 10, 24, Math.PI), std(0xb0102a), 0, 0.72, 1.0)); smile.rotation.z = Math.PI; smile.scale.set(1, 0.75, 1);
+      F.halo = hp(new T.Mesh(new T.RingGeometry(1.55, 1.8, 48), new T.MeshBasicMaterial({ color: 0xffe27a, transparent: true, opacity: 0.5, side: T.DoubleSide, depthWrite: false })));
+      F.halo.position.set(0, 1.4, 1.0);
+      an(mesh(new T.BoxGeometry(0.95, 0.3, 0.2), std(0x3a0008), 0, 0.5, 1.0));
+      F.steam = [];
+      for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) { const pf = an(new T.Mesh(new T.SphereGeometry(0.18 + k * 0.08, 10, 8), new T.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 - k * 0.2 }))); pf.position.set(sx * (1.15 + k * 0.32), 1.3 + k * 0.35, 0.2); F.steam.push({ o: pf, sx, k }); }
+      const tgt = new T.Group(); tgt.position.set(0, 1.0, 1.25); an(tgt); F.target = tgt;
+      const redT = (o) => { o.material = new T.MeshBasicMaterial({ color: 0xff2a3a, transparent: true, opacity: o.userData.op || 0.95, side: T.DoubleSide, depthTest: false }); o.renderOrder = 10; tgt.add(o); return o; };
+      redT(new T.Mesh(new T.RingGeometry(1.3, 1.45, 48))); const r2 = new T.Mesh(new T.RingGeometry(0.85, 0.95, 48)); r2.userData.op = 0.7; redT(r2);
+      for (const [x, y, w, h2] of [[0, 0.75, 0.08, 0.5], [0, -0.75, 0.08, 0.5], [-1.45, 0, 0.5, 0.08], [1.45, 0, 0.5, 0.08]]) { const m = redT(new T.Mesh(new T.PlaneGeometry(w, h2))); m.position.set(x, y, 0.01); }
+      const hit = new T.Mesh(new T.SphereGeometry(1.05, 12, 10), new T.MeshBasicMaterial({ visible: false })); hit.position.set(0, 1.0, 0.3); hd.add(hit);
+      if (X.aimObjs) { X.aimObjs.length = 0; X.aimObjs.push(hit); }       // se puede apuntar a la cara (antes que a lo que cruza el cielo)
+      S.xm.face = { x: cx, y: top + 1.2, z: cz + 0.5 };
       if (H.G.mode === 'play') X.camera && (S.xm.camUp = true);
     }
     if (S.key === 'pyramid' && S.mask) {
@@ -357,7 +376,30 @@
     const want = top < 0 ? -30 : Math.min(0, top - S.xm.top0);
     S.xm.dy += (want - S.xm.dy) * Math.min(1, dt * 6);
     S.xm.deco.position.set(x, S.xm.dy, 0);
-    if (S.xm.deco.userData.jaw) S.xm.deco.userData.jaw.position.y = 0.32 - Math.max(0, Math.sin(G.t * 5)) * 0.12;   // la mandíbula se abre y se cierra
+    const F = S.xm.f;
+    if (F && S.nut) {
+      // dónde está la cara (para los tiros de bosses.js)
+      const hd = S.xm.hd; S.xm.face.x = hd.position.x + x; S.xm.face.y = hd.position.y + S.xm.dy + 1.0; S.xm.face.z = hd.position.z + 0.3;
+      const angry = S.mood === 'angry';
+      if (S.xm.mood !== S.mood) {
+        S.xm.mood = S.mood;
+        F.happy.forEach(o => { o.visible = !angry; }); F.angry.forEach(o => { o.visible = angry; });
+        F.eyes.forEach(e => { e.visible = angry; e.material = angry ? F.eyeRed : F.eyeM; e.scale.set(angry ? 1.1 : 1, angry ? 0.7 : 1, 1); });
+        F.brows.forEach((b, i) => { const sx = i ? 1 : -1; b.rotation.z = angry ? sx * 0.75 : -sx * 0.35; b.position.y = angry ? 1.55 : 1.72; b.scale.set(angry ? 1.2 : 1, angry ? 1.6 : 1, 1); });
+        F.cheeks.forEach(c => { c.material = angry ? F.cheekM : F.cheekPink; c.scale.setScalar(angry ? 1 : 1.25); });
+        F.skin.material = angry ? F.skinRed : F.skinM;
+        F.teeth.forEach(t => { t.visible = angry; });
+      }
+      const k = 1 + (S.faceFlash || 0) * 0.15; hd.scale.setScalar(k);
+      if (angry) {
+        F.jaw.position.y = 0.12 + Math.sin(G.t * 30) * 0.015;                        // aprieta los dientes
+        F.target.scale.setScalar(1 + Math.sin(G.t * 6) * 0.06);
+        for (const p of F.steam) { const ph = (G.t * 0.9 + p.k * 0.33) % 1; p.o.position.set(p.sx * (1.15 + ph * 0.9), 1.2 + ph * 1.1, 0.2); p.o.material.opacity = 0.9 * (1 - ph); }
+      } else {
+        F.jaw.position.y = 0.36;
+        F.halo.rotation.z += dt * 0.8; F.halo.material.opacity = 0.35 + Math.sin(G.t * 3) * 0.15;
+      }
+    } else if (S.xm.deco.userData.jaw) S.xm.deco.userData.jaw.position.y = 0.32 - Math.max(0, Math.sin(G.t * 5)) * 0.12;   // la mandíbula se abre y se cierra
     if (S.done) S.xm.deco.position.y -= 0;
   }
 
