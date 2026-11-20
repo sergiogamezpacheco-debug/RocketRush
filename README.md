@@ -368,7 +368,7 @@ Barra de vida arriba, presentación al empezar, explosión final y **cofre de or
 | 158 | Portal | La bola entra por uno y sale por el otro, sobre la estructura |
 | 520 | Caja sorpresa | Bomba, arcoíris o +2 bolas al azar |
 | 551 | Burbuja | El bloque flota dentro hasta que revientas la pompa |
-| 582 | Cubo arcoíris | Revienta todos los bloques del color de la bola, **solo si la bola le da directamente** (lo primero que toca). Si le llega rebotada tras reventar un grupo, o le alcanza una explosión, un rayado o un géiser, se rompe sin efecto |
+| 582 | Cubo arcoíris | Revienta todos los bloques del color de la bola, **solo si la bola le da directamente** (lo primero que toca). Si le llega rebotada tras reventar un grupo, o le alcanza una explosión, un rayado o un géiser, se rompe sin efecto. Para compensar, los niveles con cubo arcoíris llevan **2 bolas más** |
 | 613 | Ventilador | Sopla con fuerza hacia la estructura |
 | 644 | Candado y llave | Los candados no se rompen hasta romper la llave |
 | 675 | Bola de nieve | Rueda y arrasa hasta 6 bloques |

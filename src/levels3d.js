@@ -954,6 +954,8 @@
     if (l.boss) { l._colored = true; l.balls0 = l.balls; }
     finalize(l);
     if (l.boss) { l.target = 1.5; if (l.boss === 'golem') l.cannon.z = Math.min(14.5, l.cannon.z + 0.8); }
+    // cubo arcoíris (20-11): solo se activa con un tiro directo, así que estos niveles llevan 2 bolas más para compensar
+    else if (l.blocks.some(b => b.t === 'prism')) { l.balls += autoBalls(l, 2); l.nb = l.balls.length; }
   });
   // niveles extra: uno por mundo (los hechos a mano van al primer mundo de su paisaje)
   const handBonusBy = { sea: HAND_BONUS.slice(0, 5), desert: [HAND_BONUS[5]], snow: [HAND_BONUS[6]], jungle: [HAND_BONUS[7]], volcano: [HAND_BONUS[8]], space: [HAND_BONUS[9]] };
