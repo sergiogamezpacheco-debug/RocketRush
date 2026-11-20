@@ -451,6 +451,8 @@
       if (WBALLS[d.ball]) { this.worldBallHit(ball, other, v, px, py, pz); return; }
       if (d.ball === 'bomb' && od.kind !== 'island' || d.ball === 'bomb' && v > 2) { this.explode(ball.position.x, ball.position.y, ball.position.z, C.BOMB_R, true); this.killBall(ball, false); return; }
       if (v > 1.5 && this.impactBudget > 0) { this.impactBudget--; this.emit({ type: 'thud', x: px, y: py, z: pz, v }); }
+      // ¿es lo primero que toca esta bola? (el cubo arcoíris solo se activa con un tiro directo)
+      d.first = !d.touched; if (od.kind !== 'island') d.touched = true;
       if (this.special(other, d.ball, ball, v)) return;
       if (od.kind === 'gold' && !od.popping && !od.destroyed) {
         if (d.armorT) { /* esta bola ya le ha quitado una capa: no hace más */ }
@@ -700,7 +702,8 @@
       if (od.kind === 'fan') { this.fan(o); return true; }
       if (od.kind === 'gum') { this.stick(ball, o); return true; }
       if (od.kind === 'snowball') { this.rollSnow(o, ball); return true; }
-      if (od.kind === 'prism') { this.prism(o, ball.userData.c); return true; }
+      // cubo arcoíris: solo si la bola le da directamente (lo primero que toca); si llega rebotada o tras reventar un grupo, se rompe sin más
+      if (od.kind === 'prism') { if (ball.userData.first) this.prism(o, ball.userData.c); else this.breakPrism(o); return true; }
       if (od.kind === 'gift' || od.kind === 'key' || od.kind === 'balloon') return this.trigger(o, 0.02);
       if (od.kind === 'pinata') {            // piñata: dos golpes
         if (v < 0.8 && kind !== 'heavy') return true;
@@ -724,7 +727,7 @@
       if (od.kind === 'gift') { if (!od.opened) { od.opened = true; this.later(delay || 0.02, () => this.openGift(o)); } return true; }
       if (od.kind === 'key') { if (!od.used) { od.used = true; this.later(delay || 0.02, () => this.useKey(o)); } return true; }
       if (od.kind === 'balloon') { this.later(delay || 0.02, () => { if (od.alive && !od.destroyed) { this.removeSpecial(o, 20); this.emit({ type: 'balloonPop', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z }); } }); return true; }
-      if (od.kind === 'prism') { this.later(delay || 0.02, () => this.prism(o, null)); return true; }
+      if (od.kind === 'prism') { this.later(delay || 0.02, () => this.breakPrism(o)); return true; }     // explosiones, rayados…: se rompe sin efecto
       if (od.kind === 'gum') { if (!od.used) { od.used = true; this.later(delay || 0.02, () => { if (od.alive) this.removeSpecial(o, 10); }); } return true; }
       if (od.kind === 'cloud') { this.disperse(o); return true; }
       if (od.kind === 'block' && od.bubble) { this.unbubble(o); return true; }
@@ -748,6 +751,13 @@
       this.removeSpecial(o, 60); this.chain = Math.max(this.chain, 2);
       this.emit({ type: 'prism', id: d.id, x, y, z, c });
       for (const b of this.liveBlocks()) { const bd = b.userData; if (bd.kind === 'block' && bd.c === c && !bd.popping && !bd.locked) this.popSingle(b, 0.08 + b.position.distanceTo(o.position) * 0.05); }
+    }
+    // cubo arcoíris que se rompe sin efecto (no le ha dado una bola directamente)
+    breakPrism(o) {
+      const d = o.userData; if (!d.alive || d.destroyed) return;
+      const x = o.position.x, y = o.position.y, z = o.position.z;
+      this.removeSpecial(o, 20);
+      this.emit({ type: 'prismOff', id: d.id, x, y, z });
     }
     // llave: abre todos los candados
     useKey(o) {

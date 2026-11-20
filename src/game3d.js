@@ -2234,6 +2234,7 @@
           for (const c of Object.values(COL)) spawnRing(e.x, e.y, e.z, c, 2 + Math.random() * 2, 0.7);
           centerText('¡ARCOÍRIS!', hexCss(e.c), 34); Audio.special(); G.shake = Math.max(G.shake, 0.3); vibe([30, 20, 60]);
           break;
+        case 'prismOff': for (const c of Object.values(COL)) spawnDebris(e.x, e.y, e.z, c, 3, 4, 0.1, 0.9, { flat: true }); Audio.pop(3); break;   // roto sin efecto
         case 'locked': floatText(e.x, e.y + 0.8, e.z, '¡CERRADO!', '#cfd3e0', 20); Audio.thud(4, true); break;
         case 'unlock':
           for (const id of e.ids || []) { const g = G.meshes[id]; if (g && g.userData.lock) { g.userData.lock.visible = false; spawnSprite(g.position.x, g.position.y, g.position.z + 0.6, 0xffe27a, 1.2, 1.4, 0.4, { add: true }); } }

@@ -736,7 +736,7 @@
       balls: 'ry', blocks: grid(0, 0, 0, [['rrbbyy', 'rrbbyy'], ['yyjbrr', 'yybbrr'], ['bbrryy', 'bbrryy']]) },
     B: { name: 'Pompas', world: 55, pos: 4, title: 'Burbuja', what: 'El bloque flota dentro hasta que revientas la pompa.', tip: 'Revienta una pompa y el bloque caerá.',
       balls: 'brbr', blocks: flat(grid(0, 0, 0, [['bbrrbb', 'bbrrbb'], ['rrbbrr', 'rrbbrr']]), [{ x: -2, y: 3.8, z: 0.5, w: 1, h: 1, d: 1, c: 'r', bub: true }, { x: 0, y: 4.2, z: 0.5, w: 1, h: 1, d: 1, c: 'b', bub: true }, { x: 2, y: 3.8, z: 0.5, w: 1, h: 1, d: 1, c: 'r', bub: true }]) },
-    w: { name: 'Prisma', world: 58, pos: 4, title: 'Cubo arcoíris', what: 'Revienta todos los bloques del color de tu bola.', tip: 'Dispara al cubo arcoíris con un color.',
+    w: { name: 'Prisma', world: 58, pos: 4, title: 'Cubo arcoíris', what: 'Dale directamente con tu bola y revienta todos los bloques de su color.', tip: 'Apunta directo al cubo arcoíris: si le llega rebotada o una explosión, se rompe sin más.',
       balls: 'rgb', blocks: grid(0, 0, 0, [['rgbrgb', 'gbrgbr'], ['brgbrg', 'rgbrgb'], ['gbwgbr', 'brgbrg']]) },
     F: { name: 'Vendaval', world: 61, pos: 4, title: 'Ventilador', what: 'Sopla con fuerza hacia la estructura.', tip: 'Dale al ventilador y mira cómo vuela todo.',
       balls: 'yry', blocks: flat(grid(0.5, 0, 0, [['yyrr', 'yyrr'], ['rryy', 'rryy'], ['yyrr', 'yyrr'], ['rryy', 'rryy']]), [{ x: -3.6, y: 0.5, z: 0, w: 1, h: 1, d: 1, t: 'fan', dir: 1 }]) },
