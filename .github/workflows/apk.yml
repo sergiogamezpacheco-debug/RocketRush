@@ -52,3 +52,4 @@ jobs:
         with:
           name: RocketRush-Pruebas-1.0.${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 14
