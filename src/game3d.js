@@ -4939,10 +4939,19 @@
   const busy = () => { scrollBusy = performance.now() + 350; };
   for (const id of ['mapList', 'hwList', 'passList', 'misList']) for (const ev of ['scroll', 'touchstart', 'touchmove', 'wheel']) $(id).addEventListener(ev, busy, { passive: true });
   const liteMenu = () => $('map').classList.contains('on') || $('hwmap').classList.contains('on') || $('pass').classList.contains('on') || $('missions').classList.contains('on');
+  // 22-11: antes eran 20 fps y el giro del fondo se veía a saltos. Ahora se pinta a la velocidad normal pero a media resolución
+  // (detrás del mapa casi no se nota y cuesta 4 veces menos), y sigue parándose mientras deslizas.
+  let liteRes = false;
+  function setLiteRes(on) {
+    liteRes = on;
+    const want = on ? Math.max(0.5, pixelRatio * 0.5) : pixelRatio;
+    if (renderer.getPixelRatio() !== want) { renderer.setPixelRatio(want); renderer.setSize(W, H, false); }
+  }
   function frame(now) {
     if (manual) { last = now; requestAnimationFrame(frame); return; }
     const lite = liteMenu();
-    if (lite && (now < scrollBusy || now - liteLast < 46)) { requestAnimationFrame(frame); return; }
+    setLiteRes(lite);
+    if (lite && now < scrollBusy) { requestAnimationFrame(frame); return; }
     if (lite) liteLast = now;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (!lite) adaptQuality(dt);
@@ -5011,8 +5020,7 @@
       camera.lookAt(G.camLook);
       cannonG.visible = false;
     } else {
-      // detrás de un menú a pantalla completa (mapa de mundos…) el fondo se pinta a 20 fps: si gira se ve a saltos, así que se queda quieto
-      if (!liteMenu()) G.orbit += dt * 0.12;
+      G.orbit += dt * 0.12;
       const r = G.camBase.z * 0.95;
       camera.position.set(Math.sin(G.orbit) * r, G.camBase.y + 1.5, Math.cos(G.orbit) * r);
       camera.lookAt(G.camLook);
@@ -5028,7 +5036,7 @@
   function shadowGate() {
     if (!renderer.shadowMap.enabled) return;
     const sim = G.sim;
-    let moving = G.mode !== 'play' || !sim || !!(G.level && G.level.boss);
+    let moving = (G.mode !== 'play' && !liteRes) || !sim || !!(G.level && G.level.boss);   // detrás del mapa no se mueve nada que dé sombra: 1 de cada 3
     if (!moving) {
       const ax = G.aim ? G.aim.x : 1e9, ay = G.aim ? G.aim.y : 1e9;
       moving = sim.balls.length > 0 || (sim.maxV || 0) > 0.03 || G.recoil > 0 || G.shake > 0 || G.introT > 0 || ax !== aimX || ay !== aimY || sim.state !== 'play';
