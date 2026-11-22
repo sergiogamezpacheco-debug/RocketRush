@@ -679,6 +679,20 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   Ajustes › Canjear código (`giftcodes`, `Social.redeem`, `save.codesUsed`). No sale a menores de 13 ni sin funciones en línea.
 - Prueba: `tools/redeemshopflow.py`.
 
+## Cambios del 22-11-2026
+
+- **Estelas en 3D**: las estelas de la tienda (Rayo, Cometa, Burbujas…) tienen miniatura 3D como los cañones y las bolas:
+  una bola con su rastro y sus piezas (rayos, burbujas, hojas, estrellas, corazones, llamas, pepitas de oro).
+- **Código regalo en la tienda**: al llegar los precios de Google Play la tienda se repintaba y borraba (o cortaba) el código
+  que se estaba escribiendo, y el juego buscaba un código incompleto («no existe»). Ahora solo se repinta si cambia algún
+  precio, y si se repinta el código escrito se conserva (`tools/redeemshopflow.py`).
+- **Nivel 64**: «Torres gemelas» pasa a llamarse **Torres vecinas** (mismo nivel: se guarda el nombre de antes en `sn`).
+- **Gólem (nivel 82 y demás gólems)**: tras romper el núcleo encendido, el siguiente tarda **3,2 s** en encenderse (antes 0,6 s)
+  (`tools/golemwaitflow.py`).
+- **Mapa de mundos**: el 3D de fondo detrás del mapa ya no gira (se pinta a 20 fps y girando se veía a saltos).
+- **Navidad**: las ventanas de las casas ya no parpadean (estaban pegadas a la pared y de lejos se peleaban con ella) y las luces
+  de los tejados no cambian de color (solo las del árbol).
+
 ## Liga de clubes por grupos (5 clubes al azar)
 
 Cuando empieza la liga (viernes), cada club entra en un **grupo de 5**: el suyo y 4 rivales al azar. Todos los del grupo ven

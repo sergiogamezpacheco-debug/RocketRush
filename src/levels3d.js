@@ -262,7 +262,7 @@
       goal: 'Muros en U alrededor del trono.',
       blocks: flat(box3(-2.5, 0, 0, 1, 4, 3, P.layer(['b', 'p', 'b'])), box3(2.5, 0, 0, 1, 4, 3, P.layer(['b', 'p', 'b'])),
         box3(0, -1.5, 0, 4, 1, 3, P.layer(['g', 'y', 'g'])), box3(0, 0.5, 0, 2, 2, 2, P.one('r'), { sp: { '0,1,0': '1' } })) },
-    { name: 'Torres gemelas', nb: 5, target: 0.8,
+    { name: 'Torres vecinas', sn: 'Torres gemelas', nb: 5, target: 0.8,
       goal: 'Dos torres altas. Haz que una caiga sobre la otra.',
       blocks: flat(box3(-1.8, 0, 0, 2, 2, 7, P.rand(['r', 'b', 'y', 'p'], 45)), box3(1.8, 0, 0, 2, 2, 7, P.rand(['r', 'b', 'y', 'p'], 46))) },
     { name: 'Laberinto', nb: 8, target: 0.7,
@@ -526,7 +526,7 @@
   };
   const ARCH = {
     block: ['Muro', 'Bloque', 'Almacén', 'Fortín'], pyramid: ['Pirámide', 'Zigurat', 'Montaña', 'Colina'], stairs: ['Escalera', 'Rampa', 'Gradas', 'Ladera'],
-    twins: ['Torres gemelas', 'Dos torres', 'Columnas', 'Atalayas'], ring: ['Corona', 'Círculo', 'Carrusel', 'Anillo'], bridge: ['Puente', 'Pasarela', 'Viaducto', 'Acueducto'],
+    twins: ['Torres vecinas', 'Dos torres', 'Columnas', 'Atalayas'], ring: ['Corona', 'Círculo', 'Carrusel', 'Anillo'], bridge: ['Puente', 'Pasarela', 'Viaducto', 'Acueducto'],
     walls: ['Doble muralla', 'Murallas', 'Barricada', 'Trinchera'], temple: ['Templo', 'Pórtico', 'Santuario', 'Palacio'], floaty: ['Nube', 'Órbita', 'Estación', 'Constelación'],
   };
   const TIPS = {

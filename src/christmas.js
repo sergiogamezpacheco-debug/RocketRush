@@ -25,11 +25,13 @@
     snow: new T.MeshStandardMaterial({ map: snowTex, roughness: 0.95 }), ice: std(0xbfe6ff, { roughness: 0.15, metalness: 0.1, flatShading: true }),
     pine: std(0x1f6a44, { roughness: 0.8, flatShading: true }), pineD: std(0x15523a, { roughness: 0.85, flatShading: true }), bark: std(0x5a3a22, { roughness: 1 }),
     gold: std(0xffc83d, { metalness: 0.8, roughness: 0.25, emissive: 0x3a2400 }), red: std(0xd8203a, { roughness: 0.35 }), green: std(0x1f8a4a, { roughness: 0.4 }),
-    win: basic(0xffc46a, { fog: false }), white: std(0xffffff, { roughness: 0.6 }), black: basic(0x15121c), coal: std(0x1a1820, { roughness: 0.9 }),
+    win: basic(0xffc46a, { fog: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), white: std(0xffffff, { roughness: 0.6 }), black: basic(0x15121c), coal: std(0x1a1820, { roughness: 0.9 }),
     carrot: std(0xff8a1a, { roughness: 0.5 }), skin: std(0xffc8a8, { roughness: 0.6 }), fur: std(0x8a5530, { roughness: 0.85 }), furL: std(0xd8b48a, { roughness: 0.85 }), antler: std(0xe8d2a8, { roughness: 0.7 }),
   };
   const bulbCols = [0xff3a4a, 0x3aff7a, 0xffd23a, 0x3ab4ff, 0xff7af0];
   const bulbMats = bulbCols.map(c => basic(c, { fog: false }));
+  // luces de las casas: fijas (antes cambiaban de color con las del árbol y, de lejos, parecían destellos)
+  const houseBulbs = bulbCols.map(c => basic(c, { fog: false }));
 
   // ---------- piezas ----------
   function star(r, mat, depth) {
@@ -84,10 +86,11 @@
     const sn = new T.Mesh(new T.ExtrudeGeometry(ss, { depth: d + 0.7, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.1, bevelSegments: 2 }), M.snow); sn.position.set(0, h + 0.02, -d / 2 - 0.35); g.add(sn);
     g.add(mesh(new T.BoxGeometry(w * 0.16, h * 0.55, w * 0.16), std(0x8a3a2a, { roughness: 0.9 }), w * 0.24, h + h * 0.45, -d * 0.15));
     g.add(mesh(new T.BoxGeometry(w * 0.2, 0.2, w * 0.2), M.snow, w * 0.24, h + h * 0.73, -d * 0.15));
-    for (const x of [-w * 0.28, w * 0.28]) { g.add(mesh(new T.PlaneGeometry(w * 0.2, h * 0.28), M.win, x, h * 0.55, d / 2 + 0.01)); g.add(mesh(new T.BoxGeometry(w * 0.26, 0.08, 0.12), M.snow, x, h * 0.38, d / 2 + 0.05)); }
-    g.add(mesh(new T.PlaneGeometry(w * 0.2, h * 0.42), std(0x5a2a1a), 0, h * 0.21, d / 2 + 0.01));
+    // ventanas separadas de la pared (de lejos parpadeaban: se peleaban con ella por quién se ve delante)
+    for (const x of [-w * 0.28, w * 0.28]) { g.add(mesh(new T.PlaneGeometry(w * 0.2, h * 0.28), M.win, x, h * 0.55, d / 2 + 0.06)); g.add(mesh(new T.BoxGeometry(w * 0.26, 0.08, 0.12), M.snow, x, h * 0.38, d / 2 + 0.05)); }
+    g.add(mesh(new T.PlaneGeometry(w * 0.2, h * 0.42), std(0x5a2a1a), 0, h * 0.21, d / 2 + 0.05));
     g.add(mesh(new T.TorusGeometry(w * 0.07, w * 0.025, 6, 14), M.green, 0, h * 0.32, d / 2 + 0.04));
-    for (let i = 0; i <= 10; i++) { const t = i / 10; for (const sx of [-1, 1]) g.add(mesh(new T.SphereGeometry(0.09, 6, 5), bulbMats[(i + (sx > 0 ? 2 : 0)) % 5], sx * (w / 2 + 0.3) * (1 - t), h + t * h * 0.7 - 0.05, d / 2 + 0.3)); }
+    for (let i = 0; i <= 10; i++) { const t = i / 10; for (const sx of [-1, 1]) g.add(mesh(new T.SphereGeometry(0.09, 6, 5), houseBulbs[(i + (sx > 0 ? 2 : 0)) % 5], sx * (w / 2 + 0.3) * (1 - t), h + t * h * 0.7 - 0.05, d / 2 + 0.3)); }
     const gl = glowSprite(0xffb050, w * 1.4, 0.35); gl.position.set(0, h * 0.55, d / 2 + 0.4); g.add(gl);
     return g;
   }

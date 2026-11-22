@@ -12,6 +12,10 @@ with sync_playwright() as p:
     chk('pestaña Código', pg.evaluate("() => !!document.querySelector('#shopTabs button[data-to=sRedeem]')"))
     chk('tarjeta en Ofertas', pg.evaluate("() => { const c = document.getElementById('sRedeem'), o = document.getElementById('sOff'); return !!c && c.previousElementSibling === o; }"))
     pg.screenshot(path=OUT+'redeem_shop1.png', timeout=90000)
+    # 22-11: si llegan los precios de Google Play mientras se escribe, la tienda se repinta pero el código no se borra
+    pg.fill('#shCode', 'ROCK'); pg.focus('#shCode')
+    pg.evaluate("() => { window.onBilling({ type: 'products', items: [{ id: 'g1', price: '1,09 €' }] }); }"); pg.wait_for_timeout(300)
+    chk('el código sigue escrito tras repintar', pg.input_value('#shCode') == 'ROCK' and pg.evaluate("() => /1,09/.test(document.getElementById('shopList').textContent)"), pg.input_value('#shCode'))
     pg.fill('#shCode', 'nope1'); pg.evaluate("() => document.getElementById('shRedeem').click()"); pg.wait_for_timeout(400)
     chk('código que no existe', 'no existe' in pg.inner_text('#shMsg'), pg.inner_text('#shMsg'))
     g0 = pg.evaluate("() => RRGame.save.gems")

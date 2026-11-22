@@ -455,6 +455,7 @@
   }
 
   let coreMat = null, sealedMat = null;
+  const CORE_WAIT = 3.2;      // segundos hasta que se enciende el siguiente núcleo (pasa el aturdimiento y da un respiro)
   // enciende el siguiente núcleo sellado que quede
   function nextCore(first) {
     const sim = S.sim;
@@ -695,7 +696,7 @@
         S.coresHit++; S.charge = 0; S.stun = 2.5;
         G.shake = Math.max(G.shake, 0.5); X.Audio.crown && X.Audio.crown();
         ft(p.x, p.y + 0.8, p.z, S.coresHit < S.cores.length ? '¡ATURDIDO!' : '¡NÚCLEO!', '#ffd23f', 28);
-        if (d.id === S.activeCore || !S.activeCore || S.counted.has(S.activeCore)) S.sim.later(0.6, () => { if (S && S.key === 'golem' && !S.done) nextCore(false); });
+        if (d.id === S.activeCore || !S.activeCore || S.counted.has(S.activeCore)) S.sim.later(CORE_WAIT, () => { if (S && S.key === 'golem' && !S.done) nextCore(false); });   // 22-11: antes 0,6 s (salía otro al momento)
       }
     }
     if (S.hp !== undefined) { const el = $('bbHp'); el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit'); }

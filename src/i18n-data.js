@@ -1704,6 +1704,7 @@ window.I18N_DATA = {
   "Torre hueca": ["Hollow Tower", "Torre oca", "Tour creuse", "Hohler Turm", "Torre cava"],
   "Torres de hielo y una torre central rayada.": ["Ice towers and a striped central tower.", "Torres de gelo e uma torre central listrada.", "Des tours de glace et une tour centrale rayée.", "Eistürme und ein gestreifter Mittelturm.", "Torri di ghiaccio e una torre centrale a righe."],
   "Torres gemelas": ["Twin towers", "Torres gêmeas", "Tours jumelles", "Zwillingstürme", "Torri gemelle"],
+  "Torres vecinas": ["Neighbour towers", "Torres vizinhas", "Tours voisines", "Nachbartürme", "Torri vicine"],
   "Trampolín": ["Trampoline", "Trampolim", "Trampoline", "Trampolin", "Trampolino"],
   "Tren de madera": ["Wooden Train", "Trem de madeira", "Train en bois", "Holzeisenbahn", "Trenino di legno"],
   "Tres almacenes separados: elige bien a cuál disparar.": ["Three separate warehouses: choose carefully which to shoot.", "Três armazéns separados: escolha bem em qual atirar.", "Trois entrepôts séparés : choisis bien sur lequel tirer.", "Drei getrennte Lagerhäuser: Wähle gut, worauf du schießt.", "Tre magazzini separati: scegli bene a quale sparare."],

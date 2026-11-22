@@ -3112,8 +3112,10 @@
   window.onBilling = m => {
     if (!m) return;
     if (m.type === 'products') {
-      for (const it of m.items || []) if (it && it.id && it.price) iap.prices[it.id] = it.price;
-      if ($('shop').classList.contains('on')) { const sc = $('shopList').scrollTop; openShop(); $('shopList').scrollTop = sc; }
+      let ch = false;
+      for (const it of m.items || []) if (it && it.id && it.price && iap.prices[it.id] !== it.price) { iap.prices[it.id] = it.price; ch = true; }
+      // solo se vuelve a pintar la tienda si cambia algún precio (antes se repintaba siempre y borraba el código que se estaba escribiendo)
+      if (ch && $('shop').classList.contains('on')) { const sc = $('shopList').scrollTop; openShop(); $('shopList').scrollTop = sc; }
     } else if (m.type === 'purchase') iapGrant(m.id, m.token);
     else if (m.type === 'owned') {
       // restaurar: lo que se compra una sola vez sigue siendo suyo (al reinstalar o en otro móvil)
@@ -3136,6 +3138,8 @@
   }
   function openShop(focus) {
     iapQuery();
+    // si se repinta con la tienda abierta, el código regalo que se estaba escribiendo no se pierde
+    const ci = $('shop').classList.contains('on') && $('shCode'), keep = ci ? { v: ci.value, f: document.activeElement === ci, m: $('shMsg') ? $('shMsg').textContent : '', d: ci.disabled } : null;
     $('shopNote').textContent = fakePay() ? 'Compras simuladas: no se cobra nada.' : payNative() ? 'Pagos seguros con Google Play.' : TEST_MODE ? 'Compras de prueba: no se cobra nada.' : IOS ? 'Las compras llegarán pronto a la app de iPhone y iPad.' : 'Las compras solo están disponibles en la app de Android.';
     const items = SHOP.filter(s => !(s.once && save.starter) && s.id !== 'noads' && !s.offer);   // «Quitar anuncios» lo hace ya cualquier cofre o pack
     const SIC = { g1: '<i class="gem"></i>', g2: '<i class="gems2"></i>', g3: '<i class="chest crystal"></i>', starter: '<i class="chest gold"></i>', c1: '<i class="coin"></i>', c2: '<i class="chest wood"></i>', b1: '<i class="ball bBomb"></i>', b2: '<i class="ball bRainbow"></i>', b3: '<i class="ball bPlus2"></i>', b4: '<span style="display:inline-block;width:34px;height:34px">' + ROCKET_SVG.replace(/width="44" height="44"/, 'width="34" height="34"') + '</span>' };
@@ -3186,6 +3190,7 @@
     RH('shopBind', $('shopList'));
     bindCos($('shopList'), to => { const sc = $('shopList').scrollTop; openShop(to); if (!to) $('shopList').scrollTop = sc; });
     if ($('shRedeem')) {
+      if (keep && !keep.d) { const c = $('shCode'); c.value = keep.v; $('shMsg').textContent = keep.m; if (keep.f) try { c.focus({ preventScroll: true }); } catch (e) { /* nada */ } }
       $('shRedeem').addEventListener('click', () => { Audio.init(); Audio.click(); doRedeem($('shCode'), $('shMsg')); });
       $('shCode').addEventListener('keydown', e => { if (e.key === 'Enter') doRedeem($('shCode'), $('shMsg')); });
     }
@@ -3310,7 +3315,7 @@
     const btn = on ? '<button class="btn gray" disabled>EN USO</button>' : own ? `<button class="btn green" data-eq="${q.k}:${q.id}">USAR</button>`
       : pr ? `<button class="btn ${pr.c ? 'gold' : 'green'}" data-buy="${q.k}:${q.id}">${q.was ? `<s>${q.was.toLocaleString('es-ES')}</s>` : ''}${priceHtml(pr)}</button>` : `<span class="chow">${how || ''}</span>`;
     const ph = q.k === 'ball' ? 'radial-gradient(circle at 35% 30%,#ffd0d8,#ff4f6d 45%,#8a1030 75%,transparent 77%)' : d.css || 'rgba(255,255,255,.15)';
-    const th = q.k === 'trail' ? `<div class="cth trailpv" style="--tr:${d.css}"></div>` : `<div class="cth" data-th="${q.k}:${q.id}" style="--ph:${ph}"></div>`;
+    const th = `<div class="cth" data-th="${q.k}:${q.id}" style="--ph:${q.k === 'trail' ? TRAIL_PH : ph}"></div>`;   // estelas también en 3D (22-11)
     return `<div class="cosc r-${rar}${own ? ' own' : ''}${on ? ' on' : ''}">${COS_RAR[rar] ? `<i class="crar">${COS_RAR[rar]}</i>` : ''}${extra || ''}${th}<b>${d.name}</b>${q.k === 'model' ? `<small>${d.desc}</small>` : ''}${btn}</div>`;
   }
   function tmpShopHtml() {
@@ -3388,11 +3393,12 @@
   }
   const shortName = n => n.replace(/^Cañón (de |del )?(?=\p{Lu})/u, '');
   const BALL_PH = 'radial-gradient(circle at 35% 30%,#ffd0d8,#ff4f6d 45%,#8a1030 75%,transparent 77%)';
+  const TRAIL_PH = 'radial-gradient(ellipse at 50% 50%,rgba(255,255,255,.12),rgba(20,8,60,.35) 70%)';
   const thKey = q => q.k === 'model' && q.id === 'base' ? 'up:base:' + canSave().lv : q.k + ':' + q.id;
   function colItem(q) {
     const rar = q.k === 'model' ? (q.id === 'cohete' ? 'legend' : 'model') : q.d.rar;
     const ph = q.k === 'ball' ? BALL_PH : q.d.css || 'rgba(255,255,255,.15)';
-    const th = q.k === 'trail' ? `<div class="cth trailpv" style="--tr:${q.d.css}"></div>` : `<div class="cth" data-th="${thKey(q)}" style="--ph:${ph}"></div>`;
+    const th = `<div class="cth" data-th="${q.k === 'trail' ? 'trail:' + q.id : thKey(q)}" style="--ph:${q.k === 'trail' ? TRAIL_PH : ph}"></div>`;
     return `<button class="colit r-${rar}${q.own ? '' : ' lock'}${q.on ? ' on' : ''}" data-col="${q.k}:${q.id}">${th}<b>${shortName(q.d.name)}</b></button>`;
   }
   // tocar una pieza: si es tuya, la pones; si no, te dice cómo conseguirla
@@ -3427,7 +3433,7 @@
       slot('model', c.eq === 'base' ? 'up:base:' + c.lv : 'model:' + c.eq, '#3a2f6e', 'CAÑÓN', shortName(md.name) + (c.lv > 1 ? ' · nv. ' + c.lv : '')) +
       slot('skin', 'skin:' + sk.id, sk.css, 'ASPECTO', shortName(sk.name)) +
       slot('ball', 'ball:' + bl.id, BALL_PH, 'BOLAS', bl.name) +
-      `<button class="lslot" data-ls="trail"><span class="led">✎</span><div class="cth trailpv" style="--tr:${Cannons.TRAIL[tSave().eq].css}"></div><small>ESTELA</small><b>${Cannons.TRAIL[tSave().eq].name}</b></button>` + '</div>' +
+      `<button class="lslot" data-ls="trail"><span class="led">✎</span><div class="cth" data-th="trail:${tSave().eq}" style="--ph:${TRAIL_PH}"></div><small>ESTELA</small><b>${Cannons.TRAIL[tSave().eq].name}</b></button>` + '</div>' +
       (L && L.club === 'lg' ? '<div class="lnote">En la liga de clubes todos los cañones tiran con la fuerza normal.</div>' : '');
     fillThumbs(box);
     box.querySelectorAll('[data-ls]').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); Audio.init(); Audio.click(); openCosSheet(b.dataset.ls); }));
@@ -5005,7 +5011,8 @@
       camera.lookAt(G.camLook);
       cannonG.visible = false;
     } else {
-      G.orbit += dt * 0.12;
+      // detrás de un menú a pantalla completa (mapa de mundos…) el fondo se pinta a 20 fps: si gira se ve a saltos, así que se queda quieto
+      if (!liteMenu()) G.orbit += dt * 0.12;
       const r = G.camBase.z * 0.95;
       camera.position.set(Math.sin(G.orbit) * r, G.camBase.y + 1.5, Math.cos(G.orbit) * r);
       camera.lookAt(G.camLook);

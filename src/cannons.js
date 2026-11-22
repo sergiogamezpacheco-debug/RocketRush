@@ -436,11 +436,47 @@
     tcam2 = new T.PerspectiveCamera(30, 1, 0.1, 100); tcam2.position.set(0, 0.6, 7.2); tcam2.lookAt(0, 0, 0);
     troot = new T.Group(); tpiv = new T.Group(); troot.add(tpiv); tsc.add(troot);
   }
+  // miniatura 3D de una estela: bola azul a la derecha y, detrás, el rastro con sus piezas (burbujas, hojas, rayos…)
+  function trailScene(root, id) {
+    const t = TRAIL[id] || TRAIL.ninguna, fx = t.fx || { cols: [0xffffff], a: 0.5 };
+    const add = (m, x, y, z, s, rz) => { m.position.set(x, y, z || 0); if (s) m.scale.setScalar(s); if (rz) m.rotation.z = rz; root.add(m); return m; };
+    const bas = (c, op) => new T.MeshBasicMaterial({ color: c, transparent: op < 1, opacity: op, depthWrite: op >= 1 });
+    const std = (c, o) => new T.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.45 }, o || {}));
+    const curve = new T.QuadraticBezierCurve3(new T.Vector3(-2.05, -0.95, -0.4), new T.Vector3(-0.45, 0.35, -0.2), new T.Vector3(0.95, 0.32, 0));
+    const P = k => curve.getPoint(k), RB = [0xff4f6d, 0xffd23f, 0x5fd45a, 0x3d9bff, 0xa66bff];
+    const shape = pts => { const sh = new T.Shape(); pts.forEach(([x, y], i) => i ? sh.lineTo(x, y) : sh.moveTo(x, y)); return new T.ExtrudeGeometry(sh, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 }); };
+    const starG = () => { const p = []; for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 0.42 : 1; p.push([Math.cos(a) * r, Math.sin(a) * r]); } return shape(p); };
+    const heartG = () => { const sh = new T.Shape(); sh.moveTo(0, -0.9); sh.bezierCurveTo(-1.2, -0.1, -0.9, 0.95, 0, 0.45); sh.bezierCurveTo(0.9, 0.95, 1.2, -0.1, 0, -0.9); return new T.ExtrudeGeometry(sh, { depth: 0.2, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 3 }); };
+    const leafG = () => { const sh = new T.Shape(); sh.moveTo(0, -1); sh.quadraticCurveTo(0.75, 0, 0, 1); sh.quadraticCurveTo(-0.75, 0, 0, -1); return new T.ExtrudeGeometry(sh, { depth: 0.06, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 }); };
+    const boltG = () => shape([[-0.15, 1], [0.45, 1], [0.1, 0.2], [0.5, 0.2], [-0.35, -1], [-0.05, -0.15], [-0.45, -0.15]]);
+    // rastro: bolitas que se solapan, cada vez más grandes y opacas hacia la bola
+    const streak = (cols, a, w, n) => { n = n || 30; for (let i = 0; i < n; i++) { const k = i / (n - 1), p = P(k * 0.97), c = cols[Math.floor(k * cols.length * 0.999)];
+      add(new T.Mesh(new T.SphereGeometry(1, 16, 12), bas(c, Math.min(1, (0.06 + 0.5 * Math.pow(k, 1.4)) * a))), p.x, p.y, p.z, (0.05 + 0.4 * Math.pow(k, 1.25)) * w); } };
+    const along = (n, k0, k1, f) => { for (let i = 0; i < n; i++) { const k = k0 + (k1 - k0) * (n === 1 ? 1 : i / (n - 1)), p = P(k), side = (i % 2 ? 1 : -1) * (0.18 + 0.25 * k); f(p.x - side * 0.35, p.y + side, p.z + 0.25, k, i); } };
+    if (id === 'arcoiris') RB.forEach((c, j) => { const off = (j - 2) * 0.075; for (let i = 0; i < 26; i++) { const k = i / 25, p = P(k * 0.95); add(new T.Mesh(new T.SphereGeometry(1, 12, 8), bas(c, Math.min(1, 0.12 + 0.85 * Math.pow(k, 1.2)))), p.x - off * 0.6, p.y + off * (0.4 + 2.2 * k), p.z, 0.025 + 0.085 * k); } });
+    else if (id === 'cometa') { streak([0x3d6bff, 0x7fb4ff, 0xbfefff, 0xffffff], 1.2, 1.35, 40); along(5, 0.15, 0.8, (x, y, z, k) => add(new T.Mesh(new T.OctahedronGeometry(1), bas(0xffffff, 1)), x, y, z, 0.05 + 0.05 * k)); }
+    else if (id === 'ninguna') streak([0xffffff], 0.9, 0.9);
+    else streak(fx.rb ? RB : (fx.cols || [0xffffff]).slice().reverse(), id === 'fuego' ? 1.25 : 1, id === 'fuego' ? 1.15 : 0.9);
+    const cols = fx.cols || [0xffffff];
+    if (id === 'burbujas') along(7, 0.12, 0.85, (x, y, z, k) => { const g = new T.Mesh(new T.SphereGeometry(1, 24, 16), new T.MeshPhysicalMaterial({ color: 0xe8fbff, emissive: 0x6ab8e0, emissiveIntensity: 0.5, roughness: 0.05, transparent: true, opacity: 0.55, clearcoat: 1 })); add(g, x, y, z, 0.11 + 0.17 * k); add(new T.Mesh(new T.SphereGeometry(1, 8, 6), bas(0xffffff, 1)), x - 0.05 - 0.04 * k, y + 0.05 + 0.05 * k, z + 0.2, 0.025 + 0.025 * k); });
+    if (id === 'hojas') { const lg = leafG(); along(7, 0.1, 0.85, (x, y, z, k, i) => add(new T.Mesh(lg, std(cols[i % cols.length], { side: T.DoubleSide })), x, y, z, 0.2 + 0.18 * k, i * 1.3)); }
+    if (id === 'estrellas') { const sg = starG(); along(7, 0.1, 0.85, (x, y, z, k, i) => add(new T.Mesh(sg, std([0xfff3a0, 0xffffff, 0xc8b4ff][i % 3], { emissive: 0x8a7a30, metalness: 0.1 })), x, y, z, 0.15 + 0.16 * k, i * 0.5)); }
+    if (id === 'corazones') { const hg = heartG(); along(6, 0.12, 0.85, (x, y, z, k, i) => add(new T.Mesh(hg, std([0xff6ad5, 0xff9ad5, 0xff3a8a][i % 3], { emissive: 0x6a1040 })), x, y, z, 0.13 + 0.14 * k, (i % 2 ? 0.3 : -0.3))); }
+    if (id === 'rayo') { const bg = boltG(); along(5, 0.15, 0.85, (x, y, z, k, i) => add(new T.Mesh(bg, std(i % 2 ? 0xbfefff : 0xfff36a, { emissive: i % 2 ? 0x4a9ad0 : 0xc0a020 })), x, y, z, 0.22 + 0.2 * k, (i % 2 ? 0.5 : -0.4))); }
+    if (id === 'fuego') along(6, 0.2, 0.85, (x, y, z, k, i) => { const f = add(new T.Mesh(new T.ConeGeometry(0.5, 1.4, 12), bas(i % 2 ? 0xffd23f : 0xff6a1a, 0.95)), x, y, z, 0.16 + 0.16 * k); f.rotation.z = 0.9 + (i % 2 ? 0.3 : -0.2); });
+    if (id === 'dorada') along(7, 0.1, 0.85, (x, y, z, k) => add(new T.Mesh(new T.OctahedronGeometry(1), std(0xffd23f, { metalness: 0.35, roughness: 0.3, emissive: 0x9a6a00 })), x, y, z, 0.08 + 0.1 * k));
+    const b = new T.Mesh(sph(), jellyM('b')); b.scale.setScalar(0.62 / R0); b.position.set(0.95, 0.32, 0.1); b.rotation.set(0.25, -0.5, 0); root.add(b);
+  }
   function renderOne(q) {
     if (!tr) setup();
     let url = '';
     try {
-      if (q.kind === 'ball') {
+      if (q.kind === 'trail') {
+        clear(troot, tpiv); clear(tpiv); troot.rotation.set(0, 0, 0); troot.position.set(0, 0, 0);
+        trailScene(troot, q.id); tr.render(tsc, tcam2);
+        url = tr.domElement.toDataURL('image/png');
+        for (const o of troot.children.slice()) if (o !== tpiv) { troot.remove(o); o.traverse(x => { if (x.isMesh && x.geometry && !x.geometry.userData.keep) x.geometry.dispose(); if (x.isMesh && x.material && !x.material.userData.keep) x.material.dispose(); }); }
+      } else if (q.kind === 'ball') {
         clear(troot, tpiv); clear(tpiv); tpiv.rotation.set(0, 0, 0); troot.rotation.set(0, 0, 0); troot.position.set(0, 0, 0);
         const spots = [['r', -0.95, -0.55], ['y', 0.95, -0.55], ['b', 0, 0.75]];
         for (const [c, x, y] of spots) { const m = BALL[q.id] && BALL[q.id].mk ? ballMesh(q.id, c, 0.85) : new T.Mesh(sph(), jellyM(c)); m.position.set(x, y, 0); m.rotation.set(0.25, -0.5, 0); m.userData.ball = 1; troot.add(m); }
