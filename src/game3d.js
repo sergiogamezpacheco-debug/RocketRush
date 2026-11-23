@@ -3182,7 +3182,7 @@
       `<div class="sechead" id="sCoin"><span>Monedas</span></div>${by(['c1', 'c2'])}`;
     const goTab = id => {
       const el = $(id), L = $('shopList'); if (!el) return;
-      L.scrollTop = el.offsetTop - L.offsetTop - 4;
+      L.scrollTop = el.offsetTop - L.offsetTop - 14;   // deja libre la franja difuminada de arriba
       $('shopTabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.to === id));
     };
     $('shopTabs').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { Audio.click(); goTab(b.dataset.to); }));

@@ -679,6 +679,14 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   Ajustes › Canjear código (`giftcodes`, `Social.redeem`, `save.codesUsed`). No sale a menores de 13 ni sin funciones en línea.
 - Prueba: `tools/redeemshopflow.py`.
 
+## Cambios del 23-11-2026
+
+- **Tienda**: al saltar a Temporales u Ofertas (o al deslizar), el título que quedaba cortado bajo las pestañas dejaba
+  asomar trocitos de letras (parecían 2 rayitas). Ahora la lista se difumina arriba y el salto deja ese margen libre.
+- **Compilaciones en Releases**: GitHub se quedó sin espacio para los archivos de Actions, así que el APK de pruebas y el AAB
+  se publican en **Releases** del repositorio (`apk-pruebas` y `aab-play`, se guardan las 3 últimas de cada uno). Las Releases
+  no cuentan para ese límite. El iOS sigue guardando las capturas en la rama `resultados-ios` (el archivo de Actions es opcional).
+
 ## Cambios del 22-11-2026
 
 - **Estelas en 3D**: las estelas de la tienda (Rayo, Cometa, Burbujas…) tienen miniatura 3D como los cañones y las bolas:

@@ -3,9 +3,12 @@ name: Versión para Google Play (AAB)
 # Se lanza a mano (Actions › Versión para Google Play › Run workflow).
 # Hace el paquete .aab firmado con la clave de subida que está en los secretos del repositorio:
 #   UPLOAD_KEYSTORE_B64 (el archivo .jks en base64), UPLOAD_KEYSTORE_PASS, UPLOAD_KEY_ALIAS, UPLOAD_KEY_PASS
-# El juego va SIN modo prueba. El .aab se descarga de la ejecución y se sube a Play Console.
+# El juego va SIN modo prueba. El .aab se descarga de Releases (aab-play) y se sube a Play Console.
 on:
   workflow_dispatch: {}
+
+permissions:
+  contents: write     # para publicar en Releases
 
 jobs:
   aab:
@@ -69,8 +72,17 @@ jobs:
         if: always()
         run: rm -f "$RUNNER_TEMP/subida.jks"
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: RocketRush-play-1.0.${{ github.run_number }}
-          path: android/app/build/outputs/bundle/release/*.aab
-          retention-days: 14
+      # 23-11: se publica como Release (las Releases no cuentan para el límite de espacio de los archivos de Actions)
+      - name: Publicar en Releases (AAB para Google Play)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          V: 1.0.${{ github.run_number }}
+        run: |
+          f=$(ls android/app/build/outputs/bundle/release/*.aab | head -1)
+          cp "$f" "RocketRush-play-$V.${f##*.}"
+          gh release view aab-play >/dev/null 2>&1 || gh release create aab-play --target "$GITHUB_SHA" --prerelease --title "AAB para Google Play" --notes "Paquete firmado para subir a Play Console."
+          gh release upload aab-play "RocketRush-play-$V.${f##*.}" --clobber
+          gh release edit aab-play --title "AAB para Google Play $V" --notes "Paquete firmado para subir a Play Console. Última: $V."
+          # se quedan solo las 3 últimas
+          gh release view aab-play --json assets --jq '.assets | sort_by(.createdAt) | reverse | .[3:] | .[].name' | while read -r a; do gh release delete-asset aab-play "$a" -y; done
