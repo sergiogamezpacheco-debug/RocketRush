@@ -50,8 +50,22 @@
     g.setTransform(1, 0, 0, 1, 0, 0); };
   const AMBER = { y: amber('#ffe27a', '#d88a0a', 'amon'), r: amber('#ff8a5a', '#a8200a', 'bicho'), g: amber('#c8f07a', '#4a8a10', 'hoja'), b: amber('#a8d8ff', '#2a5aa8', 'amon'), p: amber('#e8a8ff', '#6a1a8a', 'pez') };
 
+  // 25-11 · taller de pintura: bloques con pintura chorreando; fábrica: chapa remachada pintada
+  const HEX = { r: '#ff4f6d', b: '#3d9bff', g: '#5fd45a', y: '#ffd23f', p: '#a66bff' };
+  const drip = c => g => { const col = HEX[c]; g.fillStyle = col; g.fillRect(0, 0, 256, 256);
+    g.fillStyle = 'rgba(255,255,255,.16)'; for (let i = 0; i < 6; i++) { g.beginPath(); g.ellipse(rr(0, 256), rr(60, 256), rr(10, 30), rr(6, 14), rr(0, 3), 0, TAU); g.fill(); }
+    g.fillStyle = 'rgba(255,255,255,.88)'; g.beginPath(); g.moveTo(0, 0); g.lineTo(256, 0); for (let x = 256; x >= 0; x -= 24) { const d = 30 + Math.abs(Math.sin(x * 0.7)) * 64; g.lineTo(x, d - 12); g.quadraticCurveTo(x - 6, d + 8, x - 12, d - 12); } g.closePath(); g.fill();
+    g.fillStyle = col; g.fillRect(0, 0, 256, 20); };
+  const PAINT = { r: drip('r'), b: drip('b'), g: drip('g'), y: drip('y'), p: drip('p') };
+  const plate = c => g => { g.fillStyle = HEX[c]; g.fillRect(0, 0, 256, 256);
+    const gr = g.createLinearGradient(0, 0, 256, 256); gr.addColorStop(0, 'rgba(255,255,255,.25)'); gr.addColorStop(1, 'rgba(0,0,0,.2)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+    g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 6; g.strokeRect(14, 14, 228, 228);
+    for (const [x, y] of [[28, 28], [228, 28], [28, 228], [228, 228], [128, 28], [128, 228]]) { const r = g.createRadialGradient(x - 3, y - 3, 1, x, y, 9); r.addColorStop(0, '#fff'); r.addColorStop(1, '#666'); g.fillStyle = r; g.beginPath(); g.arc(x, y, 8, 0, TAU); g.fill(); }
+    g.fillStyle = 'rgba(60,30,10,.22)'; for (let i = 0; i < 25; i++) g.fillRect(rr(0, 256), rr(0, 256), rr(2, 8), rr(2, 5)); };
+  const PLATE = { r: plate('r'), b: plate('b'), g: plate('g'), y: plate('y'), p: plate('p') };
   // materiales de los bloques de cada paisaje (se crean al cargar: así se compilan durante el logo con los demás)
-  const SKIN_DEF = { orchard: { t: FRUIT }, reef: { t: SCALES }, toys: { t: ABC, noFace: true, rough: 0.55, coat: 0.2 }, dino: { t: AMBER, noFace: true, rough: 0.15, coat: 1 } };
+  const SKIN_DEF = { orchard: { t: FRUIT }, reef: { t: SCALES }, toys: { t: ABC, noFace: true, rough: 0.55, coat: 0.2 }, dino: { t: AMBER, noFace: true, rough: 0.15, coat: 1 },
+    paint: { t: PAINT, rough: 0.25, coat: 1 }, factory: { t: PLATE, rough: 0.4, coat: 0.3 } };
   const SKINS = {};
   for (const k in SKIN_DEF) {
     const d = SKIN_DEF[k], mat = {};
@@ -300,7 +314,124 @@
     return g;
   }
 
-  const BUILD = { orchard: buildOrchard, reef: buildReef, toys: buildToys, dino: buildDino };
+  // ---------------- 25-11 · Taller de pintura ----------------
+  function buildPaint() {
+    const env = new T.Group();
+    const floorT = tex(g => { g.fillStyle = '#e9d2b0'; g.fillRect(0, 0, 256, 256); g.strokeStyle = 'rgba(150,100,50,.25)'; g.lineWidth = 3; for (let y = 0; y < 256; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke(); }
+      for (let i = 0; i < 14; i++) { g.fillStyle = Object.values(HEX)[i % 5]; g.globalAlpha = 0.5; g.beginPath(); g.arc(rr(0, 256), rr(0, 256), rr(4, 16), 0, TAU); g.fill(); } g.globalAlpha = 1; });
+    floorT.wrapS = floorT.wrapT = T.RepeatWrapping; floorT.repeat.set(40, 40);
+    const floor = mesh(new T.PlaneGeometry(600, 600), new T.MeshStandardMaterial({ map: floorT, roughness: 0.8 }), 0, C.SEA_Y, 0); floor.rotation.x = -Math.PI / 2; env.add(floor);
+    const paper = tex(g => { g.fillStyle = '#f6e3c6'; g.fillRect(0, 0, 256, 256); g.fillStyle = 'rgba(220,180,130,.35)'; for (let x = 0; x < 256; x += 40) g.fillRect(x, 0, 14, 256); });
+    paper.wrapS = paper.wrapT = T.RepeatWrapping; paper.repeat.set(14, 3);
+    const wallM = new T.MeshStandardMaterial({ map: paper, roughness: 0.95 });
+    const back = mesh(new T.PlaneGeometry(400, 90), wallM, 0, C.SEA_Y + 45, -140); env.add(back);
+    for (const sd of [-1, 1]) { const w = mesh(new T.PlaneGeometry(400, 90), wallM, sd * 150, C.SEA_Y + 45, 0); w.rotation.y = -sd * Math.PI / 2; env.add(w); }
+    // cuadros colgados en la pared del fondo
+    const frameM = std(0xb8823a, { roughness: 0.5 });
+    for (let k = 0; k < 16; k++) {
+      const w = rr(8, 16), h = rr(6, 12), x = -90 + (k % 8) * 26 + rr(-3, 3), y = C.SEA_Y + 26 + Math.floor(k / 8) * 20 + rr(-2, 2);
+      const art = tex(g => { g.fillStyle = ['#bfe6ff', '#fff6e0', '#ffe0ec', '#e6ffe0'][k % 4]; g.fillRect(0, 0, 256, 256); for (let i = 0; i < 6; i++) { g.fillStyle = Object.values(HEX)[(i + k) % 5]; g.beginPath(); g.arc(rr(20, 236), rr(20, 236), rr(20, 60), 0, TAU); g.fill(); } }, 128, 128);
+      env.add(mesh(new T.BoxGeometry(w + 1.2, h + 1.2, 0.4), frameM, x, y, -139.6)); env.add(mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({ map: art }), x, y, -139.35));
+    }
+    // caballetes con lienzos
+    const wood = std(0xa8703a, { roughness: 0.7 });
+    spots(10, 16, 55, true).forEach((o, i) => {
+      const g = new T.Group(); g.position.set(o.x, C.SEA_Y, o.z); g.rotation.y = Math.atan2(-o.x, -o.z) + Math.PI; g.scale.setScalar(rr(2.2, 3.2));
+      for (const sx of [-0.7, 0.7]) { const l = mesh(new T.BoxGeometry(0.12, 4.2, 0.12), wood, sx, 2.05, 0.3); l.rotation.z = -sx * 0.12; g.add(l); }
+      const bk = mesh(new T.BoxGeometry(0.12, 4, 0.12), wood, 0, 1.9, -0.7); bk.rotation.x = -0.32; g.add(bk); g.add(mesh(new T.BoxGeometry(2.1, 0.12, 0.3), wood, 0, 1.35, 0.42));
+      const art = tex(gg => { gg.fillStyle = '#fff8ea'; gg.fillRect(0, 0, 256, 256); for (let k = 0; k < 7; k++) { gg.fillStyle = Object.values(HEX)[(k + i) % 5]; gg.fillRect(rr(0, 200), rr(0, 200), rr(30, 90), rr(30, 90)); } }, 128, 128);
+      const pic = mesh(new T.BoxGeometry(2.4, 1.8, 0.08), new T.MeshStandardMaterial({ map: art, roughness: 0.9 }), 0, 2.35, 0.48); pic.rotation.x = -0.12; g.add(pic);
+      env.add(g);
+    });
+    // tubos de pintura gigantes y botes
+    spots(12, 14, 50, true).forEach((o, i) => {
+      const c = Object.values(HEX)[i % 5];
+      if (i % 2) { const g = new T.Group(); g.position.set(o.x, C.SEA_Y + 1.2, o.z); g.rotation.set(0, rr(0, TAU), Math.PI / 2);
+        g.add(mesh(new T.CylinderGeometry(1.2, 1.2, 6, 20), std(0xe8ebf0, { metalness: 0.6, roughness: 0.3 }))); g.add(mesh(new T.CylinderGeometry(1.22, 1.22, 3, 20), std(c), 0, 0.5, 0));
+        g.add(mesh(new T.CylinderGeometry(0.5, 0.8, 0.8, 16), std(0xffffff), 0, 3.4, 0)); const blob = mesh(new T.SphereGeometry(1.3, 18, 12), new T.MeshPhysicalMaterial({ color: c, clearcoat: 1, roughness: 0.1 }), 0, 4.6, 0.2); blob.scale.set(1, 0.5, 1.3); g.add(blob); env.add(g); }
+      else { const g = new T.Group(); g.position.set(o.x, C.SEA_Y, o.z); const k = rr(1.6, 2.6); g.scale.setScalar(k);
+        g.add(mesh(new T.CylinderGeometry(1, 0.92, 1.8, 24), std(0xd8dde6, { metalness: 0.85, roughness: 0.25 }), 0, 0.9, 0)); g.add(mesh(new T.CylinderGeometry(0.96, 0.96, 0.06, 24), new T.MeshPhysicalMaterial({ color: c, clearcoat: 1, roughness: 0.1 }), 0, 1.8, 0));
+        g.add(mesh(new T.CylinderGeometry(1.01, 0.93, 0.8, 24, 1, true), std(c), 0, 0.8, 0)); env.add(g); }
+    });
+    // manchas en el suelo
+    spots(30, 8, 70, false).forEach((o, i) => { const m = mesh(new T.CircleGeometry(rr(1, 3), 18), new T.MeshBasicMaterial({ color: Object.values(HEX)[i % 5], transparent: true, opacity: 0.75 }), o.x, C.SEA_Y + 0.03, o.z); m.rotation.x = -Math.PI / 2; m.scale.y = rr(0.6, 1); env.add(m); });
+    H.scene.add(env); env.visible = false;
+    const pal = tex(g => { g.fillStyle = '#d8a060'; g.fillRect(0, 0, 256, 256); g.strokeStyle = 'rgba(140,80,30,.3)'; g.lineWidth = 3; for (let y = 0; y < 256; y += 12) { g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(80, y + 6, 170, y - 6, 256, y + 3); g.stroke(); }
+      for (let i = 0; i < 10; i++) { g.fillStyle = Object.values(HEX)[i % 5]; g.beginPath(); g.arc(rr(20, 236), rr(20, 236), rr(10, 22), 0, TAU); g.fill(); } });
+    const under = new T.Group(); under.add(mesh(new T.CylinderGeometry(C.ISLAND_R * 0.97, C.ISLAND_R * 0.97, 4.4, 28), std(0xc89a5a, { roughness: 0.7 }), 0, -2.5, 0));
+    const platform = H.makePlatform({ top: new T.MeshStandardMaterial({ map: pal, roughness: 0.7 }), side: std(0xb8823a, { roughness: 0.6 }), trim: std(0xffd23f, { roughness: 0.4 }), under,
+      flags: Object.values(HEX).map(h => parseInt(h.slice(1), 16)), line: 0x8a5a2a,
+      post: (i) => { const p = new T.Group(); p.add(mesh(new T.CylinderGeometry(0.12, 0.12, 2.6, 10), std(0xa8703a), 0, 1.3, 0)); p.add(mesh(new T.ConeGeometry(0.2, 0.5, 10), std(parseInt(Object.values(HEX)[i % 5].slice(1), 16)), 0, 2.85, 0)); return p; } });
+    return { env: [env], platform, splash: H.splashCol(0xfff0d8, 0xd8a868) };
+  }
+
+  // ---------------- 25-11 · Fábrica de engranajes ----------------
+  function buildFactory() {
+    const env = new T.Group();
+    const conc = tex(g => { g.fillStyle = '#7a7068'; g.fillRect(0, 0, 256, 256); g.fillStyle = 'rgba(0,0,0,.12)'; for (let i = 0; i < 80; i++) g.fillRect(rr(0, 256), rr(0, 256), rr(2, 6), rr(2, 6)); g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 3; g.strokeRect(0, 0, 256, 256); });
+    conc.wrapS = conc.wrapT = T.RepeatWrapping; conc.repeat.set(60, 60);
+    const floor = mesh(new T.PlaneGeometry(600, 600), new T.MeshStandardMaterial({ map: conc, roughness: 0.9 }), 0, C.SEA_Y, 0); floor.rotation.x = -Math.PI / 2; env.add(floor);
+    // ventanales al fondo y a los lados, con luz de atardecer
+    const wins = tex(g => { g.fillStyle = '#4a2a18'; g.fillRect(0, 0, 256, 256); for (let x = 8; x < 256; x += 62) for (let y = 12; y < 200; y += 90) { const gr = g.createLinearGradient(0, y, 0, y + 80); gr.addColorStop(0, '#ffcf7a'); gr.addColorStop(1, '#e88a3a'); g.fillStyle = gr; g.fillRect(x, y, 50, 80); g.fillStyle = '#4a2a18'; g.fillRect(x + 23, y, 4, 80); g.fillRect(x, y + 38, 50, 4); } });
+    wins.wrapS = T.RepeatWrapping; wins.repeat.set(8, 1);
+    const wallM = new T.MeshStandardMaterial({ map: wins, roughness: 1, emissive: 0x2a1408, emissiveMap: wins, emissiveIntensity: 0.5 });
+    env.add(mesh(new T.PlaneGeometry(400, 90), wallM, 0, C.SEA_Y + 45, -140));
+    for (const sd of [-1, 1]) { const w = mesh(new T.PlaneGeometry(400, 90), wallM, sd * 150, C.SEA_Y + 45, 0); w.rotation.y = -sd * Math.PI / 2; env.add(w); }
+    // engranajes gigantes en la pared (giran: ver tick)
+    const gears = [];
+    const gear = (x, y, z, r, col, teeth) => { const g = new T.Group(), m = std(col, { metalness: 0.8, roughness: 0.35 }); g.position.set(x, y, z);
+      g.add(mesh(new T.CylinderGeometry(r, r, 1.2, 40), m)).rotation.x = Math.PI / 2;
+      for (let i = 0; i < teeth; i++) { const a = i / teeth * TAU, t = mesh(new T.BoxGeometry(r * 0.28, r * 0.3, 1.2), m, Math.cos(a) * r * 1.1, Math.sin(a) * r * 1.1, 0); t.rotation.z = a; g.add(t); }
+      for (let i = 0; i < 5; i++) { const a = i / 5 * TAU, h = mesh(new T.CylinderGeometry(r * 0.18, r * 0.18, 1.3, 16), std(0x2a1a10), Math.cos(a) * r * 0.6, Math.sin(a) * r * 0.6, 0); h.rotation.x = Math.PI / 2; g.add(h); }
+      g.userData.spin = (gears.length % 2 ? -1 : 1) * 0.25 / r * 3; gears.push(g); env.add(g); };
+    gear(-40, C.SEA_Y + 34, -136, 14, 0x9a5a2a, 18); gear(-12, C.SEA_Y + 46, -137, 9, 0xb8843a, 14); gear(24, C.SEA_Y + 30, -136, 12, 0x8a4a22, 16); gear(52, C.SEA_Y + 48, -137, 7, 0x9a5a2a, 12);
+    // tuberías y chimeneas
+    const pipeM = std(0xb8683a, { metalness: 0.9, roughness: 0.3 });
+    spots(10, 20, 70, true).forEach((o, i) => { const h = rr(14, 30); env.add(mesh(new T.CylinderGeometry(0.9, 0.9, h, 16), pipeM, o.x, C.SEA_Y + h / 2, o.z)); for (let k = 2; k < h; k += 5) { const r = mesh(new T.TorusGeometry(1, 0.2, 8, 18), pipeM, o.x, C.SEA_Y + k, o.z); r.rotation.x = Math.PI / 2; env.add(r); } });
+    // cajas de madera y bidones
+    const crateT = tex(g => { g.fillStyle = '#b8884a'; g.fillRect(0, 0, 256, 256); g.strokeStyle = '#6a4a22'; g.lineWidth = 16; g.strokeRect(8, 8, 240, 240); g.beginPath(); g.moveTo(8, 8); g.lineTo(248, 248); g.stroke(); });
+    const crates = spots(22, 14, 60, true);
+    env.add(inst(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({ map: crateT, roughness: 0.8 }), crates.filter(o => o.i % 2), (o, p, e, sc) => { const k = rr(2.4, 4); p.set(o.x, C.SEA_Y + k / 2, o.z); e.set(0, rr(0, TAU), 0); sc.set(k, k, k); }));
+    env.add(inst(new T.CylinderGeometry(1, 1, 2.6, 16), std(0xffffff, { metalness: 0.5, roughness: 0.4 }), crates.filter(o => !(o.i % 2)).map(o => Object.assign(o, { c: [0xd83a2a, 0x2a6ee0, 0xffb020][o.i % 3] })), (o, p, e, sc) => { p.set(o.x, C.SEA_Y + 1.3, o.z); e.set(0, 0, 0); sc.set(1, 1, 1); }));
+    H.scene.add(env); env.visible = false;
+    const steel = tex(g => { g.fillStyle = '#8a929e'; g.fillRect(0, 0, 256, 256); g.fillStyle = '#a8b0bc'; for (let y = 0; y < 256; y += 32) for (let x = (y / 32) % 2 * 16; x < 256; x += 32) { g.save(); g.translate(x, y); g.rotate(0.6); g.fillRect(-8, -2, 16, 4); g.restore(); } });
+    const under = new T.Group(); under.add(mesh(new T.CylinderGeometry(C.ISLAND_R * 0.97, C.ISLAND_R * 0.97, 4.4, 28), new T.MeshStandardMaterial({ map: H.stripes('#ffd23f', '#1a1a1a', 14), roughness: 0.6 }), 0, -2.5, 0));
+    const platform = H.makePlatform({ top: new T.MeshStandardMaterial({ map: steel, metalness: 0.6, roughness: 0.45 }), side: std(0x3a3a44, { metalness: 0.6, roughness: 0.4 }), trim: std(0xffd23f, { roughness: 0.4 }), under,
+      flags: [0xffd23f, 0x1a1a1a, 0xffd23f, 0x1a1a1a, 0xff7a1a], line: 0x3a3a44,
+      post: () => { const p = new T.Group(); p.add(mesh(new T.CylinderGeometry(0.18, 0.18, 2.6, 10), std(0xffd23f, { roughness: 0.5 }), 0, 1.3, 0)); p.add(mesh(new T.CylinderGeometry(0.2, 0.2, 0.3, 10), std(0x1a1a1a), 0, 2.2, 0)); return p; } });
+    return { env: [env], platform, splash: H.splashCol(0xd8d8d8, 0x7a7068), update: dt => { for (const g of gears) g.rotation.z += g.userData.spin * dt; } };
+  }
+
+  // ---------------- 25-11 · Central de tormenta ----------------
+  function buildStorm() {
+    const env = new T.Group();
+    env.add(H.ground(0x2a3a30, 1, (x, z) => { const d = Math.hypot(x, z), k = Math.min(1, Math.max(0, (d - 9) / 20)); return k * (1.4 * Math.sin(x * 0.05) * Math.cos(z * 0.06)); }, { roughness: 0.95 }));
+    // torres de alta tensión alrededor
+    const towerM = std(0x5a6478, { metalness: 0.8, roughness: 0.4 }), insM = std(0xd8e8ff, { roughness: 0.2 });
+    const tws = spots(9, 26, 80, true);
+    tws.forEach(o => { const g = new T.Group(); g.position.set(o.x, C.SEA_Y, o.z); g.rotation.y = rr(0, TAU); const s = rr(1.6, 2.4); g.scale.setScalar(s);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const l = mesh(new T.BoxGeometry(0.14, 12.5, 0.14), towerM, sx * 1.1, 6, sz * 1.1); l.rotation.z = -sx * 0.085; l.rotation.x = sz * 0.085; g.add(l); }
+      for (let y = 1.5; y < 12; y += 1.6) { const w = 2.2 - y * 0.15; for (const r of [0, Math.PI / 2]) { const b = mesh(new T.BoxGeometry(w * 1.4, 0.08, 0.08), towerM, 0, y, 0); b.rotation.y = r; b.rotation.z = 0.6; g.add(b); } }
+      for (const [y, w] of [[10.5, 5], [8.6, 4]]) { g.add(mesh(new T.BoxGeometry(w, 0.18, 0.18), towerM, 0, y, 0)); for (const sx of [-1, 1]) g.add(mesh(new T.CylinderGeometry(0.1, 0.14, 0.5, 8), insM, sx * w / 2, y - 0.3, 0)); }
+      o.top = [o.x, C.SEA_Y + 10.5 * s, o.z]; env.add(g); });
+    // cables entre torres
+    const cableM = new T.MeshBasicMaterial({ color: 0x0a0c18 });
+    for (let i = 0; i < tws.length - 1; i++) { const a = tws[i].top, b = tws[i + 1].top; const c = new T.QuadraticBezierCurve3(new T.Vector3(...a), new T.Vector3((a[0] + b[0]) / 2, Math.min(a[1], b[1]) - 6, (a[2] + b[2]) / 2), new T.Vector3(...b)); env.add(new T.Mesh(new T.TubeGeometry(c, 24, 0.08, 5), cableM)); }
+    // nubes negras bajas
+    const clouds = []; for (let i = 0; i < 40; i++) { const a = rr(0, TAU), r = rr(30, 110); clouds.push({ x: Math.cos(a) * r, z: -Math.abs(Math.sin(a) * r) - 10 }); }
+    env.add(inst(new T.SphereGeometry(1, 14, 10), std(0x3a4058, { roughness: 1 }), clouds, (o, p, e, sc) => { const k = rr(5, 11); p.set(o.x, C.SEA_Y + rr(28, 42), o.z); e.set(0, 0, 0); sc.set(k * 1.6, k * 0.7, k); }));
+    // subestación: cajas con luces
+    spots(6, 14, 30, true).forEach((o, i) => { const g = new T.Group(); g.position.set(o.x, C.SEA_Y, o.z); g.add(mesh(new T.BoxGeometry(3, 3.4, 2.4), std(0x4a5262, { metalness: 0.5 }), 0, 1.7, 0)); g.add(mesh(new T.SphereGeometry(0.25, 10, 8), new T.MeshBasicMaterial({ color: i % 2 ? 0xffd23f : 0x7ae0ff }), 0, 3.6, 0)); env.add(g); });
+    H.scene.add(env); env.visible = false;
+    const under = new T.Group(); under.add(mesh(new T.CylinderGeometry(C.ISLAND_R * 0.97, C.ISLAND_R * 0.97, 4.4, 28), new T.MeshStandardMaterial({ map: H.stripes('#ffd23f', '#1a1a1a', 14), roughness: 0.6 }), 0, -2.5, 0));
+    const concT = tex(g => { g.fillStyle = '#9aa0a8'; g.fillRect(0, 0, 256, 256); g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 3; for (let x = 0; x <= 256; x += 64) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 256); g.stroke(); g.beginPath(); g.moveTo(0, x); g.lineTo(256, x); g.stroke(); } });
+    const platform = H.makePlatform({ top: new T.MeshStandardMaterial({ map: concT, roughness: 0.8 }), side: std(0x4a5262, { roughness: 0.6 }), trim: std(0xffd23f, { roughness: 0.4 }), under,
+      flags: [0xffd23f, 0x7ae0ff, 0xffd23f, 0x7ae0ff, 0xffffff], line: 0x2a2f3a,
+      post: () => { const p = new T.Group(), m = std(0xd8a040, { metalness: 0.9, roughness: 0.25 }); p.add(mesh(new T.CylinderGeometry(0.06, 0.09, 2.6, 8), m, 0, 1.3, 0)); p.add(mesh(new T.ConeGeometry(0.12, 0.4, 8), m, 0, 2.8, 0)); return p; } });
+    return { env: [env], platform, splash: H.splashCol(0xc8d8ff, 0x4a5262) };
+  }
+
+  const BUILD = { orchard: buildOrchard, reef: buildReef, toys: buildToys, dino: buildDino, paint: buildPaint, factory: buildFactory, storm: buildStorm };
   window.Mundos = {
     build: name => (BUILD[name] ? BUILD[name]() : null),
     skin: name => SKINS[name] || null,

@@ -490,10 +490,11 @@
   // Todo es determinista: el nivel N es siempre igual. La dificultad sigue la curva: 1 difícil, 4 medios y 5 fáciles por mundo.
   const GEN_BIOMES = ['sea', 'desert', 'snow', 'jungle', 'volcano', 'space'];
   // paisajes nuevos (desde el mundo 52): su contenido se parece al de un paisaje clásico
-  const BIOME_LIKE = { candy: 'sea', crystal: 'snow', temple: 'jungle', forest: 'jungle', fair: 'sea', neon: 'space', orchard: 'jungle', reef: 'sea', toys: 'sea', dino: 'volcano' };
+  const BIOME_LIKE = { candy: 'sea', crystal: 'snow', temple: 'jungle', forest: 'jungle', fair: 'sea', neon: 'space', orchard: 'jungle', reef: 'sea', toys: 'sea', dino: 'volcano', paint: 'sea', factory: 'desert', storm: 'sea' };
   const BIOME_SUB = { sea: 'el mar', desert: 'el desierto', snow: 'la montaña nevada', jungle: 'la selva', volcano: 'el volcán', space: 'el espacio',
     candy: 'la ciudad de caramelo', crystal: 'la cueva de cristales', temple: 'el templo antiguo', forest: 'el bosque encantado', fair: 'la feria', neon: 'la ciudad neón',
-    orchard: 'el huerto frutal', reef: 'el arrecife', toys: 'la juguetería', dino: 'la era de los dinosaurios' };
+    orchard: 'el huerto frutal', reef: 'el arrecife', toys: 'la juguetería', dino: 'la era de los dinosaurios',
+    paint: 'el taller de pintura', factory: 'la fábrica de engranajes', storm: 'la central de tormenta' };
   const WEATHER_NAME = { storm: 'tormenta', sandstorm: 'tormenta de arena', blizzard: 'ventisca', rain: 'lluvia', ash: 'lluvia de ceniza', meteors: 'meteoritos' };
   const VARIANTS = ['día', 'atardecer', 'noche', 'aurora'];
   const WORLD_NAMES = {
@@ -512,6 +513,7 @@
     reef: ['Jardín de coral', 'Cueva de las morenas', 'Bosque de algas', 'Barco hundido', 'Arrecife azul', 'Fosa profunda', 'Lecho de perlas', 'Ciudad de las medusas'],
     toys: ['Cuarto de juegos', 'Estantería', 'Caja de juguetes', 'Tren de madera', 'Casa de muñecas', 'Alfombra de colores', 'Torre de cubos', 'Desván'],
     dino: ['Valle jurásico', 'Nido de huevos', 'Ciénaga de helechos', 'Cráter humeante', 'Bosque de cícadas', 'Cementerio de fósiles', 'Llanura de ámbar', 'Volcán dormido'],
+    paint: ['Estudio del pintor', 'Galería de arte', 'Sala de los caballetes'], factory: ['Sala de máquinas', 'Cadena de montaje', 'Fundición'], storm: ['Central eléctrica', 'Torres de alta tensión', 'Ojo de la tormenta'],
     space: ['Cinturón de asteroides', 'Luna roja', 'Estación orbital', 'Nebulosa', 'Planeta anillado', 'Cometa', 'Galaxia espiral', 'Polvo de estrellas', 'Marte', 'Satélites', 'Vía Láctea', 'Supernova', 'Agujero de gusano', 'Constelación', 'Órbita lunar', 'Confín del universo'],
   };
   const BIOME_ADJ = {
@@ -523,6 +525,8 @@
     fair: ['de la feria', 'del circo', 'de la noria', 'del tiovivo', 'de la tómbola'], neon: ['de neón', 'del futuro', 'de luz', 'del rascacielos', 'de la avenida'],
     orchard: ['del huerto', 'de sandía', 'de la granja', 'de manzanas', 'de la cosecha'], reef: ['de coral', 'del arrecife', 'de las algas', 'de perlas', 'del fondo marino'],
     toys: ['de juguete', 'de madera', 'de los cubos', 'del cuarto de juegos', 'de colores'], dino: ['de ámbar', 'jurásico', 'de los fósiles', 'del dinosaurio', 'prehistórico'],
+    paint: ['de pintura', 'del pintor', 'de colores', 'del lienzo', 'del taller'], factory: ['de la fábrica', 'de engranajes', 'de acero', 'de la cinta', 'de vapor'],
+    storm: ['de la tormenta', 'eléctrico', 'del rayo', 'de alta tensión', 'de los truenos'],
   };
   const ARCH = {
     block: ['Muro', 'Bloque', 'Almacén', 'Fortín'], pyramid: ['Pirámide', 'Zigurat', 'Montaña', 'Colina'], stairs: ['Escalera', 'Rampa', 'Gradas', 'Ladera'],
@@ -694,13 +698,16 @@
   const HAND_BONUS = BONUS.splice(0);
   const NWORLDS = 100;
   const CLASSIC = ['sea', 'desert', 'snow', 'jungle', 'volcano', 'space'];
-  const FRESH = ['candy', 'crystal', 'temple', 'forest', 'fair', 'neon', 'orchard', 'reef', 'toys', 'dino'];
+  const FRESH = ['candy', 'crystal', 'temple', 'forest', 'fair', 'neon', 'orchard', 'reef', 'toys', 'dino', 'paint', 'factory', 'storm'];
   // Desde el mundo 52 (grupos 17-33) el orden va escrito a mano. Los 4 paisajes nuevos (huerto, arrecife, juguetería y
   // dinosaurios) ocupan huecos de paisajes repetidos; cada mundo conserva el contenido de antes (estructura, dificultad y
   // ajuste: `cb`, el paisaje de antes) y su clima, y solo cambia lo que se ve. Los dinosaurios ocupan una vuelta del volcán
   // y se quedan su lluvia de ceniza.
   const OLD_LATE = ['candy', 'sea', 'crystal', 'desert', 'temple', 'snow', 'forest', 'jungle', 'fair', 'volcano', 'neon', 'space', 'candy', 'sea', 'crystal', 'desert', 'temple'];
-  const LATE = ['candy', 'sea', 'orchard', 'desert', 'crystal', 'snow', 'reef', 'jungle', 'temple', 'dino', 'toys', 'space', 'forest', 'sea', 'fair', 'desert', 'neon'];
+  // 25-11: taller de pintura (mundos 55-57), fábrica (61-63) y central de tormenta (91-93), en huecos de mar y desierto repetidos;
+  // traen bloques propios (ver «mecánicas de los mundos nuevos», más abajo). Dentro no llueve ni hay arena (sí en la tormenta).
+  const LATE = ['candy', 'paint', 'orchard', 'factory', 'crystal', 'snow', 'reef', 'jungle', 'temple', 'dino', 'toys', 'space', 'forest', 'storm', 'fair', 'desert', 'neon'];
+  const INDOOR = { paint: 1, factory: 1 };
   const WEATHER = { sea: 'storm', desert: 'sandstorm', snow: 'blizzard', jungle: 'rain', volcano: 'ash', space: 'meteors' };
   const LIGHTS = ['día', 'atardecer', 'noche'];
   const WSIZE = w => (w === 1 ? 5 : w === 2 ? 6 : w === 3 ? 8 : 10);
@@ -709,7 +716,7 @@
     const g = Math.floor((w - 1) / 3), light = LIGHTS[(w - 1) % 3];
     let biome, weather = null;
     if (g < 17) { biome = CLASSIC[g % 6]; if (g >= 6) weather = WEATHER[biome]; }
-    else { const cb = OLD_LATE[g - 17]; biome = LATE[g - 17]; weather = WEATHER[cb] || null; return { g, biome, cb, light, weather, boss: ['ship', 'pyramid', 'golem'][g % 3] }; }
+    else { const cb = OLD_LATE[g - 17]; biome = LATE[g - 17]; weather = INDOOR[biome] ? null : WEATHER[cb] || null; return { g, biome, cb, light, weather, boss: ['ship', 'pyramid', 'golem'][g % 3] }; }
     return { g, biome, cb: biome, light, weather, boss: ['ship', 'pyramid', 'golem'][g % 3] };
   }
 
@@ -804,7 +811,9 @@
     pyramid: { desert: 'Faraón Arenas', volcano: 'Fortaleza de obsidiana', crystal: 'Geoda gigante', temple: 'Zigurat perdido', sea: 'Pirámide hundida', snow: 'Pirámide de hielo', orchard: 'Pirámide del huerto', fair: 'Pirámide de la feria', dino: 'Faraón de ámbar', toys: 'Torre de cubos' },
     golem: { snow: 'Gólem de hielo', space: 'Robot lunar', volcano: 'Gólem de magma', temple: 'Guardián del templo', neon: 'Mecha de neón', candy: 'Gólem de gominola', reef: 'Gólem de coral', dino: 'Gólem de ámbar', forest: 'Gólem de musgo', orchard: 'Gólem de fruta' },
   };
-  const BOSS_DEFAULT = { ship: 'Galeón pirata', pyramid: 'Pirámide del faraón', golem: 'Gólem de roca' };
+  const BOSS_DEFAULT = { ship: 'Galeón pirata', pyramid: 'Pirámide del faraón', golem: 'Gólem de roca', brush: 'Maese Brochazo', crane: 'Grúa Mordisco', nimbo: 'Nimbo' };
+  // 25-11: los paisajes nuevos traen su propio jefe (bosses.js): pintor, grúa y nube de tormenta
+  const NEW_BOSS = { paint: 'brush', factory: 'crane', storm: 'nimbo' };
   // recolorea los bloques de color para que ningún grupo (contando los que se tocan por una esquina) pase de maxG; determinista
   function limitGroups(blocks, maxG, seed) {
     const PAL = ['r', 'y', 'b', 'g', 'p'], cells = blocks.filter(b => b.c && !b.t && PAL.includes(b.c));
@@ -832,6 +841,15 @@
   }
   function bossLevel(kind, biome, g) {
     const name = (BOSS_NAMES[kind] && BOSS_NAMES[kind][biome]) || BOSS_DEFAULT[kind];
+    if (NEW_BOSS[biome] === kind) {
+      // muro de colores (grupos de 3 como mucho) delante del jefe; el jefe y sus cosas los dibuja y los mueve bosses.js
+      const rows = kind === 'crane' ? 3 : 4, blocks = [];
+      const PAL = ['r', 'y', 'b', 'g', 'p'];
+      for (let j = 0; j < rows; j++) for (let x = -3; x <= 2; x++) for (let z = 0; z < 2; z++) blocks.push(...grid(x + 0.5, z - 0.5, j, [[PAL[(x + 3 + j * 2 + z) % 5]]]));
+      limitGroups(blocks, 3, 700 + g);
+      return { name, boss: kind, bossName: name, bossD: 0, target: 1.5, tier: 'boss', blocks, viewTop: kind === 'brush' ? 10.4 : 10.6,
+        balls: 'rybgprybgprybgprybgp', nb: 20, goal: 'Jefe final del paisaje: derríbalo para abrir el siguiente.' };
+    }
     const extra = Math.max(0, 2 - Math.floor(g / 6));               // los primeros jefes dan un par de bolas más
     let l;
     if (kind === 'ship') l = {
@@ -939,7 +957,7 @@
       LEVELS.push(l);
     }
     if (isBossWorld(w)) { for (const q of pending) if (q.at === LEVELS.length) q.at++; }
-    if (isBossWorld(w)) LEVELS.push(Object.assign(bossLevel(info.boss, info.biome, info.g), { world: w, pos: size + 1, biome: info.biome, variant: info.light, weather: info.weather },
+    if (isBossWorld(w)) LEVELS.push(Object.assign(bossLevel(NEW_BOSS[info.biome] || info.boss, info.biome, info.g), { world: w, pos: size + 1, biome: info.biome, variant: info.light, weather: info.weather },
       info.cb !== info.biome ? { sn: (BOSS_NAMES[info.boss] && BOSS_NAMES[info.boss][info.cb]) || BOSS_DEFAULT[info.boss] } : {}));
     const list = WORLD_NAMES[info.biome] || WORLD_NAMES.sea;
     nameUse[info.biome] = (nameUse[info.biome] || 0) + 1;
@@ -957,6 +975,70 @@
     // cubo arcoíris (20-11): solo se activa con un tiro directo, así que estos niveles llevan 2 bolas más para compensar
     else if (l.blocks.some(b => b.t === 'prism')) { l.balls += autoBalls(l, 2); l.nb = l.balls.length; }
   });
+  // ---- 25-11 · mecánicas de los mundos nuevos ----
+  // Se añaden al nivel ya hecho (mismo nivel de antes + los bloques del paisaje), con su propia semilla.
+  // · taller de pintura: botes de pintura (pintan de su color lo de alrededor) y lienzos en blanco (toman el color de la bola)
+  // · fábrica: una cinta encima de la estructura con unos bloques, que avanza tras cada tiro, y su palanca (la manda a la trituradora)
+  // · central de tormenta: un camino de bloques de metal (no se rompen con bolas) y su pila (la corriente los rompe todos)
+  const MECH_DEBUT = {
+    pb: { biome: 'paint', title: 'Bote de pintura', what: 'Al romperlo salpica y pinta de su color los bloques de alrededor.', tip: 'Rompe el bote junto a bloques de otros colores: así juntas grupos más grandes.' },
+    cv: { biome: 'paint', title: 'Lienzo en blanco', what: 'Se pinta del color de la bola que le da y revienta con los de ese color que toca.', tip: 'Dispara al lienzo con el color de los bloques que tiene al lado.' },
+    cb: { biome: 'factory', title: 'Cinta transportadora', what: 'Avanza un paso tras cada tiro. Lo que llega a la trituradora se rompe y te da bolas.', tip: 'Dale a la palanca roja para que la cinta vaya hacia la trituradora.' },
+    bt: { biome: 'storm', title: 'Pila', what: 'Su corriente rompe todos los bloques de metal que se tocan. Las bolas no rompen el metal.', tip: 'Dale a la pila: la corriente salta de metal en metal. Si hay un hueco, se corta.' },
+  };
+  function mechLevel(l) {
+    if (l.boss || !l.blocks) return;
+    const r = seeded(l.id * 977 + 13), cols = [...new Set(l.blocks.filter(b => b.c && !b.t).map(b => b.c))];
+    const plain = l.blocks.filter(b => b.c && !b.t && b.w === 1 && b.h === 1 && b.d === 1 && !b.bub && !b.fl);
+    if (!plain.length || !cols.length) return;
+    const maxZ = Math.max(...plain.map(b => b.z)), front = plain.filter(b => b.z >= maxZ - 0.01);
+    const pick = (arr) => arr.splice(Math.floor(r() * arr.length), 1)[0];
+    const big = l.blocks.length > 34;
+    if (l.biome === 'paint') {
+      const up = front.filter(b => b.y > 1.2).sort((a, b) => b.y - a.y), pool = up.length ? up.slice(0, Math.max(3, Math.ceil(up.length / 2))) : front.slice();
+      for (let i = 0; i < (big ? 2 : 1) && pool.length; i++) { const b = pick(pool); b.t = 'paint'; b.c = cols[Math.floor(r() * cols.length)]; }
+      const rest = front.filter(b => !b.t);
+      for (let i = 0; i < (big ? 2 : 1) && rest.length; i++) { const b = pick(rest); b.t = 'canvas'; delete b.c; }
+    } else if (l.biome === 'factory') {
+      const top = Math.max(...l.blocks.map(b => b.y + b.h / 2)), ext = Math.max(2.5, ...l.blocks.map(b => Math.abs(b.x) + b.w / 2));
+      const w = Math.min(6.2, Math.max(5, 2 * ext + 0.6)), by = top + 0.45, bz = maxZ, n = w > 5.6 ? 5 : 4;   // que se vean la trituradora y la palanca
+      l.blocks.push({ x: -0.2, y: by, z: bz, w, h: 0.3, d: 1.3, t: 'belt', dir: -1 });
+      for (let i = 0; i < n; i++) l.blocks.push({ x: -0.2 - w / 2 + 0.6 + i, y: by + 0.15 + 0.5, z: bz, w: 1, h: 1, d: 1, c: cols[Math.floor(r() * cols.length)], cargo: true });
+      l.blocks.push({ x: -Math.min(3.4, ext + 0.6), y: 0.5, z: bz + 1.2, w: 1, h: 1, d: 1, t: 'lever' });
+      l.viewTop = Math.max(l.viewTop || 0, by + 1.4);
+      if (typeof l.balls === 'string') l.balls += cols[Math.floor(r() * cols.length)] + cols[Math.floor(r() * cols.length)], l.nb = l.balls.length;   // la carga estorba: 2 bolas más
+    } else if (l.biome === 'storm') {
+      // la cara que se ve: por cada casilla (x, y), el bloque de más delante (aunque no estén todos a la misma profundidad)
+      const key = b => Math.round(b.x * 2) + ',' + Math.round(b.y * 2), at = {};
+      for (const b of plain) { const k = key(b), o = at[k]; if (!o || b.z > o.z) at[k] = b; }
+      const vis = Object.values(at);
+      const nb = b => [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => at[Math.round((b.x + dx) * 2) + ',' + Math.round((b.y + dy) * 2)]).filter(Boolean);
+      const starts = vis.filter(b => b.y > 0.6 && nb(b).length >= 2).length ? vis.filter(b => b.y > 0.6 && nb(b).length >= 2) : vis.filter(b => nb(b).length >= 1);
+      if (!starts.length) return;
+      const len = big ? 6 : 4, path = [pick(starts)];
+      while (path.length < len) { const opts = path.flatMap(nb).filter(o => !path.includes(o)); if (!opts.length) break; path.push(opts[Math.floor(r() * opts.length)]); }
+      const bat = path.flatMap(nb).filter(o => !path.includes(o) && o.y > 0.6).sort((a, b) => b.y - a.y)[0] || path.flatMap(nb).find(o => !path.includes(o));
+      if (path.length < 3 || !bat) return;
+      for (const b of path) { b.t = 'metal'; delete b.c; }
+      bat.t = 'battery'; delete bat.c;
+      if (typeof l.balls === 'string') { l.balls += cols[Math.floor(r() * cols.length)]; l.nb = l.balls.length; }
+    }
+    l.blocks = l.blocks.slice();
+  }
+  {
+    const firstOf = {};
+    for (const l of LEVELS) {
+      if (!['paint', 'factory', 'storm'].includes(l.biome) || l.debut) continue;   // los estrenos de antes (pompas, ventilador) se quedan como estaban
+      mechLevel(l);
+      if (l.boss) continue;
+      const want = l.biome === 'paint' ? (firstOf.pb ? (firstOf.cv ? null : 'cv') : 'pb') : l.biome === 'factory' ? (firstOf.cb ? null : 'cb') : (firstOf.bt ? null : 'bt');
+      const has = { pb: 'paint', cv: 'canvas', cb: 'belt', bt: 'battery' };
+      if (want && l.blocks.some(b => b.t === has[want])) {
+        const D = MECH_DEBUT[want]; firstOf[want] = l.id;
+        Object.assign(l, { debut: want, debutTitle: D.title, debutWhat: D.what, debutTip: D.tip, goal: D.what + ' ' + D.tip });
+      }
+    }
+  }
   // niveles extra: uno por mundo (los hechos a mano van al primer mundo de su paisaje)
   const handBonusBy = { sea: HAND_BONUS.slice(0, 5), desert: [HAND_BONUS[5]], snow: [HAND_BONUS[6]], jungle: [HAND_BONUS[7]], volcano: [HAND_BONUS[8]], space: [HAND_BONUS[9]] };
   for (let w = 1; w <= NWORLDS; w++) {
@@ -1091,7 +1173,7 @@
   function retune(l, nb, target) {
     if (l.bonus) { l.target = target; l.balls = balancedBalls(l, nb); l.nb = l.balls.length; return; } l.nb = nb; l.target = target; l.balls = l.balls0 && l.balls0.length >= nb ? l.balls0.slice(0, nb) : (l.balls0 || '') + autoBalls(l, nb - (l.balls0 || '').length); }
 
-  const Levels = { club: clubLevels, weekly: weeklyLevel, HARD, MEDIUM, GEN_BIOMES, VARIANTS, LEVELS, BONUS, WORLDS, ALL, HW, HW_ZONES, XM, XM_ZONES, byId, grid, box3, plank, pillar, retune, worldInfo, CLASSIC, FRESH, DEBUT };
+  const Levels = { MECH_DEBUT, club: clubLevels, weekly: weeklyLevel, HARD, MEDIUM, GEN_BIOMES, VARIANTS, LEVELS, BONUS, WORLDS, ALL, HW, HW_ZONES, XM, XM_ZONES, byId, grid, box3, plank, pillar, retune, worldInfo, CLASSIC, FRESH, DEBUT };
   if (typeof module !== 'undefined' && module.exports) module.exports = Levels;
   else root.Levels = Levels;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

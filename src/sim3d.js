@@ -47,7 +47,7 @@
   };
   const isColor = k => C.COLORS.indexOf(k) >= 0;
   // bloques que no cuentan para el porcentaje (no se pueden quitar del todo o no son estructura)
-  const NOCOUNT = { stone: 1, mirror: 1, portal: 1, magnet: 1, fan: 1, cloud: 1 };
+  const NOCOUNT = { stone: 1, mirror: 1, portal: 1, magnet: 1, fan: 1, cloud: 1, belt: 1, lever: 1 };
   // Bolas de los mundos (una por cada uno de los 10 primeros mundos). 'lv' = nivel de la bola (1-10): sube su poder.
   const WBALLS = {
     w1: { name: 'Bola demoledora', world: 1, r: 0.4 },     // atraviesa la estructura rompiendo todo lo que toca
@@ -222,7 +222,7 @@
         w.addBody(b);
       }
       for (const d of this.level.blocks) this.makeBlock(d, this.blocks.length);
-      this.total = this.blocks.filter(b => !NOCOUNT[b.userData.kind]).length;   // la piedra (y espejos, muelles y portales) no cuentan
+      this.total = this.blocks.filter(b => !NOCOUNT[b.userData.kind] && !b.userData.cargo).length;   // (25-11) lo que va en la cinta es de regalo: no cuenta para el total   // la piedra (y espejos, muelles y portales) no cuentan
       this.portals = this.blocks.filter(b => b.userData.kind === 'portal');
       this.clouds = this.blocks.filter(b => b.userData.kind === 'cloud');
       this.balloons = this.blocks.filter(b => b.userData.kind === 'balloon');
@@ -245,6 +245,7 @@
       this.chams = this.blocks.filter(b => b.userData.cham);
       this.levelColors = C.COLORS.filter(c => this.level.blocks.some(b => b.c === c && b.t !== 'prize'));
       if (!this.levelColors.length) this.levelColors = ['r', 'b'];
+      this.hasBelt = this.blocks.some(b => b.userData.kind === 'belt'); this.beltT = 0;
     }
 
     // crea el cuerpo de un bloque de la lista del nivel (también los que aparecen durante la partida, como la arena del faraón)
@@ -268,6 +269,13 @@
       else if (t === 'portal') { data = { kind: 'portal', a: !!d.pairA, b: !!d.pairB }; }
       else if (t === 'gift') { data = { kind: 'gift' }; density = 0.8; }
       else if (t === 'prism') { data = { kind: 'prism' }; density = 1.1; friction = 0.4; }
+      // 25-11 · mundos nuevos: bote de pintura y lienzo (taller), cinta y palanca (fábrica), metal y pila (tormenta)
+      else if (t === 'paint') { data = { kind: 'paint', c: d.c || 'r' }; density = 1.2; friction = 0.6; }
+      else if (t === 'canvas') { data = { kind: 'canvas' }; density = 0.9; friction = 0.6; }
+      else if (t === 'metal') { data = { kind: 'metal' }; density = 2.4; friction = 0.7; }
+      else if (t === 'battery') { data = { kind: 'battery' }; density = 1.6; friction = 0.7; }
+      else if (t === 'belt') { data = { kind: 'belt', dir: d.dir || -1 }; friction = 1.0; }
+      else if (t === 'lever') { data = { kind: 'lever' }; }
       else if (t === 'key') { data = { kind: 'key' }; density = 0.6; }
       else if (t === 'cloud') { data = { kind: 'cloud' }; }
       else if (t === 'balloon') { data = { kind: 'balloon' }; density = 0.25; friction = 0.6; }
@@ -279,11 +287,12 @@
         locked: t === 'lock', totem: t === 'totem', bubble: !!d.bub, vine: t === 'vine' };
       if (d.bub) d.fl = true;            // burbuja: el bloque flota dentro hasta que la revientas
       if (d.fl) data.float = true;
-      data.id = id; data.w = d.w; data.h = d.h; data.d = d.d;
+      data.id = id; data.w = d.w; data.h = d.h; data.d = d.d; if (d.cargo) data.cargo = true;
       const half = new CANNON.Vec3(d.w / 2 - 0.002, d.h / 2 - 0.002, d.d / 2 - 0.002);
-      const fixed = t === 'portal' || t === 'cloud' || d.fixed;     // portales, nubes y espejos de pared: no se mueven
+      const fixed = t === 'portal' || t === 'cloud' || t === 'belt' || t === 'lever' || d.fixed;     // portales, nubes y espejos de pared: no se mueven
       const body = new CANNON.Body({ mass: fixed ? 0 : density * d.w * d.h * d.d, type: fixed ? CANNON.Body.STATIC : CANNON.Body.DYNAMIC, material: new CANNON.Material({ friction, restitution: 0.04 }) });
       if (t === 'portal' || t === 'cloud') body.collisionResponse = false;
+      if (t === 'belt') body.collisionFilterGroup = 4;
       if (t === 'balloon') { body.linearDamping = 0.55; body.angularDamping = 0.6; }
       body.addShape(new CANNON.Box(half));
       body.position.set(d.x, d.y, d.z);
@@ -322,7 +331,7 @@
       this.emit({ type: 'gem', x: b.position.x, y: b.position.y, z: b.position.z });
     }
     emit(e) { if (!this.silent) this.events.push(e); }
-    progress() { return this.total ? (this.popped + this.fallen) / this.total : 0; }
+    progress() { return this.total ? Math.min(1, (this.popped + this.fallen) / this.total) : 0; }
 
     // ---------- disparo ----------
     canFire() { return this.state === 'play' && (this.stuck ? this.stuck.t > 0.25 : this.queue.length > 0 && this.sinceFire > 0.6); }
@@ -382,6 +391,7 @@
       b.linearDamping = 0.01; b.angularDamping = 0.3;
       b.allowSleep = false;
       b.userData = { kind: 'ball', ball: kind, c: isColor(kind) ? kind : null, age: 0, slow: 0, dead: false, r, hits: 0, lv: W ? Math.max(1, Math.min(10, this.wlv[kind] || 1)) : 0 };
+      b.collisionFilterMask = ~4;       // (25-11) las bolas atraviesan la cinta de la fábrica (si no, tapaba la estructura por arriba)
       this.world.addBody(b); this.balls.push(b);
       return b;
     }
@@ -658,7 +668,7 @@
       this.touchNeighbors(b);
       d.alive = false; d.destroyed = true;
       this.world.removeBody(b);
-      this.popped++; this.shotPops++;
+      if (!d.cargo) { this.popped++; this.shotPops++; }   // lo de la cinta es de regalo: no cuenta para la demolición
       this.takeGem(b);
       if (d.kind === 'gold') { this.coins += 10; this.emit({ type: 'coin', x: b.position.x, y: b.position.y, z: b.position.z, n: 10 }); }
       let pts = (d.kind === 'gold' ? 25 : 10) * this.chain;
@@ -705,6 +715,12 @@
       // cubo arcoíris: solo si la bola le da directamente (lo primero que toca); si llega rebotada o tras reventar un grupo, se rompe sin más
       if (od.kind === 'prism') { if (ball.userData.first) this.prism(o, ball.userData.c); else this.breakPrism(o); return true; }
       if (od.kind === 'gift' || od.kind === 'key' || od.kind === 'balloon') return this.trigger(o, 0.02);
+      if (od.kind === 'paint') { this.splash(o); return true; }
+      if (od.kind === 'canvas') { this.paintCanvas(o, ball.userData.c || (kind === 'rainbow' ? null : null)); return true; }
+      if (od.kind === 'metal') { if (kind === 'heavy') return false; this.emit({ type: 'clank', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z }); return true; }
+      if (od.kind === 'battery') { this.discharge(o); return true; }
+      if (od.kind === 'lever') { this.pullLever(o); return true; }
+      if (od.kind === 'belt') return false;
       if (od.kind === 'pinata') {            // piñata: dos golpes
         if (v < 0.8 && kind !== 'heavy') return true;
         od.hp--; this.emit({ type: 'pinataHit', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z, hp: od.hp });
@@ -728,12 +744,116 @@
       if (od.kind === 'key') { if (!od.used) { od.used = true; this.later(delay || 0.02, () => this.useKey(o)); } return true; }
       if (od.kind === 'balloon') { this.later(delay || 0.02, () => { if (od.alive && !od.destroyed) { this.removeSpecial(o, 20); this.emit({ type: 'balloonPop', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z }); } }); return true; }
       if (od.kind === 'prism') { this.later(delay || 0.02, () => this.breakPrism(o)); return true; }     // explosiones, rayados…: se rompe sin efecto
+      if (od.kind === 'paint') { if (!od.used) { od.used = true; this.later(delay || 0.02, () => this.splash(o)); } return true; }
+      if (od.kind === 'canvas') { this.later(delay || 0.02, () => { if (od.alive && !od.destroyed) { this.removeSpecial(o, 10); this.emit({ type: 'canvasOff', id: od.id, x: o.position.x, y: o.position.y, z: o.position.z }); } }); return true; }
+      if (od.kind === 'metal') { this.later(delay || 0.02, () => this.breakMetal(o)); return true; }
+      if (od.kind === 'battery') { if (!od.used) this.later(delay || 0.02, () => this.discharge(o)); return true; }
+      if (od.kind === 'lever') { this.pullLever(o); return true; }
       if (od.kind === 'gum') { if (!od.used) { od.used = true; this.later(delay || 0.02, () => { if (od.alive) this.removeSpecial(o, 10); }); } return true; }
       if (od.kind === 'cloud') { this.disperse(o); return true; }
       if (od.kind === 'block' && od.bubble) { this.unbubble(o); return true; }
       if (od.kind === 'magnet') { this.magnet(o); return true; }
       if (od.kind === 'fan') { this.fan(o); return true; }
       return false;
+    }
+    // ---------- 25-11 · taller de pintura ----------
+    // bote de pintura: al romperse salpica y pinta de su color los bloques de alrededor
+    splash(o) {
+      const d = o.userData; if (!d.alive || d.destroyed) return;
+      d.used = true;
+      const x = o.position.x, y = o.position.y, z = o.position.z, c = d.c;
+      this.removeSpecial(o, 30); this.chain = Math.max(this.chain, 2);
+      this.emit({ type: 'paintsplash', id: d.id, x, y, z, c });
+      for (const b of this.liveBlocks()) {
+        const bd = b.userData;
+        if (bd.kind !== 'block' || bd.popping || bd.locked || bd.bubble || bd.c === c) continue;
+        if (b.position.distanceTo(o.position) > 1.75) continue;
+        bd.c = c; if (bd.cham) bd.cham = false;
+        this.emit({ type: 'recolor', id: bd.id, c, x: b.position.x, y: b.position.y, z: b.position.z });
+      }
+    }
+    // lienzo en blanco: se pinta del color de la bola que le da y revienta con los de su color que toca
+    paintCanvas(o, c) {
+      const d = o.userData; if (!d.alive || d.destroyed) return;
+      if (!c || !this.levelColors.includes(c)) { this.removeSpecial(o, 10); this.emit({ type: 'canvasOff', id: d.id, x: o.position.x, y: o.position.y, z: o.position.z }); return; }
+      d.kind = 'block'; d.c = c; d.ice = false; d.hp = 1; d.popping = false;
+      this.emit({ type: 'recolor', id: d.id, c, canvas: true, x: o.position.x, y: o.position.y, z: o.position.z });
+      this.later(0.12, () => { if (d.alive && !d.destroyed) this.popGroup(o, false); });
+    }
+    // ---------- 25-11 · central de tormenta ----------
+    // pila: la corriente recorre todos los bloques de metal que se tocan (desde la pila) y los rompe en cadena
+    discharge(o) {
+      const d = o.userData; if (!d.alive || d.destroyed || d.used) return;
+      d.used = true;
+      const metals = this.liveBlocks().filter(b => b.userData.kind === 'metal' && !b.userData.zapped);
+      const seen = new Set(), path = [];
+      let frontier = metals.filter(b => obbGap(o, b) < C.ADJ + 0.12), depth = 0;
+      frontier.forEach(b => seen.add(b));
+      const links = frontier.map(b => [o.position.x, o.position.y, o.position.z, b.position.x, b.position.y, b.position.z]);
+      while (frontier.length) {
+        const next = [];
+        for (const b of frontier) {
+          b.userData.zapped = true; path.push(b);
+          const dl = 0.15 + depth * 0.12;
+          this.later(dl, () => this.breakMetal(b, true));
+          for (const m of metals) if (!seen.has(m) && obbGap(b, m) < C.ADJ + 0.12) { seen.add(m); next.push(m); links.push([b.position.x, b.position.y, b.position.z, m.position.x, m.position.y, m.position.z]); }
+        }
+        frontier = next; depth++;
+      }
+      const x = o.position.x, y = o.position.y, z = o.position.z;
+      this.removeSpecial(o, 40); this.chain = Math.max(this.chain, 2);
+      this.emit({ type: 'zap', id: d.id, x, y, z, n: path.length, links });
+    }
+    breakMetal(b, zap) {
+      const d = b.userData; if (!d.alive || d.destroyed) return;
+      const x = b.position.x, y = b.position.y, z = b.position.z;
+      this.removeSpecial(b, zap ? 20 : 10);
+      this.emit({ type: 'metalOff', id: d.id, x, y, z, zap: !!zap });
+    }
+    // ---------- 25-11 · fábrica ----------
+    // palanca: cambia el sentido de todas las cintas
+    pullLever(o) {
+      const d = o.userData; if (!d.alive || d.destroyed) return;
+      if (this.t - (d.at || -9) < 0.6) return;
+      d.at = this.t; d.on = !d.on;
+      for (const b of this.blocks) if (b.userData.kind === 'belt' && b.userData.alive) b.userData.dir = -b.userData.dir;
+      this.emit({ type: 'lever', id: d.id, on: d.on, x: o.position.x, y: o.position.y, z: o.position.z });
+      this.beltT = Math.max(this.beltT || 0, 0.01);
+    }
+    // cinta: tras cada tiro avanza un paso; lo que llega a la trituradora (el lado +x) se rompe y cuenta
+    beltStep(dt) {
+      const belts = this.blocks.filter(b => b.userData.kind === 'belt' && b.userData.alive);
+      if (!belts.length) return;
+      for (const bt of belts) {
+        const bd = bt.userData, top = bt.position.y + bd.h / 2, x0 = bt.position.x - bd.w / 2, x1 = bt.position.x + bd.w / 2;
+        for (const b of this.liveBlocks()) {
+          const d = b.userData;
+          if (b.mass === 0 || d.kind === 'belt' || d.popping) continue;
+          const p = b.position;
+          if (Math.abs(p.z - bt.position.z) > bd.d / 2 + 0.2 || p.y < top || p.y > top + 3.6 || p.x < x0 - 0.3 || p.x > x1 + 0.6) continue;
+          if (bd.dir > 0 && p.x > x1 - 0.35 && p.y < top + 1.25) { this.crush(b); continue; }
+          if (bd.dir < 0 && p.x < x0 + 0.3 && p.y < top + 1.25) { this.chute(b); continue; }   // el otro extremo: cae al cajón (sin premio)
+          // se arrastra todo lo que va encima de la cinta, sin empujones (empujando con velocidad, los bloques volcaban y se caían)
+          if (this.beltT > 0) { b.wakeUp(); p.x += bd.dir * 2.2 * dt; b.velocity.x = 0; b.velocity.z *= 0.5; b.angularVelocity.set(0, 0, 0); }
+        }
+      }
+    }
+    crush(b) {
+      const d = b.userData; if (!d.alive || d.destroyed) return;
+      const x = b.position.x, y = b.position.y, z = b.position.z;
+      d.alive = false; d.destroyed = true; this.world.removeBody(b); this.wakeAll();
+      if (!d.cargo) { this.popped++; this.shotPops++; }
+      this.score += 15 * this.chain; this.crushed = (this.crushed || 0) + 1;
+      // cada 2 bloques triturados, una bola de regalo (de su color)
+      let ball = null; if (this.crushed % 2 === 0 && this.state === 'play' && C.COLORS.includes(d.c)) { this.giveBalls([d.c]); ball = d.c; }
+      this.emit({ type: 'crush', id: d.id, x, y, z, c: d.c, ball });
+    }
+    chute(b) {
+      const d = b.userData; if (!d.alive || d.destroyed) return;
+      const x = b.position.x, y = b.position.y, z = b.position.z;
+      d.alive = false; d.destroyed = true; this.world.removeBody(b); this.wakeAll();
+      if (!d.cargo) { this.popped++; this.shotPops++; }
+      this.emit({ type: 'chute', id: d.id, x, y, z, c: d.c });
     }
     // caja sorpresa: un potenciador al azar
     openGift(o) {
@@ -1153,7 +1273,7 @@
         if (!d.alive) continue;
         const p = b.position;
         if (!d.destroyed && (p.y < C.FALL_Y || Math.hypot(p.x, p.z) > C.ISLAND_R + 2.5)) {
-          d.destroyed = true; if (!NOCOUNT[d.kind]) { this.fallen++; this.score += 5; }
+          d.destroyed = true; if (!NOCOUNT[d.kind] && !d.cargo) { this.fallen++; this.score += 5; }
           this.takeGem(b);
           if (d.kind === 'gold') { this.coins += 10; this.emit({ type: 'coin', x: p.x, y: p.y, z: p.z, n: 10 }); }
           this.emit({ type: 'fall', id: d.id, x: p.x, y: p.y, z: p.z });
@@ -1163,6 +1283,7 @@
           this.emit({ type: 'splash', id: d.id, x: p.x, y: C.SEA_Y, z: p.z, s: Math.max(d.w, d.h, d.d) });
           continue;
         }
+        if (b.type === CANNON.Body.STATIC) { if (b.velocity.x || b.velocity.y || b.velocity.z) { b.velocity.set(0, 0, 0); b.angularVelocity.set(0, 0, 0); } continue; }   // palanca/cinta: nunca cuentan como "en movimiento"
         if (!d.destroyed && b.sleepState !== CANNON.Body.SLEEPING) {
           const s = b.velocity.length() + b.angularVelocity.length() * 0.3;
           if (s > maxV) maxV = s;
@@ -1184,6 +1305,7 @@
         if (d.slow > 0.4 || d.age > 6) { this.killBall(b, true); continue; }
       }
       this.maxV = maxV;
+      if (this.hasBelt) { this.beltStep(dt); if (this.beltT > 0) this.beltT -= dt; }
       if (this.state === 'play' && (this.stepN = (this.stepN || 0) + 1) % 12 === 0) this.sweepHidden(12 * dt);
       // objetivo cumplido: el nivel sigue y el jugador decide cuándo terminar
       if (this.state === 'play' && !this.goalReached && this.progress() >= this.target) {
@@ -1194,6 +1316,7 @@
       if (this.chamPending && this.balls.length === 0 && this.pending.length === 0 && this.sinceFire > 0.6 && maxV < 1.2) { this.chamPending = false; this.shiftChams(); }
       if (this.shotOpen && this.balls.length === 0 && this.pending.length === 0 && this.sinceFire > 0.5) {
         this.shotOpen = false;
+        if (this.hasBelt) { this.beltT = 0.45; this.emit({ type: 'beltGo' }); }
         if (this.state === 'play' && !this.shotGolden) {
           if (this.shotPops >= 10) { this.queue.unshift('rainbow'); this.emit({ type: 'special', kind: 'rainbow', n: this.shotPops }); }
           else if (this.shotPops >= 6) { this.queue.unshift('bomb'); this.emit({ type: 'special', kind: 'bomb', n: this.shotPops }); }
@@ -1227,7 +1350,7 @@
           this.nextBird = t + 16 + this.rand() * 16;
           this.emit({ type: 'moverSpawn', kind: 'bird' });
         }
-        if (t >= this.nextShip && !this.movers.some(m => m.kind === 'ship' && m.active) && this.level.biome && this.level.biome !== 'sea' && this.level.biome !== 'halloween') {
+        if (t >= this.nextShip && !this.movers.some(m => m.kind === 'ship' && m.active) && this.level.biome && this.level.biome !== 'sea' && this.level.biome !== 'halloween' && this.level.biome !== 'paint' && this.level.biome !== 'storm') {   // el taller y la tormenta ocupan huecos del mar: sin carros, como antes
           this.spawnCarrier(this.level.biome);
           this.nextShip = t + 22 + this.rand() * 16;
         } else if (t >= this.nextShip && !this.movers.some(m => m.kind === 'ship' && m.active)) {
@@ -1280,7 +1403,7 @@
     }
     // objeto que cruza el cielo (mundos sin mar): vuela por encima de la estructura, a la vista, con 2 bolas a bordo
     spawnCarrier(biome) {
-      if (!C.CARRIERS[biome]) biome = { candy: 'desert', crystal: 'snow', temple: 'jungle', forest: 'jungle', fair: 'desert', neon: 'space', xmas: 'snow' }[biome];
+      if (!C.CARRIERS[biome]) biome = { candy: 'desert', crystal: 'snow', temple: 'jungle', forest: 'jungle', fair: 'desert', neon: 'space', xmas: 'snow', factory: 'desert' }[biome];
       const K = C.CARRIERS[biome]; if (!K) return;
       const dir = this.rand() < 0.5 ? 1 : -1, z = K.z - this.rand() * K.zr;
       const cam = referenceCam(this.level), sil = this.silhouette();

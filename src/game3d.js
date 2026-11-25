@@ -1101,7 +1101,8 @@
   const BIOMES = { sea: { env: [sea, decor], platform: island } };
   const biomeBuilders = { desert: buildDesert, snow: buildSnow, jungle: buildJungle, volcano: buildVolcano, space: buildSpace, candy: buildCandy, crystal: buildCrystal, temple: buildTemple, forest: buildForest, fair: buildFair, neon: buildNeon, halloween: () => window.Halloween ? window.Halloween.build() : null,
     orchard: () => window.Mundos ? window.Mundos.build('orchard') : null, reef: () => window.Mundos ? window.Mundos.build('reef') : null,
-    toys: () => window.Mundos ? window.Mundos.build('toys') : null, dino: () => window.Mundos ? window.Mundos.build('dino') : null, xmas: () => window.Christmas ? window.Christmas.build() : null };
+    toys: () => window.Mundos ? window.Mundos.build('toys') : null, dino: () => window.Mundos ? window.Mundos.build('dino') : null, xmas: () => window.Christmas ? window.Christmas.build() : null,
+    paint: () => window.Mundos ? window.Mundos.build('paint') : null, factory: () => window.Mundos ? window.Mundos.build('factory') : null, storm: () => window.Mundos ? window.Mundos.build('storm') : null };
   let biome = 'sea';
   function setBiome(name) {
     if (!BIOMES[name] && biomeBuilders[name]) BIOMES[name] = biomeBuilders[name]();
@@ -1464,7 +1465,11 @@
     orchard: { top: 0x4fb8ff, mid: 0xa8e4ff, hor: 0xf0fbd8, fog: 0xcdf0c8, sea: 0x3aa8d8, sun: 0xfff6d8, hemi: [0xfff6d8, 0x5aa040], biome: 'orchard', fogNear: 50, fogFar: 170 },
     reef: { top: 0x03203f, mid: 0x0a5a8a, hor: 0x1aa6b8, fog: 0x0d6e8e, sea: 0x0d6e8e, sun: 0xbff4ff, hemi: [0x7fe8ff, 0x0a3050], biome: 'reef', fogNear: 20, fogFar: 85, sunI: 1.9, hemiI: 1.15 },
     toys: { top: 0xffb8d8, mid: 0xffd8c0, hor: 0xfff0d0, fog: 0xffe2d0, sea: 0xffc8d8, sun: 0xfff4e0, hemi: [0xfff0e0, 0xc07850], biome: 'toys', fogNear: 60, fogFar: 260 },
-    dino: { top: 0x6a3a2a, mid: 0xd88a4a, hor: 0xffc070, fog: 0xe0a060, sea: 0x8a5a2a, sun: 0xffd8a0, hemi: [0xffe0b0, 0x5a3a1a], biome: 'dino', fogNear: 40, fogFar: 170 } };
+    dino: { top: 0x6a3a2a, mid: 0xd88a4a, hor: 0xffc070, fog: 0xe0a060, sea: 0x8a5a2a, sun: 0xffd8a0, hemi: [0xffe0b0, 0x5a3a1a], biome: 'dino', fogNear: 40, fogFar: 170 },
+    // 25-11 · taller de pintura, fábrica y central de tormenta (src/mundos.js)
+    paint: { top: 0xffe9cf, mid: 0xfff4e6, hor: 0xfff9f0, fog: 0xfff1de, sea: 0xffe0c0, sun: 0xfff6e8, hemi: [0xfffaf0, 0xc89a6a], biome: 'paint', fogNear: 60, fogFar: 260 },
+    factory: { top: 0x1e1410, mid: 0x6a3a1c, hor: 0xe8954a, fog: 0xb86a34, sea: 0x5a3a20, sun: 0xffd8a8, hemi: [0xffd8a8, 0x3a2010], biome: 'factory', fogNear: 50, fogFar: 230 },
+    storm: { top: 0x05061a, mid: 0x1c2050, hor: 0x4a5a8a, fog: 0x26305a, sea: 0x1a2440, sun: 0x9ab0ff, hemi: [0x9ab0ff, 0x101428], biome: 'storm', fogNear: 30, fogFar: 150, sunI: 1.4, hemiI: 0.9 } };
   const mixC = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
   function themeFor(world) {
     const W = G.hwWorld || (G.level && G.level.hw) ? { biome: 'halloween', variant: 'noche' } : G.xmWorld || (G.level && G.level.xm) ? { biome: 'xmas', variant: 'xm' } : (WORLDS[world - 1] || { biome: 'sea', variant: 'día' });
@@ -1560,9 +1565,33 @@
       geyser: { body: MAT.stone, deco: decal(ventTex) },
     };
   })();
+  // 25-11 · bloques de los mundos nuevos: lienzo, metal, pila, bote de pintura, cinta y palanca
+  {
+    const deco = (draw) => canvasTex(128, 128, (g) => { g.clearRect(0, 0, 128, 128); draw(g); }, true);
+    const canvasTexW = canvasTex(256, 256, (g) => { g.fillStyle = '#fbf7ee'; g.fillRect(0, 0, 256, 256); g.strokeStyle = 'rgba(160,140,110,.2)'; g.lineWidth = 1;
+      for (let i = 0; i < 256; i += 4) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 256); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(256, i); g.stroke(); }
+      g.strokeStyle = '#c89a5a'; g.lineWidth = 22; g.strokeRect(11, 11, 234, 234); g.strokeStyle = 'rgba(150,120,90,.55)'; g.lineWidth = 8; g.lineCap = 'round'; g.beginPath(); g.moveTo(80, 170); g.quadraticCurveTo(128, 70, 176, 100); g.stroke(); });
+    const metalTex = canvasTex(256, 256, (g) => { const gr = g.createLinearGradient(0, 0, 256, 256); gr.addColorStop(0, '#dfe4ee'); gr.addColorStop(0.5, '#8a94a8'); gr.addColorStop(1, '#c8d0de'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+      g.fillStyle = '#c8703a'; g.fillRect(0, 24, 256, 18); g.fillRect(0, 214, 256, 18);
+      for (const [x, y] of [[22, 66], [234, 66], [22, 190], [234, 190]]) { const r = g.createRadialGradient(x - 3, y - 3, 1, x, y, 9); r.addColorStop(0, '#fff'); r.addColorStop(1, '#555'); g.fillStyle = r; g.beginPath(); g.arc(x, y, 8, 0, 7); g.fill(); } });
+    const boltDeco = deco(g => { g.fillStyle = '#ffe23a'; g.strokeStyle = '#3a3000'; g.lineWidth = 5; g.beginPath(); [[74, 22], [40, 70], [62, 70], [48, 108], [90, 56], [68, 56], [82, 22]].forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fill(); g.stroke(); });
+    const beltTex = canvasTex(512, 64, (g) => { g.fillStyle = '#26262c'; g.fillRect(0, 0, 512, 64); g.fillStyle = '#ffd23f'; for (let x = 10; x < 512; x += 64) { g.beginPath(); g.moveTo(x, 10); g.lineTo(x + 26, 32); g.lineTo(x, 54); g.lineTo(x + 12, 54); g.lineTo(x + 38, 32); g.lineTo(x + 12, 10); g.fill(); } });
+    beltTex.wrapS = THREE.RepeatWrapping;
+    const hazard = canvasTex(128, 32, (g) => { g.fillStyle = '#ffd23f'; g.fillRect(0, 0, 128, 32); g.fillStyle = '#1a1a1a'; for (let x = -32; x < 160; x += 32) { g.beginPath(); g.moveTo(x, 32); g.lineTo(x + 16, 32); g.lineTo(x + 32, 0); g.lineTo(x + 16, 0); g.fill(); } });
+    hazard.wrapS = THREE.RepeatWrapping;
+    const decal = (tex) => new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    Object.assign(NEWK, {
+      canvas: { body: new THREE.MeshStandardMaterial({ map: canvasTexW, roughness: 0.9 }) },
+      metal: { body: new THREE.MeshStandardMaterial({ map: metalTex, metalness: 0.75, roughness: 0.3 }), deco: decal(boltDeco) },
+      battery: { body: new THREE.MeshStandardMaterial({ color: 0x1e1e24, metalness: 0.5, roughness: 0.35 }) },
+      paint: { body: new THREE.MeshStandardMaterial({ color: 0xd8dde6, metalness: 0.85, roughness: 0.25 }) },
+      belt: { body: new THREE.MeshStandardMaterial({ map: beltTex, roughness: 0.8 }), hazard: new THREE.MeshStandardMaterial({ map: hazard, roughness: 0.5 }) },
+      lever: { body: new THREE.MeshStandardMaterial({ color: 0x3a3a44, metalness: 0.7, roughness: 0.4 }) },
+    });
+  }
   // icono de cada bloque nuevo para su tarjeta de estreno
-  const DEBUT_KIND = { k: 'rocket', n: 'pinata', h: 'hourglass', e: 'mirror', u: 'spring', v: 'geyser', q: 'portal', j: 'gift', B: 'bubble', w: 'prism', F: 'fan', l: 'lock', S: 'snowball', N: 'cloud', V: 'vine', d: 'balloon', z: 'magnet', T: 'totem', C: 'gum' };
-  const DEBUT_FIND = { lock: b => b.userData.kind === 'key', bubble: b => b.userData.bubble, totem: b => b.userData.totem, vine: b => b.userData.vine };
+  const DEBUT_KIND = { pb: 'paint', cv: 'canvas', cb: 'belt', bt: 'battery', k: 'rocket', n: 'pinata', h: 'hourglass', e: 'mirror', u: 'spring', v: 'geyser', q: 'portal', j: 'gift', B: 'bubble', w: 'prism', F: 'fan', l: 'lock', S: 'snowball', N: 'cloud', V: 'vine', d: 'balloon', z: 'magnet', T: 'totem', C: 'gum' };
+  const DEBUT_FIND = { belt: b => b.userData.kind === 'lever', lock: b => b.userData.kind === 'key', bubble: b => b.userData.bubble, totem: b => b.userData.totem, vine: b => b.userData.vine };
   function newKindIcon(kind) {
     const L = NEWK[kind];
     const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
@@ -1575,6 +1604,17 @@
       if (kind === 'balloon') { g.fillStyle = '#ff4f6d'; g.beginPath(); g.ellipse(64, 54, 28, 34, 0, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(64, 88); g.quadraticCurveTo(54, 100, 64, 114); g.stroke(); }
       if (kind === 'totem') { g.fillStyle = '#ffd23f'; g.fillRect(34, 18, 60, 92); g.drawImage(NEWK.tikiDeco.map.image, 34, 30, 60, 60); }
       if (kind === 'lock') { g.fillStyle = '#3d9bff'; g.fillRect(24, 24, 80, 80); g.drawImage(NEWK.lockDeco.map.image, 24, 24, 80, 80); }
+      return c.toDataURL();
+    }
+    if (kind === 'paint' || kind === 'canvas' || kind === 'belt' || kind === 'battery') {
+      g.fillStyle = kind === 'canvas' ? '#c89a5a' : '#3a2f6e'; g.strokeStyle = '#2a1d5c'; g.lineWidth = 6; g.beginPath(); g.roundRect(10, 10, 108, 108, 22); g.fill(); g.stroke();
+      if (kind === 'canvas') { g.drawImage(NEWK.canvas.body.map.image, 22, 22, 84, 84); }
+      if (kind === 'paint') { g.fillStyle = '#c8ccd6'; g.fillRect(38, 46, 52, 56); g.fillStyle = '#ff4f6d'; g.fillRect(38, 62, 52, 22); g.beginPath(); g.ellipse(64, 46, 26, 8, 0, 0, 7); g.fill(); g.strokeStyle = '#8a8f99'; g.lineWidth = 4; g.beginPath(); g.arc(64, 46, 28, Math.PI, 0); g.stroke();
+        g.fillStyle = '#ff4f6d'; for (const [x, y, r] of [[30, 36, 6], [98, 30, 5], [100, 52, 4], [26, 58, 4]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } }
+      if (kind === 'battery') { g.fillStyle = '#1e1e24'; g.fillRect(40, 30, 48, 76); g.fillStyle = '#ffb020'; g.fillRect(40, 30, 48, 24); g.fillStyle = '#d8dee8'; g.fillRect(56, 20, 16, 10); g.fillStyle = '#1e1e24'; g.fillRect(58, 36, 12, 4); g.fillRect(62, 32, 4, 12);
+        g.strokeStyle = '#9ff0ff'; g.lineWidth = 4; g.beginPath(); g.moveTo(96, 40); g.lineTo(108, 52); g.lineTo(98, 58); g.lineTo(112, 74); g.stroke(); }
+      if (kind === 'belt') { g.drawImage(NEWK.belt.body.map.image, 0, 0, 512, 64, 16, 66, 96, 22); g.fillStyle = '#ffd23f'; g.fillRect(28, 36, 22, 22); g.fillStyle = '#3d9bff'; g.fillRect(54, 36, 22, 22);
+        g.fillStyle = '#8a8f99'; g.fillRect(98, 52, 14, 40); g.fillStyle = '#e8282e'; g.beginPath(); g.arc(30, 104, 7, 0, 7); g.fill(); g.strokeStyle = '#c0c4cc'; g.lineWidth = 4; g.beginPath(); g.moveTo(22, 116); g.lineTo(30, 104); g.stroke(); }
       return c.toDataURL();
     }
     if (kind === 'portal') { const gr = g.createRadialGradient(64, 64, 8, 64, 64, 56); gr.addColorStop(0, '#fff'); gr.addColorStop(0.45, '#c07bff'); gr.addColorStop(0.8, '#5a1fd6'); gr.addColorStop(1, 'rgba(90,31,214,0)'); g.fillStyle = gr; g.beginPath(); g.arc(64, 64, 56, 0, 7); g.fill(); g.strokeStyle = '#2a1d5c'; g.lineWidth = 6; g.beginPath(); g.arc(64, 64, 44, 0, 7); g.stroke(); return c.toDataURL(); }
@@ -1620,6 +1660,42 @@
       const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.93, emissive: 0xdfe8f5, emissiveIntensity: 0.35 });
       for (let i = 0; i < 9; i++) { const r = rnd(0.6, 1.05); const p = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 2), m); p.position.set(rnd(-d.w / 2 + 0.5, d.w / 2 - 0.5), rnd(-d.h / 2 + 0.5, d.h / 2 - 0.5), rnd(-0.2, 0.3)); g.add(p); }
       g.userData.body = g.children[0]; g.userData.cloud = true; return g;
+    }
+    if (d.kind === 'paint') {           // bote de pintura de su color, con asa y goterones
+      const can = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.38, 0.8, 28), NEWK.paint.body); can.castShadow = true; g.add(can);
+      const col = COL[d.c] || 0xff4f6d, pm = new THREE.MeshPhysicalMaterial({ color: col, roughness: 0.15, clearcoat: 1 });
+      const lab = new THREE.Mesh(new THREE.CylinderGeometry(0.425, 0.39, 0.34, 28, 1, true), pm); lab.position.y = -0.04; g.add(lab);
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.04, 28), pm); top.position.y = 0.41; g.add(top);
+      const handle = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.025, 8, 24, Math.PI), new THREE.MeshStandardMaterial({ color: 0x8a8f99, metalness: 0.9, roughness: 0.3 })); handle.position.y = 0.42; handle.rotation.y = 0.5; g.add(handle);
+      for (let i = 0; i < 4; i++) { const a = -1.1 + i * 0.7, dr = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.12 + (i % 2) * 0.16, 6, 10), pm); dr.position.set(Math.cos(a) * 0.41, 0.24 - (i % 2) * 0.08, Math.sin(a) * 0.41 + 0.04); g.add(dr); }
+      g.userData.body = can; return g;
+    }
+    if (d.kind === 'battery') {         // pila grande con el polo de arriba y un brillo
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.95, 28), NEWK.battery.body); b.castShadow = true; g.add(b);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.43, 0.43, 0.32, 28), new THREE.MeshStandardMaterial({ color: 0xffb020, metalness: 0.4, roughness: 0.3, emissive: 0x402000 })); band.position.y = 0.26; g.add(band);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.12, 20), new THREE.MeshStandardMaterial({ color: 0xd8dee8, metalness: 0.95, roughness: 0.2 })); pole.position.y = 0.53; g.add(pole);
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffe86a, transparent: true, opacity: 0.16, depthWrite: false })); g.add(glow);
+      g.userData.body = b; g.userData.sparkle = true; return g;
+    }
+    if (d.kind === 'belt') {            // cinta transportadora: banda, rodillos, patas y trituradora a la derecha
+      const m = new THREE.Mesh(new THREE.BoxGeometry(d.w, d.h, d.d), [NEWK.belt.hazard, NEWK.belt.hazard, NEWK.belt.body, NEWK.belt.body, NEWK.belt.hazard, NEWK.belt.hazard]);
+      m.receiveShadow = true; m.castShadow = true; g.add(m);
+      const roll = new THREE.MeshStandardMaterial({ color: 0xb0b4bc, metalness: 0.9, roughness: 0.25 }), dark = new THREE.MeshStandardMaterial({ color: 0x3a3a44, metalness: 0.7, roughness: 0.4 });
+      for (const sx of [-1, 1]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(d.h * 0.7, d.h * 0.7, d.d + 0.1, 20), roll); r.rotation.x = Math.PI / 2; r.position.x = sx * d.w / 2; g.add(r);
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, d.y - d.h / 2 + 0.1, 0.14), dark); leg.position.set(sx * (d.w / 2 - 0.2), -(d.y - d.h / 2) / 2 - d.h / 2, d.d / 2 - 0.1); g.add(leg); }
+      // trituradora: caja con dientes al final de la cinta (lado +x)
+      const cr = new THREE.Group(); cr.position.set(d.w / 2 + 0.45, 0.2, 0); g.add(cr);
+      const box = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.9, d.d + 0.1), NEWK.belt.hazard); box.castShadow = true; cr.add(box);
+      for (let i = 0; i < 4; i++) { const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.25, 6), roll); tooth.position.set(-0.2, 0.5, -0.45 + i * 0.3); cr.add(tooth); }
+      g.userData.body = m; g.userData.beltTex = NEWK.belt.body.map; return g;
+    }
+    if (d.kind === 'lever') {           // palanca roja sobre su base
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.7), NEWK.lever.body); base.position.y = -0.25; base.castShadow = true; g.add(base);
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.06, 0.55), new THREE.MeshStandardMaterial({ color: 0xffd23f })); plate.position.y = 0.02; g.add(plate);
+      const arm = new THREE.Group(); arm.position.y = 0; arm.rotation.z = -0.55; g.add(arm);
+      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 12), new THREE.MeshStandardMaterial({ color: 0xc0c4cc, metalness: 0.9, roughness: 0.2 })); rod.position.y = 0.55; arm.add(rod);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.2, 18, 12), new THREE.MeshPhysicalMaterial({ color: 0xe8282e, clearcoat: 1, roughness: 0.2 })); knob.position.y = 1.12; arm.add(knob);
+      g.userData.body = base; g.userData.arm = arm; return g;
     }
     if (d.kind === 'snowball') { const sb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.56, 2), NEWK.snowball.body); sb.castShadow = true; g.add(sb); g.userData.body = sb; g.userData.snow = sb; return g; }
     const L = NEWK[d.kind];
@@ -2103,6 +2179,27 @@
     const t = COMBO_TIERS.find(q => q[0] === G.combo);
     if (t) { centerText(t[1], t[2], 34 + COMBO_TIERS.indexOf(t) * 4); vibe([25, 25, 40 + COMBO_TIERS.indexOf(t) * 20]); flashLight.position.set(e.x || 0, (e.y || 2) + 1, (e.z || 0) + 1.5); flashLight.color.set(t[2]); flashLight.intensity = 40; G.shake = Math.max(G.shake, 0.15); }
   }
+  // un bloque cambia de color (bote de pintura o lienzo): se cambia su material y su carita
+  function recolorView(e) {
+    const g = G.meshes[e.id], b = G.sim && G.sim.blocks[e.id]; if (!g || !b) return;
+    if (e.canvas) {                    // el lienzo pasa a ser un bloque normal: se rehace su malla
+      world.remove(g); const ng = blockView(b.userData); smoothPose(b, ng, G.sim);
+    } else {
+      const SK = blockSkin(), mat = (SK && SK.mat[e.c]) || jelly[e.c];
+      if (g.userData.body && mat) g.userData.body.material = mat;
+      for (const k of g.children) if (k !== g.userData.body && k.material && k.material.map && FACES[e.c] && Object.values(FACES).some(f => Object.values(f).includes(k.material.map))) k.material.map = FACES[e.c].normal;
+    }
+    spawnSprite(e.x, e.y, e.z + 0.5, COL[e.c] || 0xffffff, 1.1, 1.2, 0.3, { add: true, alpha: 0.8 });
+  }
+  // la corriente de la pila: rayos entre la pila y los metales
+  function zapFx(e) {
+    Audio.explode && Audio.explode(); vibe([15, 20, 30]);
+    flashLight.position.set(e.x, e.y + 1, e.z + 1.5); flashLight.color.set(0x9ff0ff); flashLight.intensity = 30;
+    for (const [x0, y0, z0, x1, y1, z1] of e.links || []) {
+      const n = 6; for (let i = 0; i <= n; i++) { const t = i / n; spawnSprite(x0 + (x1 - x0) * t + rnd(-0.12, 0.12), y0 + (y1 - y0) * t + rnd(-0.12, 0.12), Math.max(z0, z1) + 0.55, 0x9ff0ff, 0.5, 1.8, 0.35, { add: true }); }
+    }
+    if (!(e.links || []).length) toast('La pila no toca ningún metal', 1600);
+  }
   function handleEvents() {
     const sim = G.sim;
     // mejor tiro: bloques derribados desde el último disparo (solo jugando de verdad)
@@ -2236,6 +2333,19 @@
           centerText('¡ARCOÍRIS!', hexCss(e.c), 34); Audio.special(); G.shake = Math.max(G.shake, 0.3); vibe([30, 20, 60]);
           break;
         case 'prismOff': for (const c of Object.values(COL)) spawnDebris(e.x, e.y, e.z, c, 3, 4, 0.1, 0.9, { flat: true }); Audio.pop(3); break;   // roto sin efecto
+        // 25-11 · mundos nuevos
+        case 'paintsplash': { const col = COL[e.c] || 0xffffff; spawnDebris(e.x, e.y, e.z, col, 22, 6, 0.14, 1.0); spawnRing(e.x, e.y, e.z + 0.5, col, 1.8, 0.5); spawnSprite(e.x, e.y, e.z + 0.4, col, 2.4, 1.6, 0.4, { add: true, alpha: 0.85 }); Audio.splash ? Audio.splash() : Audio.pop(3); stats().specials++; break; }
+        case 'recolor': recolorView(e); break;
+        case 'canvasOff': spawnDebris(e.x, e.y, e.z, 0xfbf7ee, 10, 4, 0.1, 0.9, { flat: true }); spawnDebris(e.x, e.y, e.z, 0xc89a5a, 6, 4, 0.08, 0.8); Audio.pop(2); break;
+        case 'clank': spawnSprite(e.x, e.y, e.z + 0.5, 0xfff2b0, 0.9, 1.6, 0.18, { add: true }); spawnDebris(e.x, e.y, e.z + 0.5, 0xffe27a, 6, 5, 0.05, 0.4); Audio.thud(5, false); break;
+        case 'metalOff': spawnDebris(e.x, e.y, e.z, 0xa8b0c0, 8, 4, 0.12, 0.9); if (e.zap) spawnSprite(e.x, e.y, e.z + 0.3, 0x9ff0ff, 1.6, 1.4, 0.3, { add: true }); Audio.glass(); break;
+        case 'zap': zapFx(e); stats().specials++; break;
+        case 'lever': { const g = G.meshes[e.id]; if (g && g.userData.arm) g.userData.arm.rotation.z = e.on ? 0.55 : -0.55; spawnSprite(e.x, e.y + 0.6, e.z + 0.4, 0xffd23f, 1.2, 1.4, 0.3, { add: true }); Audio.swap();
+          showHint(e.on ? '¡La cinta va hacia la trituradora!' : 'La cinta vuelve hacia el otro lado', 2200); break; }
+        case 'crush': spawnDebris(e.x, e.y, e.z, COL[e.c] || 0xa8b0c0, 14, 5, 0.12, 1.0); spawnSprite(e.x, e.y, e.z + 0.3, 0xffffff, 1.4, 1.4, 0.5, { alpha: 0.6 }); Audio.thud(6, true);
+          if (e.ball) { floatText(e.x, e.y + 1, e.z, '+1 BOLA', hexCss(e.ball), 24, true, true); Audio.coin(); lastTray = ''; } break;
+        case 'chute': spawnSprite(e.x, e.y, e.z + 0.3, 0xffffff, 1.2, 1.2, 0.4, { alpha: 0.6 }); spawnDebris(e.x, e.y, e.z, COL[e.c] || 0xa8b0c0, 6, 3, 0.1, 0.7); Audio.thud(3, false); break;
+        case 'beltGo': G.beltT = 0.45; break;
         case 'locked': floatText(e.x, e.y + 0.8, e.z, '¡CERRADO!', '#cfd3e0', 20); Audio.thud(4, true); break;
         case 'unlock':
           for (const id of e.ids || []) { const g = G.meshes[id]; if (g && g.userData.lock) { g.userData.lock.visible = false; spawnSprite(g.position.x, g.position.y, g.position.z + 0.6, 0xffe27a, 1.2, 1.4, 0.4, { add: true }); } }
@@ -3035,7 +3145,7 @@
     w10: 'Abre un agujero negro que se traga lo que tiene cerca.',
   };
   const BIOME_BALL = { desert: 'w6', snow: 'w7', jungle: 'w8', volcano: 'w9', space: 'w10' };
-  const FRESH_BALL = { candy: 'w2', crystal: 'w5', temple: 'w4', forest: 'w8', fair: 'w2', neon: 'w10', orchard: 'w8', reef: 'w4', toys: 'w2', dino: 'w9' };
+  const FRESH_BALL = { candy: 'w2', crystal: 'w5', temple: 'w4', forest: 'w8', fair: 'w2', neon: 'w10', orchard: 'w8', reef: 'w4', toys: 'w2', dino: 'w9', paint: 'w4', factory: 'w6', storm: 'w1' };   // los 3 últimos: la de antes (mar/desierto)
   function worldBallOf(w) {
     const W = WORLDS[w - 1]; if (!W) return 'w1';
     if (W.biome === 'sea') return 'w' + (1 + Math.min(4, Math.floor((w - 1) / 3) % 5));
@@ -4988,6 +5098,7 @@
         if (sim.state === 'won' && !G.winShown && G.t - G.winAt > 1.6) finishWin();
         if (G.level.endless && window.Torre) window.Torre.tick(dt * G.timeScale);
         if (sim.state === 'lost' && !G.ended) { G.endT -= dt; if (G.endT <= 0) { G.ended = true; if (G.level.endless && window.Torre) window.Torre.end(); else showLose(); } }
+        if (G.beltT > 0) { G.beltT -= dt; const bt = sim.blocks.find(b => b.userData.kind === 'belt'); if (bt && NEWK.belt) NEWK.belt.body.map.offset.x -= dt * 1.1 * bt.userData.dir; }   // la cinta se mueve
         updateHud(dt);
       } else if (G.mode === 'title' && TD.phase === 'shot') { sim.update(dt); titleEvents(); }
       else { sim.update(dt * 0.0); sim.events.length = 0; }

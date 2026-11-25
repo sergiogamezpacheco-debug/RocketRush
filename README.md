@@ -703,6 +703,23 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   cada 5 pisos, y la clasificación de la semana (`weekly/T<semana>`, puntuación = piso×10000 + bloques). La barra de arriba
   dice «PISO N» (`tools/torreflow.py`).
 
+- **3 mundos nuevos con mecánica propia** (`levels3d.js` → `mechLevel`, se aplica después de generar para no mover nada):
+  - **Taller de pintura** (mundos 55-57): **bote de pintura** (al romperlo pinta de su color los bloques de alrededor) y
+    **lienzo** (bloque blanco que toma el color de la bola que le da y estalla con su grupo).
+  - **Fábrica de engranajes** (61-63): **cinta transportadora** encima de la torre que avanza un paso tras cada tiro; lo que
+    llega a la **trituradora** se rompe y cada 2 bloques triturados dan +1 bola; la **palanca** roja cambia el sentido (al otro
+    extremo la carga cae al cajón). La carga no cuenta para derribar el nivel y estos niveles tienen 2 bolas más.
+  - **Central de tormenta** (91-93): camino de **bloques de metal** (las bolas rebotan) y una **pila**: al romperla descarga
+    por todo el metal que toca y lo rompe en cadena (+1 bola en estos niveles).
+  - Paisajes nuevos en `mundos.js` (taller con caballetes y goteo, fábrica con engranajes que giran, nubes con rayos),
+    tarjetas de mundo, bola nueva de cada mundo y su ficha de estreno (niveles 548, 549, 610 y 920).
+- **3 jefes nuevos** (`bosses.js`, 3 vidas): **Maese Brochazo** (nivel 578: dale a la mancha que brilla con una bola de ese
+  color; cada 3 tiros repinta una fila), **Grúa Mordisco** (640: tira el contenedor para aturdirla y dispara a la cabina) y
+  **Nimbo** (950: cuando carga el rayo, dale al pararrayos para devolvérselo). Textos en los 6 idiomas (`tools/i18n_jefes3.py`).
+- Arreglos: la palanca/cinta ya no cuentan como «en movimiento» (podían dejar el cañón esperando) y el chapoteo del agua
+  ya no sale con las manchas de pintura. Pruebas: `tools/mecanicasflow.js`, `tools/mundosnuevosflow.py`,
+  `tools/jefesnuevosflow.py`.
+
 ## Cambios del 23-11-2026
 
 - **Tienda**: al saltar a Temporales u Ofertas (o al deslizar), el título que quedaba cortado bajo las pestañas dejaba

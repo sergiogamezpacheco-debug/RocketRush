@@ -10,6 +10,9 @@
     pyramid: 'Rompe bloques del color de su escudo antes de que cambie (cada 2 tiros) para abrirlo y dispara a la máscara de oro. Cinco golpes y cae. Cuidado con su maldición de arena.',
     golem: 'Camina de lado a lado. Sus 3 núcleos de lava se encienden de uno en uno: revienta el encendido antes de que cargue el golpe sísmico, o derriba todos sus bloques de colores.',
     golemArmor: 'Camina de lado a lado. Sus 3 núcleos de lava se encienden de uno en uno y llevan coraza: dale varias veces al encendido, o derriba todos sus bloques de colores.',
+    brush: 'Dale a la mancha de pintura que brilla en su paleta con una bola de ESE color: le quitas una vida. Cada 3 tiros repinta una fila de tu muro.',
+    crane: 'Dale al contenedor que cuelga: cae, rompe lo que hay debajo y la grúa se queda aturdida. Aturdida, dispárale a la cabina. Cada 3 tiros trae otro contenedor.',
+    nimbo: 'Cada 3 tiros carga un rayo y electrifica bloques. Mientras carga (brilla), dale al pararrayos de encima del muro: le devuelves el rayo y pierde una vida.',
     nut: 'Mientras sonríe es inmune. Cada bloque que derribas llena una barra (un tiro puede llenar las 3): con las 3 se enfada y entonces dispárale a la cara para quitarle una vida. Si fallas 2 tiros, vuelve a sonreír.',
   };
   // colores del escudo del faraón
@@ -105,10 +108,11 @@
     if (S.key === 'ship') { S.charge = 0; S.lastShots = 0; S.ball = null; initShip(); }
     if (S.key === 'pyramid') initPyramid();
     if (S.key === 'golem') initGolem();
+    if (SPOT[S.key]) initSpot();
     document.body.classList.add('bossmode');
     $('hudLevel').textContent = 'JEFE';
     $('bbName').textContent = L.bossName;
-    const segs = S.key === 'ship' ? [50] : S.key === 'pyramid' ? [20, 40, 60, 80] : S.nut ? Array.from({ length: S.lives - 1 }, (_, i) => (i + 1) * 100 / S.lives) : [33.33, 66.66];
+    const segs = S.key === 'ship' ? [50] : S.key === 'pyramid' ? [20, 40, 60, 80] : S.nut || SPOT[S.key] ? Array.from({ length: S.lives - 1 }, (_, i) => (i + 1) * 100 / S.lives) : [33.33, 66.66];
     $('bbSegs').innerHTML = segs.map(x => `<div class="bbSeg" style="left:${x}%"></div>`).join('');
     $('bossBar').classList.add('on');
     const intro = $('bossIntro');
@@ -673,6 +677,206 @@
       : `<span>GOLPE SÍSMICO</span>${chg}${S.stun > 0 ? '<span style="color:#ffd23f">¡ATURDIDO!</span>' : ''}`;
   }
 
+  // =====================================================================
+  // 25-11 · jefes de los mundos nuevos: Maese Brochazo (paleta), Grúa Mordisco y Nimbo (nube de tormenta)
+  // Los tres tienen vidas y un punto débil (X.aimObjs: se puede apuntar a él). Muro de colores delante (levels3d).
+  // =====================================================================
+  const SPOT = { brush: 1, crane: 1, nimbo: 1 }, SPOT_R = 0.95;
+  const T3 = () => window.THREE;
+  const std3 = (c, o) => new (T3().MeshStandardMaterial)(Object.assign({ color: c, roughness: 0.5 }, o || {}));
+  const bas3 = (c, o) => new (T3().MeshBasicMaterial)(Object.assign({ color: c }, o || {}));
+  const mesh3 = (geo, mat, x, y, z, parent) => { const m = new (T3().Mesh)(geo, mat); m.position.set(x || 0, y || 0, z || 0); m.castShadow = true; if (parent) parent.add(m); return m; };
+  function spotAdd(o) { X.world.add(o); S.extras.push(o); return o; }
+  function spotTarget(parent, x, y, z, r) {
+    const T = T3(), hit = new T.Mesh(new T.SphereGeometry(r || SPOT_R, 12, 10), new T.MeshBasicMaterial({ visible: false })); hit.position.set(x, y, z); parent.add(hit);
+    X.aimObjs.length = 0; X.aimObjs.push(hit); return hit;
+  }
+  function wallBox() { const live = S.sim.liveBlocks(); let x0 = 9, x1 = -9, y1 = 0, z1 = -9; for (const b of live) { x0 = Math.min(x0, b.position.x); x1 = Math.max(x1, b.position.x); y1 = Math.max(y1, b.position.y); z1 = Math.max(z1, b.position.z); } return { x0, x1, top: y1 + 0.5, front: z1 + 0.5 }; }
+  function initSpot() {
+    const T = T3(), sim = S.sim;
+    S.lives = 3; S.livesLeft = 3; S.hp = 1; S.shotsSeen = 0; S.wasOpen = false; S.flash = 0; S.stun = 0; S.cages = [];
+    const wb = wallBox(); S.wb = wb;
+    if (S.key === 'brush') {
+      // paleta de pintor con boina, bigote y pincel; la mancha que brilla es el punto débil
+      const B = spotAdd(new T.Group()); B.position.set(0, wb.top + 3.6, -1.6); B.rotation.x = 0.12; S.model = B;
+      const sh = new T.Shape(); sh.moveTo(-2.6, 0.2); sh.bezierCurveTo(-2.8, 2.0, 0.6, 2.4, 2.4, 1.3); sh.bezierCurveTo(3.3, 0.6, 2.8, -1.4, 1.4, -1.6); sh.bezierCurveTo(0.6, -1.7, 0.6, -0.9, -0.2, -1.0); sh.bezierCurveTo(-1.4, -1.2, -2.5, -1.2, -2.6, 0.2);
+      const hole = new T.Path(); hole.absarc(1.6, -0.5, 0.38, 0, Math.PI * 2, true); sh.holes.push(hole);
+      mesh3(new T.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 }), std3(0xd8a060, { roughness: 0.6 }), 0, 0, 0, B);
+      S.spots = []; const P = [['r', -1.9, 0.9], ['y', -0.9, 1.5], ['g', 0.4, 1.6], ['b', 1.6, 1.1], ['p', 2.3, 0.1]];
+      for (const [c, x, y] of P) { const m = mesh3(new T.SphereGeometry(0.42, 22, 14), new T.MeshPhysicalMaterial({ color: PC[c].hex, clearcoat: 1, roughness: 0.1, emissive: PC[c].hex, emissiveIntensity: 0 }), x, y, 0.45, B); m.scale.z = 0.45; S.spots.push({ c, m, x, y }); }
+      S.ring = mesh3(new T.TorusGeometry(0.62, 0.06, 10, 36), bas3(0xffffff), 0, 0, 0.62, B); S.ring.castShadow = false;
+      const eyeW = std3(0xffffff, { roughness: 0.2 }), pup = bas3(0x1d1440);
+      for (const sx of [-1, 1]) { const e = mesh3(new T.SphereGeometry(0.36, 20, 14), eyeW, -0.7 + sx * 0.55, 0.15, 0.5, B); e.scale.z = 0.5; mesh3(new T.SphereGeometry(0.16, 14, 10), pup, -0.65 + sx * 0.55, 0.1, 0.72, B); const br = mesh3(new T.BoxGeometry(0.5, 0.1, 0.1), bas3(0x3a2010), -0.7 + sx * 0.55, 0.62, 0.62, B); br.rotation.z = sx * 0.35; }
+      for (const sx of [-1, 1]) { const m = mesh3(new T.TorusGeometry(0.3, 0.08, 10, 20, Math.PI), std3(0x2a1a10), -0.7 + sx * 0.32, -0.4, 0.62, B); m.rotation.z = sx > 0 ? Math.PI : 0; }
+      const beret = mesh3(new T.SphereGeometry(0.9, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2.2), std3(0xc8202a, { roughness: 0.7 }), -1.2, 1.55, 0.15, B); beret.scale.set(1.25, 0.45, 1); beret.rotation.z = 0.35;
+      const brush = new T.Group(); brush.position.set(2.6, -0.6, 0.7); brush.rotation.z = -0.9; B.add(brush); S.brush = brush;
+      mesh3(new T.CylinderGeometry(0.13, 0.16, 3.2, 14), std3(0x2a2a8a), 0, 1.6, 0, brush); mesh3(new T.CylinderGeometry(0.2, 0.14, 0.45, 16), std3(0xc8ccd4, { metalness: 0.9, roughness: 0.25 }), 0, -0.2, 0, brush);
+      S.tip = mesh3(new T.ConeGeometry(0.28, 0.9, 16), new T.MeshPhysicalMaterial({ color: PC.b.hex, clearcoat: 1 }), 0, -0.85, 0, brush); S.tip.rotation.x = Math.PI;
+      S.hit = spotTarget(B, 0, 0, 0.5, 0.75);
+      brushPick();
+    } else if (S.key === 'crane') {
+      const Y = std3(0xffc21a, { metalness: 0.35, roughness: 0.45 }), D = std3(0x2a2a30, { metalness: 0.6, roughness: 0.4 });
+      const C = spotAdd(new T.Group()); S.model = C;
+      const tx = 3.6, tz = -2.6;
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) mesh3(new T.BoxGeometry(0.12, 8.2, 0.12), Y, tx + sx * 0.42, 4.1, tz + sz * 0.42, C);
+      for (let y = 0.6; y < 8; y += 0.8) for (const sz of [-1, 1]) { const b = mesh3(new T.BoxGeometry(1.2, 0.07, 0.07), Y, tx, y, tz + sz * 0.42, C); b.rotation.z = 0.5 * (Math.round(y / 0.8) % 2 ? 1 : -1); }
+      const jib = new T.Group(); jib.position.set(-0.9, 8.6, tz); C.add(jib);
+      for (const sy of [0, 0.6]) for (const sz of [-0.32, 0.32]) mesh3(new T.BoxGeometry(10, 0.12, 0.12), Y, 0, sy, sz, jib);
+      for (let x = -4.8; x < 5; x += 0.7) { const d = mesh3(new T.BoxGeometry(0.07, 0.85, 0.07), Y, x, 0.3, 0.32, jib); d.rotation.z = 0.7; }
+      mesh3(new T.BoxGeometry(1.5, 1.0, 1.2), D, 4.6, 0.3, 0, jib);
+      // cabina (cara): punto débil cuando está aturdida
+      const cab = new T.Group(); cab.position.set(tx - 0.6, 7.7, tz + 0.9); cab.rotation.y = -0.25; C.add(cab); S.cab = cab;
+      mesh3(new T.BoxGeometry(1.7, 1.4, 1.5), Y, 0, 0, 0, cab);
+      mesh3(new T.BoxGeometry(1.45, 0.75, 0.05), new T.MeshPhysicalMaterial({ color: 0x9fdcff, roughness: 0.05, transparent: true, opacity: 0.85 }), 0, 0.15, 0.76, cab);
+      S.eyes = [];
+      for (const sx of [-1, 1]) { mesh3(new T.SphereGeometry(0.2, 16, 12), bas3(0xffffff), sx * 0.35, 0.18, 0.8, cab); S.eyes.push(mesh3(new T.SphereGeometry(0.1, 12, 8), bas3(0x111111), sx * 0.33, 0.14, 0.97, cab)); const br = mesh3(new T.BoxGeometry(0.42, 0.1, 0.08), bas3(0x111111), sx * 0.35, 0.47, 0.82, cab); br.rotation.z = sx * -0.45; }
+      mesh3(new T.BoxGeometry(1.0, 0.3, 0.06), D, 0, -0.42, 0.78, cab); for (let i = -2; i <= 2; i++) mesh3(new T.BoxGeometry(0.05, 0.25, 0.08), bas3(0xffffff), i * 0.18, -0.42, 0.8, cab);
+      S.beacon = mesh3(new T.SphereGeometry(0.16, 14, 10), bas3(0xff7a1a), 0, 0.85, 0, cab);
+      S.stars = new T.Group(); S.stars.position.set(0, 1.25, 0); cab.add(S.stars); S.stars.visible = false;
+      for (let i = 0; i < 3; i++) { const st = mesh3(new T.OctahedronGeometry(0.16), bas3(0xffe27a), Math.cos(i * 2.1) * 0.55, 0, Math.sin(i * 2.1) * 0.55, S.stars); st.castShadow = false; }
+      S.cabHit = new T.Mesh(new T.SphereGeometry(1.0, 12, 10), new T.MeshBasicMaterial({ visible: false })); cab.add(S.cabHit);
+      // carro, cable y contenedor
+      S.trolley = mesh3(new T.BoxGeometry(0.8, 0.3, 0.9), D, 0, 8.45, tz, C); S.cable = mesh3(new T.CylinderGeometry(0.025, 0.025, 1, 6), std3(0x222222), 0, 7.5, tz, C);
+      S.crateG = new T.Group(); C.add(S.crateG);
+      const ct = new T.CanvasTexture((() => { const c = document.createElement('canvas'); c.width = 256; c.height = 192; const g = c.getContext('2d'); g.fillStyle = '#2f6ab8'; g.fillRect(0, 0, 256, 192); g.fillStyle = '#245494'; for (let x = 0; x < 256; x += 22) g.fillRect(x, 0, 10, 192); g.fillStyle = '#ffd23f'; g.font = '900 70px Arial'; g.textAlign = 'center'; g.fillText('!', 128, 120); return c; })());
+      mesh3(new T.BoxGeometry(1.5, 1.1, 1.1), new T.MeshStandardMaterial({ map: ct, metalness: 0.4, roughness: 0.5 }), 0, 0, 0, S.crateG);
+      const r1 = mesh3(new T.TorusGeometry(0.5, 0.05, 8, 30), bas3(0xffffff), 0, 0, 0.6, S.crateG), r2 = mesh3(new T.TorusGeometry(0.28, 0.05, 8, 30), bas3(0xff4f6d), 0, 0, 0.6, S.crateG); r1.castShadow = r2.castShadow = false;
+      S.crateHit = new T.Mesh(new T.SphereGeometry(0.95, 12, 10), new T.MeshBasicMaterial({ visible: false })); S.crateG.add(S.crateHit);
+      X.aimObjs.length = 0; X.aimObjs.push(S.crateHit, S.cabHit);
+      S.tz = tz; S.crate = 'hang'; S.cx = 0; S.cDir = 1; S.crateY = wb.top + 2.6;
+    } else if (S.key === 'nimbo') {
+      const N = spotAdd(new T.Group()); N.position.set(0.3, wb.top + 4.2, -3.2); S.model = N;
+      const cm = std3(0x4a5070, { roughness: 1 }), cm2 = std3(0x343a54, { roughness: 1 });
+      for (const [x, y, z, r] of [[0, 0, 0, 1.9], [-1.8, -0.2, 0.1, 1.4], [1.9, -0.1, 0.1, 1.5], [-0.9, 1.0, -0.2, 1.3], [1.0, 1.1, -0.2, 1.35], [-3.0, -0.4, -0.2, 1.0], [3.1, -0.3, -0.2, 1.05], [0, -0.8, 0.4, 1.3]]) mesh3(new T.SphereGeometry(r, 24, 16), r > 1.3 ? cm : cm2, x, y, z, N);
+      S.eyes = [];
+      for (const sx of [-1, 1]) { const e = mesh3(new T.SphereGeometry(0.36, 18, 12), bas3(0xfff36a), sx * 0.75, 0.25, 1.75, N); e.scale.set(1.1, 0.6, 0.6); S.eyes.push(e); const br = mesh3(new T.BoxGeometry(0.85, 0.2, 0.2), bas3(0x1a1d2e), sx * 0.72, 0.75, 1.85, N); br.rotation.z = sx * 0.5; }
+      const mo = mesh3(new T.TorusGeometry(0.45, 0.1, 10, 24, Math.PI), bas3(0x1a1d2e), 0, -0.55, 1.95, N);
+      S.glow = mesh3(new T.SphereGeometry(3.6, 20, 14), bas3(0xfff36a, { transparent: true, opacity: 0, depthWrite: false }), 0, 0, 0, N); S.glow.castShadow = false;
+      // pararrayos encima del muro: el punto débil (le devuelve el rayo)
+      const rod = spotAdd(new T.Group()); rod.position.set(-1.0, wb.top, 0.1); S.rod = rod;
+      mesh3(new T.CylinderGeometry(0.06, 0.08, 1.8, 10), std3(0xd8a040, { metalness: 0.95, roughness: 0.2 }), 0, 0.9, 0, rod); mesh3(new T.ConeGeometry(0.12, 0.4, 10), std3(0xd8a040, { metalness: 0.95, roughness: 0.2 }), 0, 1.95, 0, rod);
+      mesh3(new T.CylinderGeometry(0.3, 0.34, 0.2, 16), std3(0x3a3f50, { metalness: 0.6 }), 0, 0.1, 0, rod);
+      S.rodGlow = mesh3(new T.SphereGeometry(0.5, 14, 10), bas3(0xfff36a, { transparent: true, opacity: 0.2, depthWrite: false }), 0, 1.95, 0, rod); S.rodGlow.castShadow = false;
+      S.hit = spotTarget(rod, 0, 1.6, 0, 0.8);
+      S.charging = false; S.shotsN = 0; S.cages = [];
+    }
+    S.sub = spotSub();
+  }
+  function spotSub() {
+    if (S.key === 'brush') return 'Dale a la mancha que brilla con una bola <b style="color:' + PC[S.want].css + '">' + PC[S.want].name + '</b>';
+    if (S.key === 'crane') return S.stun > 0 ? '¡ATURDIDA! Dispárale a la cabina' : 'Dale al contenedor que cuelga';
+    return S.charging ? '¡CARGA UN RAYO! Dale al pararrayos' : 'Espera a que cargue el rayo (cada 3 tiros)';
+  }
+  function brushPick() {
+    const cols = [...new Set(S.sim.liveBlocks().map(b => b.userData.c).filter(c => PC[c]))], q = S.sim.queue.filter(c => PC[c]);
+    const pool = (cols.length ? cols : Object.keys(PC)).filter(c => c !== S.want);
+    S.want = (q.find(c => pool.includes(c))) || pool[Math.floor(Math.random() * pool.length)] || 'r';
+    for (const sp of S.spots) sp.m.material.emissiveIntensity = sp.c === S.want ? 0.9 : 0;
+    const sp = S.spots.find(o => o.c === S.want); S.ring.position.set(sp.x, sp.y, 0.62); S.hit.position.set(sp.x, sp.y, 0.5);
+    S.sub = spotSub();
+  }
+  function spotPos(o) { const v = new (T3().Vector3)(); o.getWorldPosition(v); return v; }
+  function spotDamage(at, txt) {
+    S.livesLeft--; S.flash = 1; G.shake = Math.max(G.shake, 0.9);
+    X.Audio.explode && X.Audio.explode(); X.Audio.crown && X.Audio.crown(); X.vibe && X.vibe([60, 40, 100]);
+    X.spawnSprite(at.x, at.y, at.z + 0.8, 0xffe27a, 3, 1.4, 0.4, { add: true }); X.spawnDebris(at.x, at.y, at.z + 0.6, 0xffffff, 16, 6, 0.14, 1);
+    for (let r = 0; r < 2; r++) X.spawnRing(at.x, at.y, at.z + 0.6, 0xff4f6d, 2.4 + r * 1.4, 0.4 + r * 0.2);
+    ft(at.x, at.y + 1.4, at.z, S.livesLeft > 0 ? txt : '¡K.O.!', '#ffd23f', 30);
+    S.hp = Math.max(0, S.livesLeft / S.lives);
+    if (S.livesLeft > 0) { S.sim.giveBalls(['r', 'b', 'y'].map(() => { const c = [...new Set(S.sim.liveBlocks().map(b => b.userData.c).filter(k => PC[k]))]; return c[Math.floor(Math.random() * c.length)] || 'r'; })); X.refreshTray(); }
+  }
+  // cada 3 tiros: Brochazo repinta una fila (mezclando colores), la grúa trae otro contenedor, Nimbo carga el rayo
+  function spotEveryThree() {
+    const sim = S.sim;
+    if (S.key === 'brush') {
+      const live = sim.liveBlocks().filter(b => b.userData.kind === 'block' && !b.userData.popping);
+      if (!live.length) return;
+      const ys = [...new Set(live.map(b => Math.round(b.position.y)))], y = ys[Math.floor(Math.random() * ys.length)], cols = Object.keys(PC);
+      S.brush.rotation.z = -0.4; setTimeout(() => { if (S && S.brush) S.brush.rotation.z = -0.9; }, 500);
+      let i = 0; for (const b of live) if (Math.round(b.position.y) === y) { const c = cols[(i++ + Math.floor(Math.random() * 5)) % 5]; if (c === b.userData.c) continue; b.userData.c = c; sim.emit({ type: 'recolor', id: b.userData.id, c, x: b.position.x, y: b.position.y, z: b.position.z }); }
+      banner('¡BROCHAZO!', 'Ha repintado una fila de tu muro');
+    } else if (S.key === 'crane') {
+      if (S.crate !== 'gone') return;
+      S.crate = 'hang'; S.crateG.visible = true; S.cx = S.wb.x0 + Math.random() * (S.wb.x1 - S.wb.x0); S.crateY = S.wb.top + 2.6;
+      banner('¡OTRO CONTENEDOR!', 'Dale para que caiga');
+    } else if (S.key === 'nimbo') {
+      if (S.charging) return;
+      S.charging = true; S.chargeShots = 0; banner('¡NIMBO CARGA UN RAYO!', 'Dale al pararrayos antes de que suelte el rayo');
+      X.Audio.horn && X.Audio.horn();
+    }
+    S.sub = spotSub();
+  }
+  function nimboStrike() {
+    // suelta el rayo: electrifica (encierra) 2 bloques durante 3 tiros
+    const sim = S.sim, live = sim.liveBlocks().filter(b => b.userData.kind === 'block' && !b.userData.locked && !b.userData.popping);
+    const T = T3();
+    for (let k = 0; k < 2 && live.length; k++) {
+      const b = live.splice(Math.floor(Math.random() * live.length), 1)[0]; b.userData.locked = true; b.userData.nimboLock = S.shotsSeen + 3;
+      const cage = new T.Group(); for (let i = 0; i < 3; i++) { const r = new T.Mesh(new T.TorusGeometry(0.62, 0.025, 6, 30), new T.MeshBasicMaterial({ color: 0x9ff0ff })); r.rotation.set(i * 1.1, i * 0.7, 0); cage.add(r); }
+      const g = G.meshes[b.userData.id]; if (g) { g.add(cage); S.cages.push({ b, cage, g }); }
+      X.spawnSprite(b.position.x, b.position.y + 1, b.position.z + 0.5, 0x9ff0ff, 2, 1.5, 0.35, { add: true });
+    }
+    G.shake = Math.max(G.shake, 0.5); X.Audio.explode && X.Audio.explode();
+    banner('¡RAYO!', 'Ha electrificado 2 bloques (3 tiros)');
+  }
+  function spotTick(dt) {
+    const sim = S.sim, T = T3();
+    S.flash = Math.max(0, S.flash - dt * 2.5); if (S.stun > 0 && S.key !== 'crane') S.stun -= dt;
+    // tiros: cuentan al acabar cada uno
+    if (!sim.shotOpen && S.wasOpen && !S.done) {
+      S.shotsSeen++;
+      for (const c of S.cages.slice()) if (S.shotsSeen >= c.b.userData.nimboLock) { c.b.userData.locked = false; c.g.remove(c.cage); S.cages.splice(S.cages.indexOf(c), 1); }
+      if (S.key === 'nimbo' && S.charging && ++S.chargeShots >= 2) { S.charging = false; nimboStrike(); }
+      if (S.key === 'crane' && S.stun > 0 && --S.stun <= 0) { S.stun = 0; S.stars.visible = false; ft(S.cab.position.x, 8.8, S.tz, 'SE DESPIERTA', '#ffe27a', 22); }
+      if (S.shotsSeen % 3 === 0) spotEveryThree();
+      S.sub = spotSub();
+    }
+    S.wasOpen = sim.shotOpen;
+    // animación
+    if (S.model) { S.model.position.y += Math.sin(S.t * 1.6) * dt * 0.25; }
+    if (S.key === 'brush') { S.ring.scale.setScalar(1 + Math.sin(S.t * 6) * 0.1); S.tip.material.color.setHex(PC[S.want].hex); }
+    if (S.key === 'nimbo') { S.glow.material.opacity = S.charging ? 0.12 + 0.1 * Math.sin(S.t * 10) : 0; S.rodGlow.material.opacity = S.charging ? 0.5 + 0.3 * Math.sin(S.t * 10) : 0.15; for (const e of S.eyes) e.material.color.setHex(S.charging ? 0xffffff : 0xfff36a); }
+    if (S.key === 'crane') {
+      S.beacon.material.color.setHex(Math.sin(S.t * 8) > 0 ? 0xff7a1a : 0x7a2a00);
+      if (S.stun > 0) S.stars.rotation.y += dt * 4;
+      if (S.crate === 'hang') { S.cx += S.cDir * dt * 0.7; if (S.cx > S.wb.x1) S.cDir = -1; if (S.cx < S.wb.x0) S.cDir = 1; }
+      if (S.crate === 'fall') { S.cv = (S.cv || 0) + 18 * dt; S.crateY -= S.cv * dt; if (S.crateY <= S.wb.top + 0.4) craneLand(); }
+      S.trolley.position.x = S.cx; S.cable.position.x = S.cx; const top = 8.3, len = Math.max(0.2, top - (S.crateY + 0.55)); S.cable.scale.y = S.crate === 'hang' ? len : 0.01; S.cable.position.y = top - len / 2;
+      S.crateG.position.set(S.cx, S.crateY, S.tz + 2.0);
+    }
+    // bolas contra el punto débil
+    if (S.done) return;
+    for (const b of sim.balls.slice()) {
+      const d = b.userData, p = b.position; if (d.dead || d.spotT > S.t) continue;
+      if (S.key === 'crane') {
+        if (S.crate === 'hang') { const c = spotPos(S.crateHit); if (Math.hypot(p.x - c.x, p.y - c.y, p.z - c.z) < 1.15) { d.spotT = S.t + 0.5; sim.killBall(b, false); S.crate = 'fall'; S.cv = 0; ft(c.x, c.y + 1, c.z, '¡CAE!', '#ffe27a', 26); X.Audio.thud && X.Audio.thud(5, true); continue; } }
+        const c = spotPos(S.cabHit); if (Math.hypot(p.x - c.x, p.y - c.y, p.z - c.z) < 1.25) { d.spotT = S.t + 0.5; if (S.stun > 0) { sim.killBall(b, false); S.stun = 0; S.stars.visible = false; spotDamage(c, '¡EN LA CABINA!'); } else { bounce(b, c); ft(c.x, c.y + 1.2, c.z, '¡INMUNE!', '#ffe27a', 22); } }
+        continue;
+      }
+      const c = spotPos(S.hit), dist = Math.hypot(p.x - c.x, p.y - c.y, p.z - c.z);
+      if (dist > (S.key === 'nimbo' ? 1.05 : 1.0)) continue;
+      d.spotT = S.t + 0.5;
+      if (S.key === 'brush') {
+        if (d.c === S.want || d.ball === 'golden' || d.ball === 'rainbow') { sim.killBall(b, false); spotDamage(c, '¡MANCHA!'); if (S.livesLeft > 0) brushPick(); }
+        else { bounce(b, c); ft(c.x, c.y + 1.2, c.z, '¡ESE COLOR NO!', '#ff6a7a', 22); }
+      } else if (S.key === 'nimbo') {
+        sim.killBall(b, false);
+        if (S.charging) { S.charging = false; const m = spotPos(S.model); for (let i = 0; i <= 10; i++) { const t = i / 10; X.spawnSprite(c.x + (m.x - c.x) * t + rnd(-0.3, 0.3), c.y + (m.y - c.y) * t, c.z + (m.z - c.z) * t, 0x9ff0ff, 0.9, 1.6, 0.4, { add: true }); } spotDamage(m, '¡RAYO DEVUELTO!'); }
+        else { ft(c.x, c.y + 1.2, c.z, 'Aún no carga', '#ffe27a', 20); X.Audio.thud && X.Audio.thud(4, false); }
+        S.sub = spotSub();
+      }
+    }
+  }
+  function bounce(b, c) { const p = b.position, dx = p.x - c.x, dy = p.y - c.y, dz = p.z - c.z, dist = Math.hypot(dx, dy, dz) || 1, nx = dx / dist, ny = dy / dist, nz = dz / dist, vn = b.velocity.x * nx + b.velocity.y * ny + b.velocity.z * nz; if (vn < 0) { b.velocity.x -= 1.6 * vn * nx; b.velocity.y -= 1.6 * vn * ny; b.velocity.z -= 1.6 * vn * nz; } X.Audio.thud && X.Audio.thud(5, true); }
+  function craneLand() {
+    const sim = S.sim, x = S.cx, y = S.wb.top, z = 0;
+    S.crate = 'gone'; S.crateG.visible = false;
+    sim.explode(x, y, z, 1.7, true);
+    S.stun = 2; S.stars.visible = true;           // aturdida durante 2 tiros
+    G.shake = Math.max(G.shake, 0.8);
+    banner('¡GRÚA ATURDIDA!', 'Dispárale a la cabina (2 tiros)');
+    S.sub = spotSub();
+  }
   function onRemoved(b, d) {
     const p = b.position;
     if (S.key === 'ship') {
@@ -707,7 +911,7 @@
     const w = (pct * 100).toFixed(1) + '%', txt = Math.ceil(pct * 100) + '%';
     if (S.barW !== w) { S.barW = w; $('bbFill').style.width = w; $('bbLag').style.width = w; }
     if ($('bbPct').__esv !== txt) { $('bbPct').__esv = txt; $('bbPct').textContent = txt; }
-    const ph = S.key === 'ship' ? 'FASE ' + S.phase + '/2' : S.key === 'pyramid' ? 'GOLPES ' + (S.hits || 0) + '/' + HITS : S.nut ? 'VIDA ' + S.livesLeft + '/' + S.lives : 'NÚCLEOS ' + ((S.cores ? S.cores.length : 3) - (S.coresHit || 0)) + '/' + (S.cores ? S.cores.length : 3);
+    const ph = S.key === 'ship' ? 'FASE ' + S.phase + '/2' : S.key === 'pyramid' ? 'GOLPES ' + (S.hits || 0) + '/' + HITS : S.nut || SPOT[S.key] ? 'VIDA ' + S.livesLeft + '/' + S.lives : 'NÚCLEOS ' + ((S.cores ? S.cores.length : 3) - (S.coresHit || 0)) + '/' + (S.cores ? S.cores.length : 3);
     if ($('bbPhase').__esv !== ph) { $('bbPhase').__esv = ph; $('bbPhase').textContent = ph; }
     if (S.sub !== S.subShown || force) { $('bbSub').innerHTML = S.sub || ''; S.subShown = S.sub; }
   }
@@ -724,6 +928,7 @@
     }
     if (S.key === 'ship') shipTick(dt);
     else if (S.key === 'pyramid') pyramidTick(dt);
+    else if (SPOT[S.key]) spotTick(dt);
     else golemTick(dt);
     if (!S.done) updateBar();
     if (!S.done && S.hp <= 0) victory();
