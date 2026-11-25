@@ -1317,7 +1317,7 @@
       if (this.shotOpen && this.balls.length === 0 && this.pending.length === 0 && this.sinceFire > 0.5) {
         this.shotOpen = false;
         if (this.hasBelt) { this.beltT = 0.45; this.emit({ type: 'beltGo' }); }
-        if (this.state === 'play' && !this.shotGolden) {
+        if (this.state === 'play' && !this.shotGolden && !this.level.endless) {   // en la torre las bolas especiales las da la torre
           if (this.shotPops >= 10) { this.queue.unshift('rainbow'); this.emit({ type: 'special', kind: 'rainbow', n: this.shotPops }); }
           else if (this.shotPops >= 6) { this.queue.unshift('bomb'); this.emit({ type: 'special', kind: 'bomb', n: this.shotPops }); }
         }
@@ -1350,6 +1350,7 @@
           this.nextBird = t + 16 + this.rand() * 16;
           this.emit({ type: 'moverSpawn', kind: 'bird' });
         }
+        if (this.level.endless) this.nextShip = 1e9;   // torre sin fin: sin ovni ni barcos (ya sale Papá Noel en Navidad)
         if (t >= this.nextShip && !this.movers.some(m => m.kind === 'ship' && m.active) && this.level.biome && this.level.biome !== 'sea' && this.level.biome !== 'halloween' && this.level.biome !== 'paint' && this.level.biome !== 'storm') {   // el taller y la tormenta ocupan huecos del mar: sin carros, como antes
           this.spawnCarrier(this.level.biome);
           this.nextShip = t + 22 + this.rand() * 16;

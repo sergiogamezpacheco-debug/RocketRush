@@ -328,7 +328,7 @@
     const b = popOpen(T('DESAFÍO'), 'fire', `<div class="rpban" style="background:linear-gradient(135deg,#ff7a1a,#e8203a)"><b>⚔️ ${esc(T(L.name))}</b><small>${T('Igual para todos')} · ${T('{x} intentos').replace('{x}', TRIES)} · ${T('quedan')} ${X.leftTxt(wkEnd(wkIdx()) - Date.now())}</small></div>
       <div class="rchips">${rw}</div>
       <div class="wkme">${T('Tu mejor puntuación')}: <b>${fmt(w.best)}</b> · ${T('intentos')}: <b>${left}</b></div>
-      <div class="wklb" id="wkLb"><div class="sempty">${online() ? T('Cargando clasificación…') : T('Sin conexión: tu puntuación cuenta solo para ti.')}</div></div>
+      <div class="wklb" id="wkLb"><div class="sempty">${online() ? T('Cargando clasificación…') : T('Sin conexión: la clasificación necesita internet. Tu récord se guarda en el móvil.')}</div></div>
       <div class="row"><button class="btn gray" style="flex:.45" id="rpX">✕</button>${left ? `<button class="btn green" id="wkGo">${T('¡A DEMOLER!')}</button>` : (w.extra || 0) < 1 ? `<button class="btn purple" id="wkAd">▶ ${T('+1 intento')}</button>` : `<button class="btn gray" disabled>${T('Sin intentos')}</button>`}</div>`);
     $('rpX').addEventListener('click', () => { click(); popHide(); });
     if ($('wkGo')) $('wkGo').addEventListener('click', () => { click(); popHide(); X.openPre(L.id); });

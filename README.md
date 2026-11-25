@@ -720,6 +720,17 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   ya no sale con las manchas de pintura. Pruebas: `tools/mecanicasflow.js`, `tools/mundosnuevosflow.py`,
   `tools/jefesnuevosflow.py`.
 
+- **Torre sin fin, versión 2** (`src/torre.js`): ahora es una pared de 7×8 bloques **fijos** (no se desprenden ni se caen,
+  y la física no tiene que moverlos: va mucho más fluida). Lo que revientas deja hueco, lo de arriba baja a ocuparlo y por
+  arriba entran bloques nuevos de colores al azar (a veces especiales: bomba, rayas, TNT, regalo o hielo). Las bolas se ganan
+  sobre la marcha (+1 cada 9-18 bloques según el piso, a veces una bomba o un arcoíris, de los colores que hay en la pared) y
+  cada piso (28-64 bloques) trae un regalo de bolas; desde el piso 4 hay 5 colores. En la torre no salen el ovni ni los barcos.
+  Con un jugador automático que tira a su color se llega al piso 8-18 en 60-120 tiros (`tools/torreflow.py`).
+- **Retos más fluidos**: la grabación de la jugada ya no empieza en cada tiro (MediaRecorder + copiar el lienzo en cada
+  fotograma daba tirones en el móvil). Solo empieza cuando el tiro lleva combo ×3, a 20 fps y 360×640, y si el móvil tarda
+  en copiar los fotogramas se deja de grabar en esa sesión (la foto se sigue haciendo).
+- En «Retos» y en las clasificaciones se avisa de que **necesitan conexión a internet** (`tools/i18n_torre2.py`).
+
 ## Cambios del 23-11-2026
 
 - **Tienda**: al saltar a Temporales u Ofertas (o al deslizar), el título que quedaba cortado bajo las pestañas dejaba

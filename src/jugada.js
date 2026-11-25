@@ -11,7 +11,7 @@
   const $ = id => document.getElementById(id);
   const PLAY = 'https://play.google.com/store/apps/details?id=com.lostanarchygames.rocketrush';
   const MIN_COMBO = 5;                 // a partir de aquí la jugada se guarda
-  const VW = 540, VH = 960;            // vídeo vertical
+  const VW = 360, VH = 640;            // vídeo vertical (pequeño: copiar el lienzo del juego cada fotograma cuesta)
   const IW = 1080, IH = 1350;          // imagen 4:5 (la que mejor se ve en redes)
 
   const recOn = () => { const s = X() && X().save; return !(s && s.rec === false); };
@@ -37,9 +37,9 @@
     const mime = pickMime(); if (!mime) return;
     if (!comp) { comp = document.createElement('canvas'); comp.width = VW; comp.height = VH; cctx = comp.getContext('2d'); }
     try {
-      const stream = comp.captureStream(30);
-      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1800000 });
-      const s = { combo: 0, rec, chunks: [], mime, stopAt: performance.now() + 3500, hardStop: performance.now() + 7000, level: L };
+      const stream = comp.captureStream(20);
+      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1200000 });
+      const s = { combo: cur ? cur.combo : 0, rec, chunks: [], mime, stopAt: performance.now() + 3500, hardStop: performance.now() + 7000, level: L };
       rec.ondataavailable = e => { if (e.data && e.data.size) s.chunks.push(e.data); };
       rec.onstop = () => {
         stream.getTracks().forEach(t => t.stop());
@@ -100,13 +100,18 @@
 
   // ---- llamadas desde el juego ----
   let cur = null;   // tiro en curso aunque no se grabe (para la foto)
+  // 25-11 (2): antes se grababa CADA tiro desde que salía la bola (MediaRecorder + copiar el lienzo en cada fotograma)
+  // y en el móvil se notaba muchísimo (sobre todo en la torre, donde se dispara sin parar). Ahora solo se empieza a grabar
+  // cuando el tiro ya lleva combo ×3, se copian 20 fotogramas por segundo a un vídeo pequeño, y si el móvil tarda en
+  // copiarlos se deja de grabar en esa sesión (la foto del combo se sigue haciendo).
+  let slow = 0, off = false, lastDraw = 0;
   function shoot(L) {
     if (shot) stopRec(shot.combo < MIN_COMBO);   // el tiro anterior se guarda solo si fue bueno
     cur = { combo: 0, level: L };
-    startRec(L);
   }
   function combo(n) {
     if (cur) cur.combo = n;
+    if (n === 3 && !shot && !off && cur) startRec(cur.level);
     if (shot) { shot.combo = n; shot.stopAt = Math.max(shot.stopAt, performance.now() + 2200); }
     if (n >= MIN_COMBO && (!best || n > best.combo) && (n === MIN_COMBO || n % 3 === 0 || n === 10 || n === 15 || n === 25)) snapWant = n;
   }
@@ -116,8 +121,14 @@
       snapWant = 0;
     }
     if (shot) {
-      drawFrame(gl);
-      const t = performance.now(); if (t >= shot.stopAt || t >= shot.hardStop) stopRec(false);
+      const t = performance.now();
+      if (t - lastDraw >= 48) {
+        lastDraw = t; drawFrame(gl);
+        const ms = performance.now() - t;
+        slow = ms > 9 ? slow + 1 : Math.max(0, slow - 1);
+        if (slow >= 4 && !window.RR_REC_TEST) { off = true; stopRec(shot.combo < MIN_COMBO); return; }   // este móvil no da para grabar: solo foto
+      }
+      if (t >= shot.stopAt || t >= shot.hardStop) stopRec(false);
     }
   }
 

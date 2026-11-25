@@ -11,51 +11,70 @@
   const $ = id => document.getElementById(id);
   const fmt = n => (+n || 0).toLocaleString('es-ES');
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const ID = 44001, COLS = ['r', 'b', 'g', 'y', 'p'], W = 6;
+  const ID = 44001, COLS = ['r', 'b', 'g', 'y', 'p'], W = 7;
   const WEEK0 = Date.UTC(2026, 9, 5);
   const weekId = () => 'T' + Math.floor((Date.now() - WEEK0) / (7 * 864e5));
 
-  let S = null;   // partida en curso: { L, floor, floorN, dropping, blocksAtFloor }
-
+  let S = null;   // partida en curso: { L, floor, grid[col][fila] = cuerpo | null, base, need, earned, ... }
+  // 25-11 (2): la torre ya no se cae ni se cambia por pisos. Es una pared fija de W×H bloques que no se mueven (no se
+  // desprenden ni ruedan, y además la física no tiene que mover nada): lo que revientas deja hueco, lo de arriba baja a
+  // ocuparlo y por arriba entran bloques nuevos de colores al azar (de vez en cuando uno especial). Las bolas también se
+  // ganan sobre la marcha (1 cada pocos bloques, a veces una bomba o un arcoíris) y cada «piso» (N bloques reventados)
+  // trae más colores y un regalo de bolas. Se acaba al quedarse sin bolas.
+  const H = 8, X0 = -(W - 1) / 2, Y0 = 0.5, Z0 = 0, FALL = 9;
   const sv = () => { const s = X().save; if (!s.torre) s.torre = { best: 0, games: 0, wk: null, wkBest: 0 }; return s.torre; };
-  // colores del piso: van entrando más colores cuanto más alto
-  const colorsFor = f => COLS.slice(0, Math.min(5, 3 + Math.floor((f - 1) / 3)));
-  const rowsFor = f => Math.min(6, 2 + Math.ceil(f / 2));
-  const bonusFor = f => Math.max(3, 6 - Math.floor(f / 3));
+  const colorsFor = f => COLS.slice(0, Math.min(5, 4 + Math.floor(f / 4)));          // 4 colores; 5 desde el piso 4
+  const needFor = f => 24 + 4 * Math.min(f, 10);                                      // bloques por piso
+  const everyFor = f => Math.min(18, 8 + Math.round(f * 0.8));                         // cada cuántos bloques, +1 bola
+  const bonusFor = f => Math.max(1, 4 - Math.floor(f / 3));                           // regalo al subir de piso
+  const SPECIALS = [['bm', 3], ['st', 3], ['tnt', 2], ['gift', 2], ['i', 2]];          // bloques especiales (y su peso)
+  const rnd = Math.random;
+  const pickW = list => { let t = 0; for (const [, w] of list) t += w; let r = rnd() * t; for (const [k, w] of list) if ((r -= w) < 0) return k; return list[0][0]; };
 
-  // bloques de un piso: grupos de 2-3 del mismo color (se copia el color de al lado o de abajo a veces)
-  function floorBlocks(f, y0, rnd) {
-    const cols = colorsFor(f), rows = rowsFor(f), out = [], grid = [];
-    for (let j = 0; j < rows; j++) {
-      grid[j] = [];
-      for (let i = 0; i < W; i++) {
-        let c = cols[Math.floor(rnd() * cols.length)];
-        if (i > 0 && rnd() < 0.42) c = grid[j][i - 1];
-        else if (j > 0 && rnd() < 0.35) c = grid[j - 1][i];
-        grid[j][i] = c;
-        out.push({ x: -2.5 + i, y: y0 + j, z: 0, w: 1, h: 1, d: 1, c });
-      }
-    }
-    return out;
+  // color de un bloque nuevo: a veces el de al lado o el de debajo, para que salgan grupos
+  function colorAt(grid, c, r, f) {
+    const cols = colorsFor(f), side = grid[c - 1] && grid[c - 1][r], below = r > 0 && grid[c][r - 1];
+    const cOf = b => b && b.userData.alive && b.userData.kind === 'block' ? b.userData.c : null;
+    if (cOf(side) && rnd() < 0.22) return cOf(side);
+    if (cOf(below) && rnd() < 0.16) return cOf(below);
+    return cols[Math.floor(rnd() * cols.length)];
   }
-  const rand = () => Math.random;
-  function ballsFor(cols, n, rnd) { let s = ''; for (let i = 0; i < n; i++) s += cols[Math.floor(rnd() * cols.length)]; return s; }
+  function blockDef(grid, c, r, y, f, special) {
+    const d = { x: X0 + c, y, z: Z0, w: 1, h: 1, d: 1, fixed: true };
+    const t = special ? pickW(SPECIALS) : null;
+    if (t === 'tnt' || t === 'gift') d.t = t;
+    else { d.c = colorAt(grid, c, r, f); if (t) d.t = t; }
+    return d;
+  }
+  // bolas: de los colores que hay en la pared (los que más hay, más a menudo)
+  function ballColor(sim) {
+    const n = {}; let tot = 0;
+    for (const col of S.grid) for (const b of col) if (b && b.userData.alive && !b.userData.popping && b.userData.c) { n[b.userData.c] = (n[b.userData.c] || 0) + 1; tot++; }
+    if (!tot) { const cs = colorsFor(S.floor); return cs[Math.floor(rnd() * cs.length)]; }
+    let r = rnd() * tot; for (const k in n) if ((r -= n[k]) < 0) return k; return Object.keys(n)[0];
+  }
 
   // nivel 44001 (se crea al empezar; cada partida es distinta)
   function level() {
     const Lv = window.Levels, ALL = Lv.ALL;
     for (let i = ALL.length - 1; i >= 0; i--) if (ALL[i].endless) ALL.splice(i, 1);
     const neon = Lv.LEVELS.find(l => l.biome === 'neon' && l.variant === 'noche') || Lv.LEVELS.find(l => l.biome === 'neon') || Lv.LEVELS[0];
-    const r = rand(), blocks = floorBlocks(1, 0.5, r);
-    const L = { id: ID, endless: true, name: 'Torre sin fin', goal: 'Derriba la torre: cada vez que caiga casi entera, llegará un piso nuevo. ¿Hasta dónde llegas?',
-      world: neon.world, biome: neon.biome, variant: neon.variant, weather: null, pos: 1, nb: 9, target: 99, viewTop: 7.5,
-      cannon: { x: 0, y: 1.2, z: 14.5 }, blocks, balls0: '', balls: ballsFor(colorsFor(1), 9, r) };
+    const grid = [], blocks = [];
+    for (let c = 0; c < W; c++) grid.push([]);
+    // la pared se rellena por filas (así el color «de al lado» ya existe)
+    const fake = d => ({ userData: { alive: true, kind: d.t ? 'x' : 'block', c: d.c } });
+    for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) { const d = blockDef(grid, c, r, Y0 + r, 1, false); grid[c][r] = fake(d); blocks.push(d); }
+    const L = { id: ID, endless: true, name: 'Torre sin fin', goal: 'Revienta bloques sin parar: la torre se rellena y cada piso trae más colores. ¿Hasta dónde llegas?',
+      world: neon.world, biome: neon.biome, variant: neon.variant, weather: null, pos: 1, nb: 12, target: 99, viewTop: Y0 + H + 0.6,
+      cannon: { x: 0, y: 1.2, z: 15.5 }, blocks, balls0: '', balls: '' };
+    let b = ''; const cs = colorsFor(1); for (let i = 0; i < 12; i++) b += cs[Math.floor(rnd() * cs.length)];
+    L.balls = b; L.balls0 = b;
     ALL.push(L);
     return L;
   }
 
   function start(L) {
-    S = { L, floor: 1, floorN: L.blocks.length, base: 0, dropping: 0, wait: 0 };
+    S = { L, floor: 1, grid: null, base: 0, need: needFor(1), earned: 0, wait: 0, dead: [] };
     sv().games++; X().persist();
     const lab = document.querySelector('.meterlabel small'); if (lab) lab.textContent = '';
   }
@@ -63,39 +82,76 @@
     if (!S) return; S = null;
     const lab = document.querySelector('.meterlabel small'); if (lab && !lab.textContent) lab.textContent = T('DEMOLICIÓN');
   }
-  function live(sim) { return sim.liveBlocks().filter(b => !b.userData.falling); }
+  // la rejilla se saca de los bloques del nivel la primera vez (por su posición)
+  function buildGrid(sim) {
+    const g = []; for (let c = 0; c < W; c++) g.push(new Array(H).fill(null));
+    for (const b of sim.blocks) {
+      const d = b.userData; if (!d.alive || d.destroyed) continue;
+      const c = Math.round(b.position.x - X0), r = Math.round(b.position.y - Y0);
+      if (c >= 0 && c < W && r >= 0 && r < H) g[c][r] = b;
+    }
+    S.grid = g;
+  }
+  const gone = b => !b || !b.userData.alive || b.userData.destroyed;
   function tick(dt) {
-    const G = X().G, sim = G.sim; if (!S || !sim || G.level !== S.L || sim.state !== 'play') return;
-    if (S.dropping > 0) { S.dropping -= dt; return; }
-    const lv = live(sim);
-    const quiet = sim.balls.length === 0 && sim.pending.length === 0;
-    if (!quiet) { S.wait = 0; return; }
-    if (lv.length > Math.max(4, Math.round(S.floorN * 0.22))) { S.wait = 0; return; }
-    if ((S.wait += dt) < 0.5) return;       // que se asiente lo que cae
-    dropFloor(sim, lv);
+    const A = X(), G = A.G, sim = G.sim; if (!S || !sim || G.level !== S.L || sim.state !== 'play') return;
+    if (!S.grid) buildGrid(sim);
+    let moving = false;
+    const calm = sim.balls.length === 0;                 // los nuevos entran cuando no hay bola en el aire
+    if (calm) S.wait += dt; else S.wait = 0;
+    for (let c = 0; c < W; c++) {
+      const col = S.grid[c];
+      for (let r = 0; r < col.length; r++) if (col[r] && gone(col[r])) { S.dead.push([col[r].userData.id, sim.t]); col[r] = null; }
+      // lo que queda baja a ocupar los huecos (sin física: se mueve a mano, como una cinta)
+      const keep = col.filter(Boolean);
+      for (let r = 0; r < keep.length; r++) {
+        const b = keep[r], ty = Y0 + r;
+        if (b.position.y > ty + 1e-4) {
+          b.position.y = Math.max(ty, b.position.y - FALL * dt); b.aabbNeedsUpdate = true; moving = true;
+        }
+      }
+      for (let r = 0; r < H; r++) col[r] = keep[r] || null;
+      // y por arriba entran bloques nuevos (cuando no hay ninguna bola en el aire)
+      if (keep.length < H && calm && S.wait >= 0.12) {
+        const top = keep.length ? keep[keep.length - 1].position.y : Y0 - 1;
+        for (let r = keep.length, k = 0; r < H; r++, k++) {
+          const special = S.floor >= 1 && rnd() < Math.min(0.09, 0.04 + S.floor * 0.008);
+          const d = blockDef(S.grid, c, r, Math.max(Y0 + H + 0.4, top + 1.2) + k * 1.05, S.floor, special);
+          const body = sim.addBlock(d); A.addBlockView(body.userData);
+          col[r] = body; moving = true;
+        }
+      }
+    }
+    // bloques reventados: fuera de la escena al rato (la partida no tiene fin y se irían acumulando)
+    while (S.dead.length && sim.t - S.dead[0][1] > 1.5) {
+      const [id] = S.dead.shift(), m = G.meshes && G.meshes[id];
+      if (m) { if (m.parent) m.parent.remove(m); delete G.meshes[id]; }
+    }
+    // bolas que se ganan sobre la marcha y pisos
+    const done = sim.popped - S.base, every = everyFor(S.floor);
+    while (done >= (S.earned + 1) * every) {
+      S.earned++;
+      const r = rnd(), k = r < 0.035 ? 'bomb' : r < 0.055 ? 'rainbow' : ballColor(sim);
+      sim.queue.push(k); sim.idle = 0;
+    }
+    if (done >= S.need) floorUp(sim);
   }
-  function dropFloor(sim, lv) {
-    S.floor++; S.wait = 0; S.dropping = 1.6;
-    const f = S.floor, top = lv.reduce((m, b) => Math.max(m, b.position.y), 0);
-    const y0 = Math.max(0.5, top + 3.2), r = rand(), bl = floorBlocks(f, y0, r);
-    S.floorN = bl.length; S.base = sim.popped + sim.fallen;
-    bl.forEach((d, k) => sim.later(0.05 + (k % W) * 0.04 + Math.floor(k / W) * 0.12, () => {
-      if (!S || X().G.sim !== sim) return;
-      const body = sim.addBlock(d); X().addBlockView(body.userData);
-    }));
-    // bolas de regalo, de los colores del piso nuevo
-    const n = bonusFor(f), add = ballsFor(colorsFor(f), n, r).split('');
-    sim.queue.push(...add); sim.idle = 0; sim.sinceFire = Math.min(sim.sinceFire, 0.5);
+  function floorUp(sim) {
     const A = X();
-    A.centerText && A.centerText(T('¡PISO {x}!').replace('{x}', f), '#7fe6ff', 40);
-    A.toast && A.toast(T('+{x} bolas').replace('{x}', n), 1400);
+    S.floor++; S.base = sim.popped; S.need = needFor(S.floor); S.earned = 0;
+    const n = bonusFor(S.floor), add = [];
+    for (let i = 0; i < n; i++) add.push(ballColor(sim));
+    if (S.floor % 3 === 0) add.push(rnd() < 0.5 ? 'bomb' : 'rainbow');      // cada 3 pisos, una bola especial
+    sim.queue.push(...add); sim.idle = 0;
+    A.centerText && A.centerText(T('¡PISO {x}!').replace('{x}', S.floor), '#7fe6ff', 40);
+    A.toast && A.toast(T('+{x} bolas').replace('{x}', add.length), 1400);
     A.Audio && A.Audio.special && A.Audio.special();
-    if (f > sv().best) { /* récord en directo */ }
+    if (colorsFor(S.floor).length > colorsFor(S.floor - 1).length) setTimeout(() => A.toast && A.toast(T('¡Nuevo color en la torre!'), 1600), 1500);
   }
-  // barra de arriba: lo derribado del piso actual
+  // barra de arriba: lo reventado del piso actual
   function hud() {
     const sim = X().G.sim; if (!S || !sim) return null;
-    const done = Math.max(0, sim.popped + sim.fallen - S.base), p = Math.min(1, done / Math.max(1, S.floorN * 0.78));
+    const p = Math.min(1, Math.max(0, sim.popped - S.base) / S.need);
     return { p, txt: T('PISO') + ' ' + S.floor };
   }
 
@@ -120,7 +176,7 @@
     }
     $('tpBody').innerHTML = `<div class="tpfloor">${T('Has llegado al')}<b>${T('PISO')} ${f}</b>${rec ? `<span class="tprec">🏆 ${T('¡Nuevo récord!')}</span>` : `<small>${T('Tu récord')}: ${T('piso')} ${s.best}</small>`}</div>
       <div class="reward"><i class="coin"></i><span>+${fmt(coins)}</span>${gems ? ` · <i class="gem"></i><span>+${gems}</span>` : ''}</div>
-      <div class="wklb" id="tpLb"><div class="sempty">${window.Social && window.Social.weekly && window.Social.weekly.online ? T('Cargando clasificación…') : T('Sin conexión: tu puntuación cuenta solo para ti.')}</div></div>
+      <div class="wklb" id="tpLb"><div class="sempty">${window.Social && window.Social.weekly && window.Social.weekly.online ? T('Cargando clasificación…') : T('Sin conexión: la clasificación necesita internet. Tu récord se guarda en el móvil.')}</div></div>
       <div class="row"><button class="btn gray" style="flex:.45" id="tpOut">✕</button><button class="btn green" id="tpAgain">${T('OTRA VEZ')}</button></div>`;
     $('tpOut').addEventListener('click', () => { click(); close(); A.goMap && A.goMap(); });
     $('tpAgain').addEventListener('click', () => { click(); close(); play(); });
@@ -149,7 +205,8 @@
     }
     const R = window.Retencion && window.Retencion.weekly, tries = R ? R.tries() : 0;
     $('rtBody').innerHTML = `<div class="rtcard wk"><div class="rti">⚔️</div><div class="rtt"><b>${T('Desafío de la semana')}</b><small>${T('Torneo para todos: el mismo nivel, 3 intentos y premios por puesto.')}</small><small class="rtx">🥇 150 💎 · Top 10: 60 💎</small></div><button class="btn green small" id="rtWk">${T('JUGAR')}${tries ? ` <i class="rtn">${tries}</i>` : ''}</button></div>
-      <div class="rtcard tw"><div class="rti">🗼</div><div class="rtt"><b>${T('Torre sin fin')}</b><small>${T('Cada vez que la derribas cae un piso nuevo, más alto. ¿Hasta dónde llegas?')}</small><small class="rtx">${sv().best ? T('Tu récord') + ': ' + T('piso') + ' ' + sv().best : T('Clasificación semanal')}</small></div><button class="btn green small" id="rtTw">${T('JUGAR')}</button></div>`;
+      <div class="rtcard tw"><div class="rti">🗼</div><div class="rtt"><b>${T('Torre sin fin')}</b><small>${T('Revienta bloques sin parar: la torre se rellena sola y cada piso trae más colores. ¿Hasta dónde llegas?')}</small><small class="rtx">${sv().best ? T('Tu récord') + ': ' + T('piso') + ' ' + sv().best : T('Clasificación semanal')}</small></div><button class="btn green small" id="rtTw">${T('JUGAR')}</button></div>`;
+    $('rtBody').insertAdjacentHTML('beforeend', `<div class="rtnet">🌐 ${T('Las clasificaciones necesitan conexión a internet.')}</div>`);
     $('rtWk').addEventListener('click', () => { click(); hub.classList.remove('on'); if (R) R.open(); });
     $('rtTw').addEventListener('click', () => { click(); hub.classList.remove('on'); play(); });
     hub.classList.add('on');
