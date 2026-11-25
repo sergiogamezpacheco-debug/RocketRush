@@ -695,6 +695,14 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   nombre, texto)` con FileProvider (`res/xml/share_paths.xml`); iOS: mensaje `shareFile`. En Ajustes, «Grabar jugadas: sí/no»
   (`tools/jugadaflow.py`).
 
+- **Retos** (botón 🏆 nuevo arriba a la derecha en la portada; la columna se sube un poco para que quepan 5): reúne el
+  **Desafío de la semana** (ya era un torneo para todos, sin club: mismo nivel, 3 intentos, premios por puesto) y la
+  **Torre sin fin** (`src/torre.js`, nivel 44001 en el mundo neón): cuando la torre está casi derribada (≤22 % del piso, mínimo
+  4 bloques) cae un piso nuevo desde arriba, más alto (2→6 filas) y con más colores (3→5), con 3-6 bolas de regalo. Al
+  quedarse sin bolas sale el resultado en vez de «¡CASI!»: piso alcanzado, récord, monedas (20 por piso + bloques) y 2 gemas
+  cada 5 pisos, y la clasificación de la semana (`weekly/T<semana>`, puntuación = piso×10000 + bloques). La barra de arriba
+  dice «PISO N» (`tools/torreflow.py`).
+
 ## Cambios del 23-11-2026
 
 - **Tienda**: al saltar a Temporales u Ofertas (o al deslizar), el título que quedaba cortado bajo las pestañas dejaba

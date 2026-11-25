@@ -1252,6 +1252,15 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 #studio.out{opacity:0}
 @keyframes studioIn{to{opacity:1;transform:none}}
 #jugPop .jugMedia{width:100%;max-height:52vh;object-fit:contain;border-radius:14px;display:block;margin:6px auto 10px;background:#1a0a3c}#jugBtns .btn{width:100%;margin:4px 0}#winShare{width:100%;margin:6px 0}
+.sb.retossb{background:linear-gradient(160deg,#ff9a3a,#e8203a)}
+.rtcard{display:flex;align-items:center;gap:10px;padding:10px;margin:8px 0;border-radius:16px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.18);text-align:left}
+.rtcard .rti{font-size:34px;width:44px;text-align:center}.rtcard .rtt{flex:1;display:flex;flex-direction:column;gap:2px}.rtcard b{font-size:16px}.rtcard small{font-size:12px;opacity:.9;line-height:1.25}
+.rtcard .rtx{color:#ffe27a}.rtcard .gem{width:13px;height:13px}.rtcard .btn{flex:none;width:auto;padding:10px 14px;position:relative}.rtn{position:absolute;top:-8px;right:-8px;background:#e8203a;color:#fff;border-radius:10px;font-style:normal;font-size:12px;padding:1px 6px;border:2px solid #fff}
+#torrePop .tpfloor{display:flex;flex-direction:column;align-items:center;gap:2px;margin:6px 0 10px;font-weight:800}#torrePop .tpfloor b{font-size:40px;color:#7fe6ff;text-shadow:0 3px 0 rgba(0,0,0,.35)}#torrePop .tprec{color:#ffd23f;font-weight:900}
+#torrePop .tplbh{font-weight:900;margin:4px 0;opacity:.85}
+/* 25-11: 5 botones a la derecha (Retos): se suben un poco y se juntan para no tocar el botón de jugar */
+.tside.right.five{top:min(clamp(300px,40%,420px),calc(100% - 512px));gap:10px}
+@media (max-height:700px){.tside.right.five{top:min(clamp(260px,40%,380px),calc(100% - 418px));gap:6px}.tside.right.five .sb{width:54px;height:54px}}
 </style>
 </head>
 <body>

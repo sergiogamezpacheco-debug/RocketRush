@@ -2517,11 +2517,12 @@
     shownScore += (sim.score - shownScore) * Math.min(1, dt * 8);
     if (Math.abs(sim.score - shownScore) < 1) shownScore = sim.score;
     setText($('hudScore'), Math.round(shownScore));
-    const p = sim.progress();
+    const th = G.level && G.level.endless && window.Torre ? window.Torre.hud() : null;
+    const p = th ? th.p : sim.progress();
     const mw = (p * 100).toFixed(1) + '%', mf = $('meterFill');
     if (mf.__w !== mw) { mf.__w = mw; mf.style.width = mw; }
     if (mf.__d !== (p >= sim.target)) { mf.__d = p >= sim.target; mf.classList.toggle('done', mf.__d); }
-    setText($('meterPct'), Math.round(p * 100) + '%');
+    setText($('meterPct'), th ? th.txt : Math.round(p * 100) + '%');
     updateTray();
     const hint = $('hint');
     let txt = '';
@@ -2849,6 +2850,7 @@
     if (extra) { const cols = G.sim.queue.filter(k => COL[k]); for (let i = 0; i < extra; i++) G.sim.queue.push(cols[i % Math.max(1, cols.length)] || 'heavy'); }
     setTheme(L.world); buildLevelView(); frameCamera();
     if (window.Bosses) { if (L.boss) setTimeout(() => { if (G.level === L) window.Bosses.start(L); }, 0); else window.Bosses.stop(); }
+    if (window.Torre) { if (L.endless) window.Torre.start(L); else window.Torre.stop(); }
     G.mode = 'play'; G.paused = false; G.ended = false; G.endT = 0; G.finalT = 0; G.slowT = 0; G.timeScale = 1;
     G.lastSlow = false; G.combo = 0; hintUntil = 0; if (window.Jugada) Jugada.reset();
     setWeatherChip(L);
@@ -2858,7 +2860,7 @@
     G.casi = 0; G.firstShot = false; G.swapped = false; G.winShown = false; G.winAt = 0; G.extraUsed = false; shownScore = 0; lastTray = '';
     $('btnFinish').hidden = true; G.cannonKind = null;
     G.aimTarget.set(0, 1.5, 0);
-    $('hudLevel').textContent = L.weekly ? 'DESAFÍO' : L.club ? ({ ex: 'EXPEDICIÓN ' + L.pos, lg: 'LIGA ' + L.pos, boss: 'JEFE COLOSAL' })[L.club] : L.xm ? 'NAVIDAD ' + L.pos : L.hw ? 'HALLOWEEN ' + L.pos : L.bonus ? 'EXTRA ' + L.world : 'NIVEL ' + id;
+    $('hudLevel').textContent = L.endless ? 'TORRE' : L.weekly ? 'DESAFÍO' : L.club ? ({ ex: 'EXPEDICIÓN ' + L.pos, lg: 'LIGA ' + L.pos, boss: 'JEFE COLOSAL' })[L.club] : L.xm ? 'NAVIDAD ' + L.pos : L.hw ? 'HALLOWEEN ' + L.pos : L.bonus ? 'EXTRA ' + L.world : 'NIVEL ' + id;
     Audio.setStyle(L.hw ? 'spooky' : L.xm ? 'xmas' : 'normal'); G.hwWorld = false; G.xmWorld = false;
     G.candyRun = 0; G.xcandyRun = 0; hwCandyChip(); xmCandyChip();
     $('meterTarget').style.left = (L.target * 100) + '%';
@@ -4984,7 +4986,8 @@
         if (G.debutT > 0 && (G.debutT -= dt) <= 0 && G.level.debut) { save.seenDebut[G.level.debut] = true; persist(); openNewCard(G.level); }
         if (G.debutRing) { const k = 1 + Math.sin(G.t * 6) * 0.12; G.debutRing.scale.set(k, k, 1); if (G.firstShot) { G.debutRing.parent && G.debutRing.parent.remove(G.debutRing); G.debutRing = null; } }
         if (sim.state === 'won' && !G.winShown && G.t - G.winAt > 1.6) finishWin();
-        if (sim.state === 'lost' && !G.ended) { G.endT -= dt; if (G.endT <= 0) { G.ended = true; showLose(); } }
+        if (G.level.endless && window.Torre) window.Torre.tick(dt * G.timeScale);
+        if (sim.state === 'lost' && !G.ended) { G.endT -= dt; if (G.endT <= 0) { G.ended = true; if (G.level.endless && window.Torre) window.Torre.end(); else showLose(); } }
         updateHud(dt);
       } else if (G.mode === 'title' && TD.phase === 'shot') { sim.update(dt); titleEvents(); }
       else { sim.update(dt * 0.0); sim.events.length = 0; }

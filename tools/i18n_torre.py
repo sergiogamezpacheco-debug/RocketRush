@@ -1,0 +1,23 @@
+# 25-11: torre sin fin y retos
+T = {
+  "Torre sin fin": ("Endless Tower", "Torre sem fim", "Tour sans fin", "Endloser Turm", "Torre infinita"),
+  "TORRE SIN FIN": ("ENDLESS TOWER", "TORRE SEM FIM", "TOUR SANS FIN", "ENDLOSER TURM", "TORRE INFINITA"),
+  "TORRE": ("TOWER", "TORRE", "TOUR", "TURM", "TORRE"),
+  "Derriba la torre: cada vez que caiga casi entera, llegará un piso nuevo. ¿Hasta dónde llegas?": ("Knock the tower down: every time it's almost gone, a new floor arrives. How high can you go?", "Derrube a torre: sempre que ela cair quase toda, chega um andar novo. Até onde você chega?", "Démolis la tour : chaque fois qu'elle est presque détruite, un nouvel étage arrive. Jusqu'où iras-tu ?", "Reiß den Turm ein: Immer wenn er fast weg ist, kommt ein neues Stockwerk. Wie weit kommst du?", "Abbatti la torre: ogni volta che è quasi distrutta arriva un nuovo piano. Fin dove arrivi?"),
+  "PISO": ("FLOOR", "ANDAR", "ÉTAGE", "STOCK", "PIANO"),
+  "piso": ("floor", "andar", "étage", "Stock", "piano"),
+  "¡PISO {x}!": ("FLOOR {x}!", "ANDAR {x}!", "ÉTAGE {x} !", "STOCK {x}!", "PIANO {x}!"),
+  "+{x} bolas": ("+{x} balls", "+{x} bolas", "+{x} balles", "+{x} Kugeln", "+{x} palle"),
+  "Has llegado al": ("You reached", "Você chegou ao", "Tu as atteint", "Du hast erreicht", "Sei arrivato al"),
+  "¡Nuevo récord!": ("New record!", "Novo recorde!", "Nouveau record !", "Neuer Rekord!", "Nuovo record!"),
+  "Tu récord": ("Your record", "Seu recorde", "Ton record", "Dein Rekord", "Il tuo record"),
+  "Esta semana": ("This week", "Esta semana", "Cette semaine", "Diese Woche", "Questa settimana"),
+  "Sé el primero de la semana": ("Be the first this week", "Seja o primeiro da semana", "Sois le premier de la semaine", "Sei der Erste der Woche", "Sii il primo della settimana"),
+  "OTRA VEZ": ("AGAIN", "DE NOVO", "ENCORE", "NOCHMAL", "ANCORA"),
+  "RETOS": ("CHALLENGES", "DESAFIOS", "DÉFIS", "HERAUSFORDERUNGEN", "SFIDE"),
+  "Retos": ("Challenges", "Desafios", "Défis", "Challenges", "Sfide"),
+  "Torneo para todos: el mismo nivel, 3 intentos y premios por puesto.": ("A tournament for everyone: same level, 3 tries and prizes by rank.", "Torneio para todos: o mesmo nível, 3 tentativas e prêmios por posição.", "Un tournoi pour tous : même niveau, 3 essais et des prix selon le classement.", "Ein Turnier für alle: gleiches Level, 3 Versuche und Preise nach Platz.", "Torneo per tutti: stesso livello, 3 tentativi e premi in base alla posizione."),
+  "Cada vez que la derribas cae un piso nuevo, más alto. ¿Hasta dónde llegas?": ("Every time you knock it down a new, taller floor drops. How high can you go?", "Cada vez que você derruba, cai um andar novo, mais alto. Até onde você chega?", "Chaque fois que tu la démolis, un nouvel étage plus haut tombe. Jusqu'où iras-tu ?", "Jedes Mal, wenn du ihn einreißt, fällt ein neues, höheres Stockwerk. Wie weit kommst du?", "Ogni volta che la abbatti cade un nuovo piano, più alto. Fin dove arrivi?"),
+  "Clasificación semanal": ("Weekly ranking", "Classificação semanal", "Classement hebdomadaire", "Wochenrangliste", "Classifica settimanale"),
+  "JUGAR": ("PLAY", "JOGAR", "JOUER", "SPIELEN", "GIOCA"),
+}

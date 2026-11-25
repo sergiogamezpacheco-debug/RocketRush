@@ -372,7 +372,7 @@
 
   // ---------------- enganches con el juego ----------------
   let booted = false;
-  window.Retencion = { notices: { plan: () => plan(), sync: () => noticesSync() },
+  window.Retencion = { notices: { plan: () => plan(), sync: () => noticesSync() }, weekly: { open: () => wkOpen(), tries: () => triesLeft() },
     boot() { if (booted) return; booted = true; seen(); fcUi(); fcNotify(); noticesSync(); miniUi(); navUi(); achBtn(); wk(); },
     title() { fcUi(); miniUi(); achBtn(); navUi(); },
     achCount,
