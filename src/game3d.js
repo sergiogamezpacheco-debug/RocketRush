@@ -4629,7 +4629,7 @@
   on('btnDaily', () => openDaily(null));
   on('dX', () => { if (!$('dX').hidden) closeDaily(G.mode === 'title'); });   // la X cierra y te deja donde estabas
   on('btnDailyT', () => openDaily(() => { if (G.mode === 'title') goMap(); }));
-  on('sNotif', () => { const d = dailySave(); d.notif = d.notif === false; persist(); refreshToggles(); scheduleReminder(); });
+  on('sNotif', () => { const d = dailySave(); d.notif = d.notif === false; persist(); refreshToggles(); scheduleReminder(); if (window.Retencion && Retencion.notices) Retencion.notices.sync(); });
   on('btnHome', goTitle);
   on('btnShop', () => openShop()); on('btnShopT', () => openShop());
   document.querySelectorAll('.wallet .coins').forEach(el => el.addEventListener('click', () => { Audio.init(); Audio.click(); openShop(el.querySelector('.gem') ? 'gems' : 'coins'); }));
@@ -4881,7 +4881,7 @@
     refreshTest();
     for (const [k, ids] of [['sound', ['pSound', 'sSound']], ['vibe', ['pVibe', 'sVibe']], ['music', ['pMusic', 'sMusic']]])
       for (const id of ids) $(id).style.opacity = save[k] ? 1 : 0.35;
-    $('sNotif').textContent = 'Aviso de racha: ' + (dailySave().notif === false ? 'no' : 'sí');
+    $('sNotif').textContent = 'Avisos en el móvil: ' + (dailySave().notif === false ? 'no' : 'sí');
     $('sCalm').textContent = 'Menos destellos: ' + (save.calm ? 'sí' : 'no');
     $('sGfx').textContent = 'Gráficos: ' + (save.lowGfx ? 'ahorro' : 'altos');
     $('sState').textContent = `Sonido ${save.sound ? 'sí' : 'no'} · Vibración ${save.vibe ? 'sí' : 'no'} · Música ${save.music ? 'sí' : 'no'}`;
@@ -5048,7 +5048,10 @@
   }
 
   // los jefes (bosses.js) usan estas piezas del juego
-  window.RRGame = { auxLight, testBuild: TEST_MODE, showRewarded, startLevel, openPre: id => openPre(id), hideAll, liveUi: () => liveUi(), updateTitle: () => updateTitle(), dayKey: () => dayKey(), leftTxt: ms => leftTxt(ms), liveCfg: () => liveCfg(), liveWin: o => liveWin(o), cosApi: { def: cosDef, owned: cosOwned, tSave: () => tSave(), bSave: () => bSave(), canSave: () => canSave() }, cubiFrames, openShop, goMap, mountCol, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, gpuMotion, scene, TEX, ground, around, splashCol, stripes, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
+  // fechas para los avisos del móvil (retencion.js los programa)
+  const noticeInfo = () => ({ xmStart: XML.length ? xmStart() : 0, xmEnd: XML.length ? xmEnd() : 0, hwStart: (hwCfg() && hwCfg().start) ? +hwCfg().start : 0, hwEnd: HWL.length ? hwEnd() : 0,
+    passEnd: SEASON_EPOCH + (seasonIndex() + 1) * SEASON_DAYS * 864e5, passPending: passClaimable(), passPro: !!(save.pass && save.pass.pro) });
+  window.RRGame = { noticeInfo, auxLight, testBuild: TEST_MODE, showRewarded, startLevel, openPre: id => openPre(id), hideAll, liveUi: () => liveUi(), updateTitle: () => updateTitle(), dayKey: () => dayKey(), leftTxt: ms => leftTxt(ms), liveCfg: () => liveCfg(), liveWin: o => liveWin(o), cosApi: { def: cosDef, owned: cosOwned, tSave: () => tSave(), bSave: () => bSave(), canSave: () => canSave() }, cubiFrames, openShop, goMap, mountCol, autoDailySoon: () => autoDailySoon(), hw: { THREE, C, G, rnd, canvasTex, tiles, makePlatform, points, gpuMotion, scene, TEX, ground, around, splashCol, stripes, ballMaterial, COL, hemi, sun, skyMat, flashLight, collect: hwCollect, active: hwActive, chip: hwCandyChip }, xm: { collect: xmCollect, active: () => xmActive(), chip: () => xmCandyChip(), go: () => goXm() }, hwState, addCandy, xmState, addXCandy, G, scene, world, camera, openChestFX, floatText, spawnSprite, spawnDebris, spawnRing, Audio, vibe, persist, setCoins,
     refreshTray: () => { lastTray = ''; }, get save() { return save; }, centerText, aimObjs: [],
     // para social.js (perfil, amigos y clasificaciones)
     stats, plState, starsTotal, countLv, LEVELS, myCode, openPre: id => openPre(id), setTester, codeCore, normCode, validCode, newPid() { save.pid = null; myCode(); }, shareGame, renderMissions, show, goTitle, toast, live: { check: () => liveCheck(), ui: () => liveUi(), mult: liveMult, build: BUILD }, grant,

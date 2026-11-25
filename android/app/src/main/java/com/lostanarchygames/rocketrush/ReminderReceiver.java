@@ -21,7 +21,9 @@ public class ReminderReceiver extends BroadcastReceiver {
     static void cancel(Context c) { cancel(c, REQ); }
 
     /** Número de cada aviso: 1 racha, 2 cofre gratis (otros nombres: 3). */
-    static int idOf(String name) { return "racha".equals(name) ? 1 : "cofre".equals(name) ? 2 : 3; }
+    // cada aviso tiene su hueco (si compartieran uno, el último programado borraría a los demás)
+    static final String[] NAMES = { "racha", "cofre", "otro", "evento", "eventofin", "desafio", "tienda", "club", "pase", "vuelve", "mini" };
+    static int idOf(String name) { for (int i = 0; i < NAMES.length; i++) if (NAMES[i].equals(name)) return i + 1; return 3; }
 
     static void schedule(Context c, int req, long atMs, String title, String text) {
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);

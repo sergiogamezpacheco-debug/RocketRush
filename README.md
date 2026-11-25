@@ -679,6 +679,15 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   Ajustes › Canjear código (`giftcodes`, `Social.redeem`, `save.codesUsed`). No sale a menores de 13 ni sin funciones en línea.
 - Prueba: `tools/redeemshopflow.py`.
 
+## Cambios del 25-11-2026
+
+- **Avisos en el móvil** (`retencion.js` → `plan()`): además de la racha y el cofre gratis, el juego programa:
+  inicio de Navidad/Halloween (11:00) y «quedan 2 días» (18:00), desafío nuevo (lunes 10:00), legendarios y oferta nuevos
+  (lunes 19:00), liga del club «acaba mañana» (domingo 18:00) o expedición «termina esta noche», pase «acaba en 3 días»,
+  «¡Te echamos de menos!» a los 3 días sin jugar (18:00) y el mini-evento del mes (si cae el mismo día que un evento grande,
+  al día siguiente). Cada aviso tiene su hueco en Android (`ReminderReceiver.NAMES`) y se reprograman al abrir el juego.
+  El botón de Ajustes pasa a ser «Avisos en el móvil: sí/no» y los apaga todos (`tools/avisosflow.py`).
+
 ## Cambios del 23-11-2026
 
 - **Tienda**: al saltar a Temporales u Ofertas (o al deslizar), el título que quedaba cortado bajo las pestañas dejaba

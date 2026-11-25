@@ -80,6 +80,46 @@
       a.scheduleNotice('cofre', String(fc().at), T('¡Tu cofre gratis está listo!'), T('Entra y ábrelo: dentro hay monedas y a veces gemas.'));
     } catch (e) { /* sin avisos */ }
   }
+  // ---------------- avisos del móvil (25-11) ----------------
+  // Además de la racha (game3d) y el cofre gratis: eventos, desafío y tienda de los lunes, club, pase y «te echamos de menos».
+  // Cada aviso tiene su hueco y se reprograma cada vez que se abre el juego; si ya pasó la hora, no se programa.
+  const NOTICES = ['evento', 'eventofin', 'desafio', 'tienda', 'club', 'pase', 'vuelve', 'mini'];
+  function atHour(t, h) { const d = new Date(t); d.setHours(h, 0, 0, 0); return d.getTime(); }
+  function nextMonday(h) { const d = new Date(); d.setHours(h, 0, 0, 0); const add = (8 - d.getDay()) % 7 || 7; d.setDate(d.getDate() + add); return d.getTime(); }
+  function plan() {
+    const now = Date.now(), I = X.noticeInfo ? X.noticeInfo() : {}, out = {};
+    const put = (k, at, title, text, raw) => { if (at > now + 60e3) out[k] = { at, title: raw ? title : T(title), text: raw ? text : T(text) }; };
+    // eventos de temporada: aviso al empezar y 2 días antes de acabar
+    if (I.xmStart && I.xmEnd) { put('evento', atHour(I.xmStart, 11), '🎄 ¡Ha empezado la Navidad!', 'Mundo navideño, caramelos y tienda de Navidad. ¡Entra a verlo!'); put('eventofin', atHour(I.xmEnd - 2 * 864e5, 18), '🎄 Quedan 2 días de Navidad', 'Gasta tus caramelos navideños antes de que se acabe el evento.'); }
+    if (!out.evento && I.hwStart && I.hwEnd) { put('evento', atHour(I.hwStart, 11), '🎃 ¡Ha empezado Halloween!', 'Castillo encantado, caramelos y tienda de miedo. ¡Entra a verlo!'); }
+    if (!out.eventofin && I.hwEnd) put('eventofin', atHour(I.hwEnd - 2 * 864e5, 18), '🎃 Quedan 2 días de Halloween', 'Gasta tus caramelos antes de que se acabe el evento.');
+    // lunes: desafío nuevo por la mañana y tienda nueva por la tarde
+    put('desafio', nextMonday(10), '🏆 Nuevo desafío de la semana', 'Ya tienes el desafío nuevo: 3 intentos para llevarte el premio.');
+    put('tienda', nextMonday(19), '✨ Nuevos legendarios en la tienda', 'Han llegado los cañones y la bola de esta semana, y una oferta nueva.');
+    // club: la liga acaba el lunes; la expedición, el domingo por la noche
+    const cid = S().club && S().club.cid, C = window.Social && window.Social.club;
+    if (cid && C && C.time) { const ct = C.time(); const lgEnd = ct.lgEnd || (ct.lgStart > now ? ct.lgStart + 4 * 864e5 : 0);
+      if (lgEnd) put('club', atHour(lgEnd - 864e5 - 1, 18), '🛡️ La liga de tu club acaba mañana', 'Juega tus niveles de liga y ayuda a tu club a ganar.');
+      if (!out.club) put('club', ct.weekEnd - 6 * 36e5, '🏔️ La expedición termina esta noche', 'Últimas horas para completar la expedición con tu club.'); }
+    // pase de temporada: 3 días antes de acabar
+    if (I.passEnd) put('pase', atHour(I.passEnd - 3 * 864e5, 18), '🎟️ Tu temporada acaba en 3 días', I.passPending ? 'Tienes premios del pase sin recoger.' : 'Sube unos niveles más del pase antes de que se acabe.');
+    // 3 días sin jugar
+    put('vuelve', atHour(now + 3 * 864e5, 18), '😢 ¡Te echamos de menos!', 'Vuelve y llévate un regalo de bienvenida.');
+    // mini-evento del mes
+    const md = miniDefault(now), mn = md && md.start > now ? md : miniDefault(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).getTime());
+    const lc = X.liveCfg && X.liveCfg().mini;
+    const sameDay = (a, b) => a && b && new Date(a).toDateString() === new Date(b).toDateString();
+    if (mn && !(lc && lc.on === false) && MINI[mn.theme]) put('mini', atHour(mn.start, 11) + (out.evento && sameDay(out.evento.at, mn.start) ? 864e5 : 0),   // no el mismo día que el evento grande
+      MINI[mn.theme].ico + ' ' + T('¡Empieza la {x}!').replace('{x}', T(MINI[mn.theme].name)), T('Solo este fin de semana: consigue {x} y cámbialas en la tienda.').replace('{x}', T(MINI[mn.theme].many)), true);
+    return out;
+  }
+  function noticesSync() {
+    const a = NA(); if (!a || !a.scheduleNotice) return;
+    try {
+      const p = notifOn() ? plan() : {};
+      for (const k of NOTICES) { if (p[k]) a.scheduleNotice(k, String(p[k].at), p[k].title, p[k].text); else if (a.cancelNotice) a.cancelNotice(k); }
+    } catch (e) { /* sin avisos */ }
+  }
   function fcUi() {
     let b = $('freeChest');
     if (!b) {
@@ -332,8 +372,8 @@
 
   // ---------------- enganches con el juego ----------------
   let booted = false;
-  window.Retencion = {
-    boot() { if (booted) return; booted = true; seen(); fcUi(); fcNotify(); miniUi(); navUi(); achBtn(); wk(); },
+  window.Retencion = { notices: { plan: () => plan(), sync: () => noticesSync() },
+    boot() { if (booted) return; booted = true; seen(); fcUi(); fcNotify(); noticesSync(); miniUi(); navUi(); achBtn(); wk(); },
     title() { fcUi(); miniUi(); achBtn(); navUi(); },
     achCount,
     // al ganar un nivel: fichas del mini-evento, desafío y logros. Devuelve el texto que se añade al premio.
@@ -371,5 +411,5 @@
   setInterval(() => { if (document.hidden) return; fcUi(); miniUi(); welcomeTry(); wkPrevCheck(); }, 30000);
   setInterval(() => { if (document.hidden) return; welcomeTry(); wkPrevCheck(); }, 1500);
   setTimeout(() => window.Retencion.boot(), 0);   // el juego también lo llama; lo que llegue primero
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { seen(); fcUi(); fcNotify(); } });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { seen(); fcUi(); fcNotify(); noticesSync(); } });
 })();
