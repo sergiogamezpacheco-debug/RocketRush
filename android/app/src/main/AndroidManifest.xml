@@ -40,5 +40,13 @@
         <receiver
             android:name=".ReminderReceiver"
             android:exported="false" />
+        <!-- 25-11: para compartir la imagen o el vídeo de una jugada -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.share"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/share_paths" />
+        </provider>
     </application>
 </manifest>

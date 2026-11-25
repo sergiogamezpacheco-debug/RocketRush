@@ -199,6 +199,30 @@ public class MainActivity extends ComponentActivity {
             });
         }
 
+        /** Comparte una imagen o un vídeo de una jugada (llega en base64) con las apps del móvil, junto a un texto. */
+        @JavascriptInterface
+        public void shareFile(String b64, String mime, String name, String text) {
+            try {
+                byte[] data = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                java.io.File dir = new java.io.File(getCacheDir(), "share");
+                if (!dir.exists()) dir.mkdirs();
+                java.io.File[] old = dir.listFiles();
+                if (old != null) for (java.io.File f : old) f.delete();   // solo se guarda la última jugada compartida
+                String safe = name == null ? "jugada" : name.replaceAll("[^A-Za-z0-9._-]", "_");
+                java.io.File f = new java.io.File(dir, safe);
+                try (java.io.FileOutputStream out = new java.io.FileOutputStream(f)) { out.write(data); }
+                android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".share", f);
+                runOnUiThread(() -> {
+                    Intent i = new Intent(Intent.ACTION_SEND);
+                    i.setType(mime);
+                    i.putExtra(Intent.EXTRA_STREAM, uri);
+                    if (text != null && !text.isEmpty()) i.putExtra(Intent.EXTRA_TEXT, text);
+                    i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(Intent.createChooser(i, "Rocket Rush"));
+                });
+            } catch (Exception e) { /* no se pudo compartir */ }
+        }
+
         /** Abre un enlace fuera del juego (ficha de Play, privacidad, correo de soporte). Solo https, market y mailto. */
         @JavascriptInterface
         public void openUrl(String url) {

@@ -688,6 +688,13 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   al día siguiente). Cada aviso tiene su hueco en Android (`ReminderReceiver.NAMES`) y se reprograman al abrir el juego.
   El botón de Ajustes pasa a ser «Avisos en el móvil: sí/no» y los apaga todos (`tools/avisosflow.py`).
 
+- **Compartir jugada** (`src/jugada.js`): durante la partida se guarda una foto del mejor combo del nivel (desde ×5) y, si
+  el móvil puede (MediaRecorder; MP4 si lo admite, si no WebM), un vídeo vertical de ese tiro con «ROCKET RUSH», el nivel y
+  «¡COMBO ×N!» encima. Al ganar con un buen combo o 3 estrellas sale «📤 Compartir jugada»: ventana con el vídeo (o la imagen)
+  y botones para compartir vídeo o imagen (1080×1350) con el enlace de Play. Android: `ChromaAndroid.shareFile(base64, mime,
+  nombre, texto)` con FileProvider (`res/xml/share_paths.xml`); iOS: mensaje `shareFile`. En Ajustes, «Grabar jugadas: sí/no»
+  (`tools/jugadaflow.py`).
+
 ## Cambios del 23-11-2026
 
 - **Tienda**: al saltar a Temporales u Ofertas (o al deslizar), el título que quedaba cortado bajo las pestañas dejaba

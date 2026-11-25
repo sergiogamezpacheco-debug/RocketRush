@@ -2098,6 +2098,7 @@
   const COMBO_TIERS = [[5, '¡GENIAL!', '#7dffb0'], [10, '¡INCREÍBLE!', '#ffd23f'], [15, '¡ROCKET RUSH!', '#ff7ad8'], [25, '¡IMPARABLE!', '#7fe6ff']];
   function comboStep(e) {
     G.combo = (G.combo || 0) + 1;
+    if (window.Jugada && !G.demo) Jugada.combo(G.combo);
     if (save.sound && typeof SFX !== 'undefined' && SFX.note) SFX.note(G.combo - 1);
     const t = COMBO_TIERS.find(q => q[0] === G.combo);
     if (t) { centerText(t[1], t[2], 34 + COMBO_TIERS.indexOf(t) * 4); vibe([25, 25, 40 + COMBO_TIERS.indexOf(t) * 20]); flashLight.position.set(e.x || 0, (e.y || 2) + 1, (e.z || 0) + 1.5); flashLight.color.set(t[2]); flashLight.intensity = 40; G.shake = Math.max(G.shake, 0.15); }
@@ -2112,7 +2113,7 @@
     for (const e of sim.events) {
       if (COMBO_EV[e.type] && G.mode === 'play') comboStep(e);
       switch (e.type) {
-        case 'shoot': G.combo = 0; if (WBALLS[e.kind]) stats().wballs = (stats().wballs || 0) + 1; G.shotBase = sim.popped + sim.fallen; if (G.mode === 'play' && !G.demo) masteryShot(); {
+        case 'shoot': G.combo = 0; if (WBALLS[e.kind]) stats().wballs = (stats().wballs || 0) + 1; G.shotBase = sim.popped + sim.fallen; if (G.mode === 'play' && !G.demo) { masteryShot(); if (window.Jugada) Jugada.shoot(G.level); } {
           Audio.shoot(); G.recoil = 1; vibe(14);
           const m = sim.muzzle();
           spawnSprite(m.x, m.y, m.z - 0.5, 0xffd27a, 0.7, 1.2, 0.14, { add: true, alpha: 0.9 });
@@ -2849,7 +2850,7 @@
     setTheme(L.world); buildLevelView(); frameCamera();
     if (window.Bosses) { if (L.boss) setTimeout(() => { if (G.level === L) window.Bosses.start(L); }, 0); else window.Bosses.stop(); }
     G.mode = 'play'; G.paused = false; G.ended = false; G.endT = 0; G.finalT = 0; G.slowT = 0; G.timeScale = 1;
-    G.lastSlow = false; G.combo = 0; hintUntil = 0;
+    G.lastSlow = false; G.combo = 0; hintUntil = 0; if (window.Jugada) Jugada.reset();
     setWeatherChip(L);
     G.shotBase = null; stats().plays = (stats().plays || 0) + 1; persist();
     G.clubLoseDone = false; if (L.club && window.Club) window.Club.onStart(L);
@@ -2943,6 +2944,7 @@
     const sw = $('winStars');
     sw.innerHTML = [0, 1, 2].map(i => starBig(false, 'star' + (i === 1 ? ' mid' : ''))).join('');
     show('win'); Audio.win(); vibe([20, 40, 20]);
+    if (window.Jugada && !G.demo) Jugada.winUi(L, stars);
     const els = sw.querySelectorAll('.star');
     for (let i = 0; i < stars; i++) setTimeout(() => { if (els[i]) els[i].classList.add('on'); Audio.star(i); }, 350 + i * 330);
   }
@@ -4751,6 +4753,7 @@
   }
   on('sCalm', () => { save.calm = !save.calm; persist(); refreshToggles(); });
   on('sGfx', () => { save.lowGfx = !save.lowGfx; persist(); applyGfx(); refreshToggles(); });
+  on('sRec', () => { save.rec = save.rec === false; persist(); refreshToggles(); });
   // edad (la primera vez): pregunta neutra, sin decir qué edad hace falta. Menores de 13: sin funciones en línea;
   // menores de 16: anuncios sin personalizar. Solo se guarda el año, en el móvil.
   function ageGate(then) {
@@ -4884,6 +4887,7 @@
     $('sNotif').textContent = 'Avisos en el móvil: ' + (dailySave().notif === false ? 'no' : 'sí');
     $('sCalm').textContent = 'Menos destellos: ' + (save.calm ? 'sí' : 'no');
     $('sGfx').textContent = 'Gráficos: ' + (save.lowGfx ? 'ahorro' : 'altos');
+    if ($('sRec')) $('sRec').textContent = 'Grabar jugadas: ' + (save.rec === false ? 'no' : 'sí');
     $('sState').textContent = `Sonido ${save.sound ? 'sí' : 'no'} · Vibración ${save.vibe ? 'sí' : 'no'} · Música ${save.music ? 'sí' : 'no'}`;
   }
   function maybeInterstitial(next) {
@@ -5027,7 +5031,7 @@
       cannonG.visible = false;
     }
     drawAim();
-    if (!noRender) { titleView(); shadowGate(); renderer.render(scene, camera); }
+    if (!noRender) { titleView(); shadowGate(); renderer.render(scene, camera); if (window.Jugada && Jugada.busy) Jugada.frame(renderer.domElement); }
   }
   // El mapa de sombras es un segundo dibujo de toda la escena desde el sol. Con todo quieto (lo normal mientras apuntas)
   // da el mismo resultado: se rehace solo si algo se mueve y, por si acaso, uno de cada 3 fotogramas.

@@ -82,6 +82,7 @@ final class GameViewController: UIViewController, WKScriptMessageHandler, WKUIDe
             scheduleNotice: function (name, at, title, text) { post('notice', [String(name), String(at), String(title || ''), String(text || '')]); },
             cancelNotice: function (name) { post('unnotice', [String(name)]); },
             share: function (t) { post('share', [String(t || '')]); },
+            shareFile: function (b, mime, name, t) { post('shareFile', [String(b || ''), String(mime || ''), String(name || 'jugada'), String(t || '')]); },
             openUrl: function (u) { post('open', [String(u || '')]); },
             askNotifications: function () { post('askNotif'); },
             version: function () { return '\(ver)'; }
@@ -114,6 +115,19 @@ final class GameViewController: UIViewController, WKScriptMessageHandler, WKUIDe
             let text = a.first as? String ?? ""
             let vc = UIActivityViewController(activityItems: [text], applicationActivities: nil)
             if let pop = vc.popoverPresentationController {           // iPad: sale como globo en el centro
+                pop.sourceView = view; pop.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1); pop.permittedArrowDirections = []
+            }
+            present(vc, animated: true)
+        case "shareFile":
+            // 25-11: imagen o vídeo de una jugada (llega en base64)
+            guard a.count >= 4, let b64 = a[0] as? String, let data = Data(base64Encoded: b64, options: .ignoreUnknownCharacters) else { return }
+            let name = (a[2] as? String ?? "jugada").replacingOccurrences(of: "/", with: "_")
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+            do { try data.write(to: url) } catch { return }
+            var items: [Any] = [url]
+            if let t = a[3] as? String, !t.isEmpty { items.append(t) }
+            let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
+            if let pop = vc.popoverPresentationController {
                 pop.sourceView = view; pop.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1); pop.permittedArrowDirections = []
             }
             present(vc, animated: true)

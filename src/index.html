@@ -1251,6 +1251,7 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 #studio img{width:min(78vw,62vh*1.95,560px);height:auto;opacity:0;transform:scale(.92);animation:studioIn .7s .15s cubic-bezier(.2,.8,.3,1.1) forwards}
 #studio.out{opacity:0}
 @keyframes studioIn{to{opacity:1;transform:none}}
+#jugPop .jugMedia{width:100%;max-height:52vh;object-fit:contain;border-radius:14px;display:block;margin:6px auto 10px;background:#1a0a3c}#jugBtns .btn{width:100%;margin:4px 0}#winShare{width:100%;margin:6px 0}
 </style>
 </head>
 <body>
@@ -1513,6 +1514,7 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
     <div class="note" id="sTestNote" hidden>Solo para probar. Se quita al publicar el juego.</div>
     <button class="btn blue small" id="sCode">&#127915; Canjear código</button>
     <div class="srow"><button class="btn gray small" id="sCalm">Menos destellos: no</button><button class="btn gray small" id="sGfx">Gráficos: altos</button></div>
+    <div class="srow"><button class="btn gray small" id="sRec">Grabar jugadas: sí</button></div>
     <button class="btn gray small" id="sPriv">&#128274; Privacidad y ayuda</button>
     <button class="btn gray small" id="sTut">Ver el tutorial otra vez</button>
     <button class="btn gray small" id="sReset">Borrar progreso</button>
