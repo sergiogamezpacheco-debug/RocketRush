@@ -731,6 +731,17 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   en copiar los fotogramas se deja de grabar en esa sesión (la foto se sigue haciendo).
 - En «Retos» y en las clasificaciones se avisa de que **necesitan conexión a internet** (`tools/i18n_torre2.py`).
 
+- **Arreglo: el juego se quedaba pillado al romper un bote de pintura.** El sonido de la salpicadura se llamaba sin fuerza
+  (`Audio.splash()` → volumen NaN → la Web Audio lanza un error) y, como el evento no se borraba, el error se repetía en cada
+  fotograma. Ahora: el sonido va bien, ningún sonido puede lanzar errores (todos van protegidos) y cada evento del juego se
+  atiende con su propio `try/catch`, así que uno que falle ya no puede congelar la partida.
+- **Arreglo: no arrancaba si la portada tocaba un mundo de `mundos.js`** (pintura, fábrica, tormenta, huerto…): al arrancar
+  `mundos.js` aún no está cargado y el paisaje quedaba `null`. Ahora se usa el mar hasta que esté.
+- **Torre sin fin**: la bola se deshace en cuanto rebota en la pared (antes rebotaba y rodaba 2-3 s), así que los bloques
+  nuevos entran justo al romperse los otros (0,15 s después de abrirse el hueco, aunque haya una bola en el aire) y se
+  puede tirar enseguida. Sin cámara lenta en la torre.
+- Botón «Retos» de la portada: rojo más oscuro y letras más grandes con contorno, para que se lean bien.
+
 ## Cambios del 23-11-2026
 
 - **Tienda**: al saltar a Temporales u Ofertas (o al deslizar), el título que quedaba cortado bajo las pestañas dejaba

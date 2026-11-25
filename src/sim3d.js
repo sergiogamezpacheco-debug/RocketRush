@@ -1303,6 +1303,9 @@
         if (sp < 0.6) d.slow += dt; else d.slow = 0;
         if (this.stuck && this.stuck.ball === b) continue;
         if (d.slow > 0.4 || d.age > 6) { this.killBall(b, true); continue; }
+        // torre sin fin: la pared no se mueve y la bola rebotaba y rodaba 2-3 s antes de poder seguir; ahora en cuanto
+        // rebota (vuelve hacia el cañón) se deshace, y la torre se rellena y se puede tirar enseguida
+        if (this.level.endless && d.age > 0.25 && (b.velocity.z > 0.4 || d.age > 2.2)) { this.killBall(b, true); continue; }
       }
       this.maxV = maxV;
       if (this.hasBelt) { this.beltStep(dt); if (this.beltT > 0) this.beltT -= dt; }

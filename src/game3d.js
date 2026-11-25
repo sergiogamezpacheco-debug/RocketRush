@@ -93,7 +93,7 @@
       const s = ac.createBufferSource(); s.buffer = noiseBuf;
       const f = ac.createBiquadFilter(); f.type = type || 'lowpass';
       f.frequency.setValueAtTime(f0, t); if (f1) f.frequency.exponentialRampToValueAtTime(f1, t + dur);
-      const g = ac.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      if (!isFinite(vol)) vol = 0.15; const g = ac.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       s.connect(f); f.connect(g); g.connect(sfx); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
     }
     const A = {
@@ -219,6 +219,8 @@
       };
       playBar();
     }
+    // un sonido que falle (valor raro, contexto cerrado...) nunca debe romper el juego
+    for (const k of Object.keys(A)) if (typeof A[k] === "function") { const f = A[k]; A[k] = function () { try { return f.apply(A, arguments); } catch (e) { return undefined; } }; }
     return A;
   })();
   function vibe(ms) {
@@ -1105,9 +1107,9 @@
     paint: () => window.Mundos ? window.Mundos.build('paint') : null, factory: () => window.Mundos ? window.Mundos.build('factory') : null, storm: () => window.Mundos ? window.Mundos.build('storm') : null };
   let biome = 'sea';
   function setBiome(name) {
-    if (!BIOMES[name] && biomeBuilders[name]) BIOMES[name] = biomeBuilders[name]();
+    if (!BIOMES[name] && biomeBuilders[name]) { const b = biomeBuilders[name](); if (b) BIOMES[name] = b; }   // los de mundos.js aún no están al arrancar: se usa el mar
     biome = BIOMES[name] ? name : 'sea';
-    for (const k in BIOMES) { const on = k === biome; for (const o of BIOMES[k].env) o.visible = on; BIOMES[k].platform.visible = on; }
+    for (const k in BIOMES) { if (!BIOMES[k]) continue; const on = k === biome; for (const o of BIOMES[k].env) o.visible = on; BIOMES[k].platform.visible = on; }
     if (BIOMES[biome].water) sea.visible = true;            // paisajes con agua (Halloween: el galeón navega)
     sunDisc.visible = !BIOMES[biome].noSun;
     const L = BIOMES[biome].light;
@@ -2207,7 +2209,7 @@
       const n = sim.popped + sim.fallen - G.shotBase, st = stats();
       if (n > (st.bestShot || 0)) st.bestShot = n;
     }
-    for (const e of sim.events) {
+    for (const e of sim.events) { try {   // un evento que falle no puede dejar el juego pillado (se repetiría en cada fotograma)
       if (COMBO_EV[e.type] && G.mode === 'play') comboStep(e);
       switch (e.type) {
         case 'shoot': G.combo = 0; if (WBALLS[e.kind]) stats().wballs = (stats().wballs || 0) + 1; G.shotBase = sim.popped + sim.fallen; if (G.mode === 'play' && !G.demo) { masteryShot(); if (window.Jugada) Jugada.shoot(G.level); } {
@@ -2334,7 +2336,7 @@
           break;
         case 'prismOff': for (const c of Object.values(COL)) spawnDebris(e.x, e.y, e.z, c, 3, 4, 0.1, 0.9, { flat: true }); Audio.pop(3); break;   // roto sin efecto
         // 25-11 · mundos nuevos
-        case 'paintsplash': { const col = COL[e.c] || 0xffffff; spawnDebris(e.x, e.y, e.z, col, 22, 6, 0.14, 1.0); spawnRing(e.x, e.y, e.z + 0.5, col, 1.8, 0.5); spawnSprite(e.x, e.y, e.z + 0.4, col, 2.4, 1.6, 0.4, { add: true, alpha: 0.85 }); Audio.splash ? Audio.splash() : Audio.pop(3); stats().specials++; break; }
+        case 'paintsplash': { const col = COL[e.c] || 0xffffff; spawnDebris(e.x, e.y, e.z, col, 22, 6, 0.14, 1.0); spawnRing(e.x, e.y, e.z + 0.5, col, 1.8, 0.5); spawnSprite(e.x, e.y, e.z + 0.4, col, 2.4, 1.6, 0.4, { add: true, alpha: 0.85 }); Audio.splash(1.5); stats().specials++; break; }
         case 'recolor': recolorView(e); break;
         case 'canvasOff': spawnDebris(e.x, e.y, e.z, 0xfbf7ee, 10, 4, 0.1, 0.9, { flat: true }); spawnDebris(e.x, e.y, e.z, 0xc89a5a, 6, 4, 0.08, 0.8); Audio.pop(2); break;
         case 'clank': spawnSprite(e.x, e.y, e.z + 0.5, 0xfff2b0, 0.9, 1.6, 0.18, { add: true }); spawnDebris(e.x, e.y, e.z + 0.5, 0xffe27a, 6, 5, 0.05, 0.4); Audio.thud(5, false); break;
@@ -2476,6 +2478,7 @@
           break;
         case 'lose': G.endT = 0.4; break;
       }
+      } catch (err) { if (window.console) console.warn('evento ' + e.type, err); }
     }
     sim.events.length = 0;
   }
@@ -5090,7 +5093,7 @@
         if (G.level.boss && window.Bosses) window.Bosses.tick(dt * G.timeScale);
         updateWeatherChip();
         // cámara lenta cuando cae la última pieza
-        if (!G.lastSlow && !G.level.boss && sim.state === 'play' && sim.progress() >= 0.97) { G.lastSlow = true; G.slowT = Math.max(G.slowT, 1.1); }
+        if (!G.lastSlow && !G.level.boss && !G.level.endless && sim.state === 'play' && sim.progress() >= 0.97) { G.lastSlow = true; G.slowT = Math.max(G.slowT, 1.1); }
         // racha: el cohete de salida cruza la estructura al empezar
         if (G.rocketStart && G.introT <= 0 && !$('newCard').classList.contains('on')) { G.rocketStart = false; rocketStrike(); }
         if (G.debutT > 0 && (G.debutT -= dt) <= 0 && G.level.debut) { save.seenDebut[G.level.debut] = true; persist(); openNewCard(G.level); }
@@ -5263,5 +5266,5 @@
   ageGate(); if (save.birthYear) adsStart();
   requestAnimationFrame(() => requestAnimationFrame(autoDailySoon));   // cuenta desde que la portada ya se ve
   requestAnimationFrame(frame);
-  window.ChromaGame = { G, startLevel, tick, pickTarget: (x, y) => pickTarget(x, y), manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, LEVELS, goTitle, finishWin, cos: { buy: (k, id) => cosBuy(k, id), equip: (k, id) => cosEquip(k, id), up: () => cosUpgrade(), tmp: () => tmpNow(), apply: applySkin, out: () => cannonOut } };
+  window.ChromaGame = { G, startLevel, tick, pickTarget: (x, y) => pickTarget(x, y), manual: v => { manual = v; }, shiftDays: n => { dayShift += n; updateDailyBadges(); return dayKey(); }, dailyStatus, render: () => { titleView(); renderer.render(scene, camera); }, save: () => save, camera, renderer, scene, LEVELS, goTitle, finishWin, cos: { buy: (k, id) => cosBuy(k, id), equip: (k, id) => cosEquip(k, id), up: () => cosUpgrade(), tmp: () => tmpNow(), apply: applySkin, out: () => cannonOut } };
 })();

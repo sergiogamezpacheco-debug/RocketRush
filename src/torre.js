@@ -97,8 +97,7 @@
     const A = X(), G = A.G, sim = G.sim; if (!S || !sim || G.level !== S.L || sim.state !== 'play') return;
     if (!S.grid) buildGrid(sim);
     let moving = false;
-    const calm = sim.balls.length === 0;                 // los nuevos entran cuando no hay bola en el aire
-    if (calm) S.wait += dt; else S.wait = 0;
+    if (!S.hole) S.hole = new Array(W).fill(0);
     for (let c = 0; c < W; c++) {
       const col = S.grid[c];
       for (let r = 0; r < col.length; r++) if (col[r] && gone(col[r])) { S.dead.push([col[r].userData.id, sim.t]); col[r] = null; }
@@ -111,8 +110,10 @@
         }
       }
       for (let r = 0; r < H; r++) col[r] = keep[r] || null;
-      // y por arriba entran bloques nuevos (cuando no hay ninguna bola en el aire)
-      if (keep.length < H && calm && S.wait >= 0.12) {
+      // y por arriba entran bloques nuevos en cuanto se abre hueco (un momento después, para que se vea caer lo de arriba)
+      if (keep.length < H) S.hole[c] += dt; else S.hole[c] = 0;
+      if (keep.length < H && S.hole[c] >= 0.15) {
+        S.hole[c] = 0;
         const top = keep.length ? keep[keep.length - 1].position.y : Y0 - 1;
         for (let r = keep.length, k = 0; r < H; r++, k++) {
           const special = S.floor >= 1 && rnd() < Math.min(0.09, 0.04 + S.floor * 0.008);
