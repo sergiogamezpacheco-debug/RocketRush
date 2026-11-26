@@ -740,7 +740,9 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
 - **Torre sin fin**: la bola se deshace en cuanto rebota en la pared (antes rebotaba y rodaba 2-3 s), así que los bloques
   nuevos entran justo al romperse los otros (0,15 s después de abrirse el hueco, aunque haya una bola en el aire) y se
   puede tirar enseguida. Sin cámara lenta en la torre.
-- Botón «Retos» de la portada: rojo más oscuro y letras más grandes con contorno, para que se lean bien.
+- Etiqueta **«NUEVO»** de los niveles del mapa: en los niveles bloqueados chocaba con el candado (los dos usaban `::after`) y salía como
+  una pastilla verde alta sin letras tapando el número. Ahora va en `::before`, más grande y sin sombra, y se lee bien. (El botón
+  «Retos» de la portada se queda como estaba.)
 
 ## Cambios del 23-11-2026
 
