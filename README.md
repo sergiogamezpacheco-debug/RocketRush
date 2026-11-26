@@ -679,6 +679,12 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   Ajustes › Canjear código (`giftcodes`, `Social.redeem`, `save.codesUsed`). No sale a menores de 13 ni sin funciones en línea.
 - Prueba: `tools/redeemshopflow.py`.
 
+## Cambios del 26-11-2026
+
+- **Brasas del volcán solo de adorno** (clima «lluvia de ceniza», desde el nivel 300): siguen cayendo sobre la estructura y se
+  apagan con unas chispas, pero ya no revientan bloques (parecía un fallo). El aviso del clima lo dice
+  (`tools/i18n_brasas.py`).
+
 ## Cambios del 25-11-2026
 
 - **Avisos en el móvil** (`retencion.js` → `plan()`): además de la racha y el cofre gratis, el juego programa:

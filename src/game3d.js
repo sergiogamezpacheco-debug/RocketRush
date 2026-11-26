@@ -1322,7 +1322,7 @@
   const WX = {
     storm: ['VIENTO', 'Tormenta: el viento desvía la bola. Mira la guía al apuntar.'], sandstorm: ['RÁFAGAS', 'Tormenta de arena: ráfagas de viento que cambian de fuerza.'],
     blizzard: ['HIELO', 'Ventisca: todo resbala más. Las torres caen con poco.'], rain: ['LLUVIA', 'Lluvia: el suelo está mojado y los bloques resbalan.'],
-    ash: ['BRASAS', 'Lluvia de ceniza: caen brasas que rompen bloques de arriba.'], meteors: ['METEORITOS', 'Meteoritos: de vez en cuando uno golpea la estructura.'] };
+    ash: ['BRASAS', 'Lluvia de ceniza: caen brasas del volcán, pero no rompen nada.'], meteors: ['METEORITOS', 'Meteoritos: de vez en cuando uno golpea la estructura.'] };
   function setWeatherChip(L) {
     const el = $('wxChip'), w = L.weather && WX[L.weather];
     el.hidden = !w; if (!w) return;
@@ -2367,7 +2367,8 @@
         case 'gumGo': spawnSprite(e.x, e.y, e.z, 0xff8ad0, 1.6, 1.4, 0.35, { add: true }); Audio.shoot(); break;
         case 'vine': floatText(e.x, e.y + 1, e.z, '¡ALLÁ VA!', '#7dffb0', 24, true); Audio.swap(); vibe(25); break;
         case 'totem': floatText(e.x, e.y + 1, e.z, '¡GIRA!', '#ffffff', 20); break;
-        case 'ember': for (let i = 0; i < 8; i++) setTimeout(() => spawnSprite(e.x + (8 - i) * 0.25, e.y + (8 - i) * 1.1, e.z, i % 2 ? 0xffb050 : 0xff5a1a, 0.9, 1, 0.4, { add: true, alpha: 1 }), i * 70); break;
+        case 'ember': for (let i = 0; i < 8; i++) setTimeout(() => spawnSprite(e.x + (8 - i) * 0.25, e.y + (8 - i) * 1.1, e.z, i % 2 ? 0xffb050 : 0xff5a1a, 0.9, 1, 0.4, { add: true, alpha: 1 }), i * 70);
+          setTimeout(() => { for (let i = 0; i < 6; i++) spawnSprite(e.x + (Math.random() - 0.5) * 0.9, e.y + 0.5 + Math.random() * 0.4, e.z + 0.3, i % 2 ? 0xffb050 : 0x6a5a52, 0.35, 0.35, 0.5, { add: i % 2 === 1, alpha: 0.9 }); }, 600); break;   // se apaga al caer (no rompe nada)
         case 'meteor': for (let i = 0; i < 10; i++) setTimeout(() => spawnSprite(e.x - (10 - i) * 0.8, e.y + (10 - i) * 1.4, e.z - (10 - i) * 0.5, i === 9 ? 0xffffff : 0xffb050, 1.6 - i * 0.05, 1, 0.45, { add: true, alpha: 1 }), i * 70); setTimeout(() => floatText(e.x, e.y + 1, e.z, '¡METEORITO!', '#ffb050', 24, true), 750); break;
         case 'stripe':
           spawnBeam(e.y, e.z, 0xffffff); Audio.special(); G.shake = Math.max(G.shake, 0.2); vibe(45);

@@ -1185,6 +1185,7 @@ window.I18N_DATA = {
   "LLUVIA": ["RAIN", "CHUVA", "PLUIE", "REGEN", "PIOGGIA"],
   "lluvia": ["rain", "chuva", "pluie", "Regen", "pioggia"],
   "lluvia de ceniza": ["ash rain", "chuva de cinzas", "pluie de cendres", "Ascheregen", "pioggia di cenere"],
+  "Lluvia de ceniza: caen brasas del volcán, pero no rompen nada.": ["Ash rain: embers fall from the volcano, but they don't break anything.", "Chuva de cinzas: caem brasas do vulcão, mas não quebram nada.", "Pluie de cendres : des braises tombent du volcan, mais elles ne cassent rien.", "Ascheregen: Glut fällt vom Vulkan, aber sie zerbricht nichts.", "Pioggia di cenere: cadono braci dal vulcano, ma non rompono nulla."],
   "Lluvia de ceniza: caen brasas que rompen bloques de arriba.": ["Ash rain: falling embers break blocks at the top.", "Chuva de cinzas: caem brasas que quebram blocos de cima.", "Pluie de cendres : des braises tombent et cassent les blocs du haut.", "Ascheregen: Herabfallende Glut zerstört Blöcke oben.", "Pioggia di cenere: cadono braci che rompono i blocchi in alto."],
   "Lluvia: el suelo está mojado y los bloques resbalan.": ["Rain: the ground is wet and blocks slide.", "Chuva: o chão está molhado e os blocos escorregam.", "Pluie : le sol est mouillé et les blocs glissent.", "Regen: Der Boden ist nass und die Blöcke rutschen.", "Pioggia: il terreno è bagnato e i blocchi scivolano."],
   "LOGROS": ["ACHIEVEMENTS", "CONQUISTAS", "SUCCÈS", "ERFOLGE", "TRAGUARDI"],

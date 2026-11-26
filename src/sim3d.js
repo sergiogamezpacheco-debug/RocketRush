@@ -1049,11 +1049,12 @@
       if (this.weather === 'sandstorm') this.wind = this.windBase * (0.55 + 0.45 * Math.sin(this.t * 0.7));
       if (this.wind) for (const b of this.balls) if (!b.userData.dead && b !== (this.stuck && this.stuck.ball)) b.velocity.x += this.wind * dt;
       if (this.state !== 'play') return;
-      if (this.weather === 'ash' && this.t > this.nextEmber) {      // brasa: cae sobre un bloque de arriba y lo rompe
+      // brasa: cae sobre un bloque de arriba. 26-11: solo de adorno (antes lo rompía y parecía un fallo)
+      if (this.weather === 'ash' && this.t > this.nextEmber) {
         this.nextEmber = this.t + 6 + this.rand() * 4;
         const live = this.liveBlocks().filter(b => b.userData.kind === 'block' && !b.userData.locked && !b.userData.popping);
         if (live.length) { const top = Math.max(...live.map(b => b.position.y)); const pool = live.filter(b => b.position.y > top - 1.2); const b = pool[Math.floor(this.rand() * pool.length)];
-          this.emit({ type: 'ember', x: b.position.x, y: b.position.y, z: b.position.z }); this.later(0.6, () => this.popSingle(b, 0.01)); }
+          this.emit({ type: 'ember', x: b.position.x, y: b.position.y, z: b.position.z }); }
       }
       if (this.weather === 'meteors' && this.t > this.nextMeteor) {  // meteorito: golpea la estructura y ayuda
         this.nextMeteor = this.t + 8 + this.rand() * 5;
