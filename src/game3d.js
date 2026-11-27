@@ -1275,7 +1275,13 @@
   }
   function updateSprites(dt) { fxUpdate(FXN, dt); fxUpdate(FXA, dt); }
   function updateRings() { /* los anillos van con las demás partículas (updateSprites) */ }
-  function prewarmFx() { spawnSprite(0, -200, 0, 0xffffff, 0.1, 0, 0.02, {}); spawnSprite(0, -200, 0, 0xffffff, 0.1, 0, 0.02, { add: true }); }
+  // 27-11: también los trocitos (debris). Su malla empieza vacía y no se dibujaba hasta el primer bloque reventado: ahí el
+  // móvil tenía que preparar su shader (con color por pieza) y daba el tirón «al reventar el primer bloque». Se llama al
+  // arrancar y al empezar cada nivel (con otro paisaje cambian la niebla y las luces, y con ellas el shader).
+  function prewarmFx() {
+    spawnSprite(0, -200, 0, 0xffffff, 0.1, 0, 0.02, {}); spawnSprite(0, -200, 0, 0xffffff, 0.1, 0, 0.02, { add: true });
+    try { spawnDebris(0, -200, 0, 0xffffff, 1, 0, 0.01, 0.05); } catch (e) { /* nada */ }
+  }
 
   const beams = [];
   const beamGeo = new THREE.BoxGeometry(14, 0.25, 0.25), beamPool = [];
@@ -2963,7 +2969,7 @@
     G.gemRoll = roll;
     G.sim = new Sim(L, { boosters: bl, wlv: wlvAll(), viewTest, gems: Math.max(0, roll.n - roll.got), gemSeed: 1 + Math.floor(Math.random() * 1e9), power: cannonPower(L) });
     if (extra) { const cols = G.sim.queue.filter(k => COL[k]); for (let i = 0; i < extra; i++) G.sim.queue.push(cols[i % Math.max(1, cols.length)] || 'heavy'); }
-    setTheme(L.world); buildLevelView(); frameCamera();
+    setTheme(L.world); buildLevelView(); frameCamera(); prewarmFx();
     if (window.Bosses) { if (L.boss) setTimeout(() => { if (G.level === L) window.Bosses.start(L); }, 0); else window.Bosses.stop(); }
     if (window.Torre) { if (L.endless) window.Torre.start(L); else window.Torre.stop(); }
     G.mode = 'play'; G.paused = false; G.ended = false; G.endT = 0; G.finalT = 0; G.slowT = 0; G.timeScale = 1;

@@ -208,7 +208,10 @@
       w.defaultContactMaterial.frictionEquationStiffness = 5e7;
       // isla
       const isl = new CANNON.Body({ mass: 0, type: CANNON.Body.STATIC });
-      isl.addShape(new CANNON.Cylinder(C.ISLAND_R, C.ISLAND_R, C.ISLAND_H, 28));
+      // 27-11: 16 lados en vez de 28 (con los lados planos justo en el borde que se ve). El choque caja-cilindro era más de
+      // la mitad del trabajo de la física cuando la fila de abajo estaba despierta: así cuesta unas 3 veces menos
+      const ISEG = 16, IR = C.ISLAND_R / Math.cos(Math.PI / ISEG);
+      isl.addShape(new CANNON.Cylinder(IR, IR, C.ISLAND_H, ISEG));
       isl.position.set(0, -C.ISLAND_H / 2, 0);
       isl.userData = { kind: 'island' };
       w.addBody(isl); this.island = isl;
@@ -676,7 +679,7 @@
       if (this.pw && this.pw.combo && this.chain > 1) pts = Math.round(pts * 1.25);   // Turbo: los combos dan +25 %
       this.score += pts;
       this.emit({ type: 'pop', id: d.id, x: b.position.x, y: b.position.y, z: b.position.z, c: d.c, chain: this.chain, pts, w: d.w, h: d.h, d: d.d });
-      this.wakeAll();
+      this.wakeAround(b);
       if (d.stripe) this.later(0.04, () => this.stripeBlast(b.position.x, b.position.y, b.position.z));
       if (d.bomb) this.later(0.04, () => this.explode(b.position.x, b.position.y, b.position.z, C.BOMB_R, false));
     }
@@ -1232,6 +1235,22 @@
       this.later(delay || 0.02, () => this.removeBlock(b));
     }
     wakeAll() { for (const b of this.blocks) if (b.userData.alive) b.wakeUp(); }
+    // 27-11: al reventar un bloque solo se despiertan los que lo tocaban (los que se apoyaban en él, los de al lado). Antes se
+    // despertaba TODA la estructura en cada bloque reventado y la física tenía que mover 50-80 bloques a la vez durante un
+    // rato: en los niveles grandes (los de Navidad) el móvil no daba abasto y el juego iba a tirones. Lo que se cae de
+    // verdad despierta a lo que golpea (eso lo hace el motor de física solo).
+    wakeAround(b) {
+      // con una bola que no es «física» en el aire o una bola de nieve rodando, como antes: todo despierto
+      if (this.balls.some(x => x.type !== CANNON.Body.DYNAMIC) || (this.snowballs && this.snowballs.some(o => o.userData.rolling && o.userData.alive))) return this.wakeAll();
+      b.updateAABB && b.updateAABB();
+      const a = b.aabb, m = 0.3, lo = a.lowerBound, hi = a.upperBound;
+      for (const o of this.blocks) {
+        if (!o.userData.alive || o === b || o.sleepState !== CANNON.Body.SLEEPING) continue;
+        if (o.aabbNeedsUpdate) o.updateAABB();
+        const p = o.aabb.lowerBound, q = o.aabb.upperBound;
+        if (p.x <= hi.x + m && q.x >= lo.x - m && p.y <= hi.y + m && q.y >= lo.y - m && p.z <= hi.z + m && q.z >= lo.z - m) o.wakeUp();
+      }
+    }
     later(t, fn) { this.pending.push({ t: this.t + t, fn }); }
 
     // ---------- bucle ----------

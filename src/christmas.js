@@ -241,11 +241,19 @@
   const peppTex = tex(128, 128, g => { g.fillStyle = '#fff'; g.beginPath(); g.arc(64, 64, 62, 0, TAU); g.fill(); g.fillStyle = '#e8203a'; for (let i = 0; i < 8; i++) { g.beginPath(); g.moveTo(64, 64); g.arc(64, 64, 62, i * TAU / 8, i * TAU / 8 + TAU / 16); g.fill(); } g.fillStyle = 'rgba(255,255,255,.5)'; g.beginPath(); g.arc(46, 44, 14, 0, TAU); g.fill(); });
   const peppMat = new T.MeshStandardMaterial({ map: peppTex, roughness: 0.2 });
   const sparkMat = new T.SpriteMaterial({ map: H.TEX.soft, color: 0xffffff, transparent: true, depthWrite: false, blending: T.AdditiveBlending });
+  const wrapMats = new Map();
   function wrapBlock(G, b, prize, withBow) {
     const d = b.userData, host = G.meshes[d.id]; if (!host) return null;
     let body = null; host.traverse(o => { if (!body && o.isMesh && o.material && !o.material.transparent) body = o; });
     const base = '#' + (H.COL[d.c] || 0xffffff).toString(16).padStart(6, '0');
-    if (body) { body.material = body.material.clone(); body.material.map = wrapTex(base, 'flakes', '#ffffff'); body.material.color.set(0xffffff); body.material.needsUpdate = true; }
+    // 27-11: un material de papel de regalo por color (y por material de origen), compartido: antes se clonaba uno por bloque
+    // y en los niveles grandes de Navidad había 50-80 materiales distintos que la tarjeta gráfica tenía que ir cambiando
+    if (body) {
+      const k = body.material.uuid + base;
+      let m = wrapMats.get(k);
+      if (!m) { m = body.material.clone(); m.map = wrapTex(base, 'flakes', '#ffffff'); m.color.set(0xffffff); m.needsUpdate = true; wrapMats.set(k, m); }
+      body.material = m;
+    }
     if (!prize && !withBow) return null;
     const s = Math.min(d.w, d.h), deco = new T.Group();
     const bw = bow(s * 0.72, bowMat); bw.position.set(0, d.h / 2, 0); deco.add(bw);

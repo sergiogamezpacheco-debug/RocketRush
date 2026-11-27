@@ -681,6 +681,19 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
 
 ## Cambios del 27-11-2026
 
+- **Rendimiento (tirones al reventar bloques, sobre todo en Navidad)**. Medido con el simulador de física, que era lo que más
+  pesaba en los niveles grandes (los de Navidad tienen 45-80 bloques frente a ~20):
+  - Al reventar un bloque ya no se despierta **toda** la estructura (`wakeAll`), solo los bloques que lo tocaban
+    (`Sim.wakeAround`); lo que cae despierta a lo que golpea. Con una bola de nieve rodando o una bola no física en el aire se
+    sigue despertando todo, como antes.
+  - El cilindro de la isla para la física tiene 16 lados en vez de 28 (los lados planos coinciden con el borde que se ve): el
+    choque caja-cilindro era más de la mitad del trabajo.
+  - Resultado: en el nivel de Navidad 30003, después del primer bloque, de 3-11 ms por fotograma de física a ~1 ms; en
+    una muestra de 56 niveles la física va el doble de rápida y el jugador automático gana lo mismo (78-84 de 112).
+  - Los trocitos (debris) se «precalientan» al arrancar y al empezar cada nivel: su malla empezaba vacía y el móvil preparaba
+    su shader justo al reventar el primer bloque.
+  - Navidad: un material de papel de regalo por color, compartido (antes uno por bloque).
+
 - **Jefes nuevos más difíciles** (`bosses.js`, prueba `tools/jefesnuevosflow.py`, textos `tools/i18n_jefes4.py`):
   - **Maese Brochazo**: la mancha solo brilla (y solo le hace daño) después de reventar 5, 7 y 9 bloques; antes basta con
     darle con el color. Sin cargar, la bola rebota («¡Aún no! Revienta bloques»).
