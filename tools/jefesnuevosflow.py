@@ -1,4 +1,4 @@
-# 25-11: jefes nuevos (Maese Brochazo, Grúa Mordisco, Nimbo): se ven, y acertar en su punto débil les quita vidas
+# 25-11 / 27-11: jefes nuevos (Maese Brochazo, Grúa Mordisco, Nimbo): se ven, y acertar en su punto débil les quita vidas
 from playwright.sync_api import sync_playwright
 OUT='/home/claude/chroma3d/dist/shots/'; errs=[]; ok=[]
 def chk(n, c, x=''): ok.append(bool(c)); print('OK ' if c else 'MAL', n, x)
@@ -17,7 +17,13 @@ with sync_playwright() as p:
     chk('Brochazo empieza con 3 vidas', st and st['key'] == 'brush' and st['lives'] == 3, st)
     pg.screenshot(path=OUT+'jefe_brochazo.png', timeout=90000)
     pg.evaluate("() => ChromaGame.manual(true)")
+    pg.evaluate("() => { const S = Bosses.state(), sim = ChromaGame.G.sim; sim.queue.unshift(S.want); }")
+    fire(pg, "Bosses.state().hit"); run(pg, 3.5)
+    chk('Brochazo: sin cargar la paleta, la mancha no le hace nada', pg.evaluate("() => Bosses.state().livesLeft") == 3)
     for k in range(3):
+        # reventar los bloques que pide (5, 7, 9) y darle con su color
+        st=pg.evaluate("""() => { const S = Bosses.state(), sim = ChromaGame.G.sim; let n = 0; while (!S.ready && n < 30) { const b = sim.liveBlocks().find(o => o.userData.kind === 'block' && !o.userData.popping); if (!b) break; sim.popSingle(b, 0); n++; for (let i = 0; i < 20; i++) ChromaGame.tick(1/60, true); } return { ready: S.ready, n }; }""")
+        chk(f'Brochazo: revienta {st["n"]} bloques y la paleta brilla', st['ready'], st)
         pg.evaluate("() => { const S = Bosses.state(), sim = ChromaGame.G.sim; sim.queue.unshift(S.want); }")
         fire(pg, "Bosses.state().hit"); run(pg, 3.5)
     st=pg.evaluate("() => { const S = Bosses.state(); return S && { lives: S.livesLeft, done: S.done }; }")
@@ -30,6 +36,10 @@ with sync_playwright() as p:
     pg.evaluate("() => ChromaGame.manual(true)")
     fire(pg, "Bosses.state().cabHit"); run(pg, 3.5)
     chk('Grúa: la cabina es inmune si no está aturdida', pg.evaluate("() => Bosses.state().livesLeft") == 3)
+    st=pg.evaluate("() => Bosses.state().crate")
+    chk('Grúa: al principio no hay contenedor', st == 'gone', st)
+    st=pg.evaluate("""() => { const S = Bosses.state(), sim = ChromaGame.G.sim; let n = 0; while (S.crate !== 'hang' && n < 30) { const b = sim.liveBlocks().find(o => o.userData.kind === 'block' && !o.userData.popping); if (!b) break; sim.popSingle(b, 0); n++; for (let i = 0; i < 20; i++) ChromaGame.tick(1/60, true); } return { crate: S.crate, n }; }""")
+    chk('Grúa: reventando 4 bloques trae el contenedor', st['crate'] == 'hang' and st['n'] == 4, st)
     fire(pg, "Bosses.state().crateHit"); run(pg, 4)
     st=pg.evaluate("() => { const S = Bosses.state(); return { crate: S.crate, stun: S.stun }; }")
     chk('Grúa: el contenedor cae y la aturde', st['crate'] == 'gone' and st['stun'] > 0, st)
@@ -42,15 +52,21 @@ with sync_playwright() as p:
     pg.evaluate("() => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); ChromaGame.startLevel(950, []); }"); pg.wait_for_timeout(3500)
     pg.screenshot(path=OUT+'jefe_nimbo.png', timeout=90000)
     pg.evaluate("() => ChromaGame.manual(true)")
+    shootBlock = lambda: pg.evaluate("() => { const sim = ChromaGame.G.sim, b = sim.liveBlocks().find(o => o.userData.kind === 'block'); sim.sinceFire = 9; sim.fire(b.position.x, b.position.y, b.position.z + 0.4); }")
     fire(pg, "Bosses.state().hit"); run(pg, 3.5)
-    chk('Nimbo: sin cargar, el pararrayos no le hace nada', pg.evaluate("() => Bosses.state().livesLeft") == 3)
-    pg.evaluate("() => { const S = Bosses.state(); S.charging = true; S.chargeShots = 0; }")
+    st=pg.evaluate("() => { const S = Bosses.state(); return { lives: S.livesLeft, charge: S.charge, charging: S.charging }; }")
+    chk('Nimbo: el 1.er tiro lo carga (1/3) y el pararrayos aún no le hace nada', st['lives'] == 3 and st['charge'] == 1 and not st['charging'], st)
+    shootBlock(); run(pg, 3.5)
+    st=pg.evaluate("() => { const S = Bosses.state(); return { charge: S.charge, charging: S.charging }; }")
+    chk('Nimbo: el 2.º tiro (aunque no rompa nada) lo deja cargado', st['charging'], st)
     fire(pg, "Bosses.state().hit"); run(pg, 3.5)
-    chk('Nimbo: cargando, el pararrayos le devuelve el rayo', pg.evaluate("() => Bosses.state().livesLeft") == 2)
-    # rayo: electrifica 2 bloques
-    pg.evaluate("() => { const S = Bosses.state(); S.charging = true; S.chargeShots = 1; }")
-    pg.evaluate("() => { const sim = ChromaGame.G.sim, b = sim.liveBlocks().find(o => o.userData.kind === 'block'); sim.sinceFire = 9; sim.fire(b.position.x, b.position.y, b.position.z + 0.4); }"); run(pg, 4)
-    chk('Nimbo: si no le das a tiempo, electrifica 2 bloques', pg.evaluate("() => Bosses.state().cages.length") == 2)
+    st=pg.evaluate("() => { const S = Bosses.state(); return { lives: S.livesLeft, charge: S.charge, charging: S.charging }; }")
+    chk('Nimbo: 3.er tiro al pararrayos = pierde una vida y se descarga', st['lives'] == 2 and st['charge'] == 0 and not st['charging'], st)
+    # tres tiros seguidos sin esperar: el tercero falla el pararrayos -> descarga y quita 2 bolas
+    q0=pg.evaluate("() => ChromaGame.G.sim.queue.length")
+    shootBlock(); run(pg, 0.4); shootBlock(); run(pg, 0.4); shootBlock(); run(pg, 4)
+    st=pg.evaluate("() => { const S = Bosses.state(); return { q: ChromaGame.G.sim.queue.length, charge: S.charge, charging: S.charging, lives: S.livesLeft }; }")
+    chk('Nimbo: si fallas el 3.er tiro te suelta la descarga (-2 bolas)', st['q'] == q0 - 3 - 2 and not st['charging'] and st['lives'] == 2, dict(st, q0=q0))
     pg.evaluate("() => ChromaGame.manual(false)"); pg.wait_for_timeout(800); pg.screenshot(path=OUT+'jefe_nimbo_2.png', timeout=90000)
     pg.close()
     b.close()

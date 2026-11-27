@@ -1006,6 +1006,7 @@
       for (let i = 0; i < n; i++) l.blocks.push({ x: -0.2 - w / 2 + 0.6 + i, y: by + 0.15 + 0.5, z: bz, w: 1, h: 1, d: 1, c: cols[Math.floor(r() * cols.length)], cargo: true });
       l.blocks.push({ x: -Math.min(3.4, ext + 0.6), y: 0.5, z: bz + 1.2, w: 1, h: 1, d: 1, t: 'lever' });
       l.viewTop = Math.max(l.viewTop || 0, by + 1.4);
+      l.camBack = 2.4;   // 27-11: la cámara un poco más atrás para que se vea bien la palanca
       if (typeof l.balls === 'string') l.balls += cols[Math.floor(r() * cols.length)] + cols[Math.floor(r() * cols.length)], l.nb = l.balls.length;   // la carga estorba: 2 bolas más
     } else if (l.biome === 'storm') {
       // la cara que se ve: por cada casilla (x, y), el bloque de más delante (aunque no estén todos a la misma profundidad)

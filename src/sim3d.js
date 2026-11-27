@@ -374,6 +374,7 @@
       this.spawnBall(kind, tx, ty, tz);
       this.armed = true; this.chain = 1; this.shotPops = 0; this.shotOpen = true; this.shotGolden = kind === 'golden' || !!WBALLS[kind];
       this.sinceFire = 0; this.idle = 0; this.shots++;
+      if (this.hasBelt) { this.beltDue = (this.beltDue || 0) + 1; if (!(this.beltWait > 0)) this.beltWait = 0.7; }   // 27-11: la cinta avanza tras CADA tiro (antes solo si el tiro anterior había acabado)
       if (this.chams && this.chams.length) this.chamPending = true;
       this.emit({ type: 'shoot', kind });
       return true;
@@ -1309,7 +1310,10 @@
         if (this.level.endless && d.age > 0.25 && (b.velocity.z > 0.4 || d.age > 2.2)) { this.killBall(b, true); continue; }
       }
       this.maxV = maxV;
-      if (this.hasBelt) { this.beltStep(dt); if (this.beltT > 0) this.beltT -= dt; }
+      if (this.hasBelt) {
+        if (this.beltDue > 0 && this.beltT <= 0 && (this.beltWait -= dt) <= 0) { this.beltDue--; this.beltT = 0.45; this.beltWait = 0.25; this.emit({ type: 'beltGo' }); }
+        this.beltStep(dt); if (this.beltT > 0) this.beltT -= dt;
+      }
       if (this.state === 'play' && (this.stepN = (this.stepN || 0) + 1) % 12 === 0) this.sweepHidden(12 * dt);
       // objetivo cumplido: el nivel sigue y el jugador decide cuándo terminar
       if (this.state === 'play' && !this.goalReached && this.progress() >= this.target) {
@@ -1320,7 +1324,6 @@
       if (this.chamPending && this.balls.length === 0 && this.pending.length === 0 && this.sinceFire > 0.6 && maxV < 1.2) { this.chamPending = false; this.shiftChams(); }
       if (this.shotOpen && this.balls.length === 0 && this.pending.length === 0 && this.sinceFire > 0.5) {
         this.shotOpen = false;
-        if (this.hasBelt) { this.beltT = 0.45; this.emit({ type: 'beltGo' }); }
         if (this.state === 'play' && !this.shotGolden && !this.level.endless) {   // en la torre las bolas especiales las da la torre
           if (this.shotPops >= 10) { this.queue.unshift('rainbow'); this.emit({ type: 'special', kind: 'rainbow', n: this.shotPops }); }
           else if (this.shotPops >= 6) { this.queue.unshift('bomb'); this.emit({ type: 'special', kind: 'bomb', n: this.shotPops }); }

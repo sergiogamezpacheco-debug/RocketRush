@@ -207,6 +207,7 @@
     const R = window.Retencion && window.Retencion.weekly, tries = R ? R.tries() : 0;
     $('rtBody').innerHTML = `<div class="rtcard wk"><div class="rti">⚔️</div><div class="rtt"><b>${T('Desafío de la semana')}</b><small>${T('Torneo para todos: el mismo nivel, 3 intentos y premios por puesto.')}</small><small class="rtx">🥇 150 💎 · Top 10: 60 💎</small></div><button class="btn green small" id="rtWk">${T('JUGAR')}${tries ? ` <i class="rtn">${tries}</i>` : ''}</button></div>
       <div class="rtcard tw"><div class="rti">🗼</div><div class="rtt"><b>${T('Torre sin fin')}</b><small>${T('Revienta bloques sin parar: la torre se rellena sola y cada piso trae más colores. ¿Hasta dónde llegas?')}</small><small class="rtx">${sv().best ? T('Tu récord') + ': ' + T('piso') + ' ' + sv().best : T('Clasificación semanal')}</small></div><button class="btn green small" id="rtTw">${T('JUGAR')}</button></div>`;
+    { const tw = document.querySelector('#rtBody .rtcard.tw'); if (tw) tw.parentNode.insertBefore(tw, tw.parentNode.firstChild); }   // la torre, arriba
     $('rtBody').insertAdjacentHTML('beforeend', `<div class="rtnet">🌐 ${T('Las clasificaciones necesitan conexión a internet.')}</div>`);
     $('rtWk').addEventListener('click', () => { click(); hub.classList.remove('on'); if (R) R.open(); });
     $('rtTw').addEventListener('click', () => { click(); hub.classList.remove('on'); play(); });

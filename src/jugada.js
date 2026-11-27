@@ -113,11 +113,16 @@
     if (cur) cur.combo = n;
     if (n === 3 && !shot && !off && cur) startRec(cur.level);
     if (shot) { shot.combo = n; shot.stopAt = Math.max(shot.stopAt, performance.now() + 2200); }
-    if (n >= MIN_COMBO && (!best || n > best.combo) && (n === MIN_COMBO || n % 3 === 0 || n === 10 || n === 15 || n === 25)) snapWant = n;
+    // 27-11: la foto copia el lienzo del juego (en el móvil es un parón de decenas de ms). Antes se hacía en el combo 5, 6, 9,
+    // 10, 12, 15… del mismo tiro; ahora como mucho UNA por tiro, y si el combo sigue subiendo se apunta sin otra foto
+    if (n >= MIN_COMBO && (!best || n > best.combo)) {
+      if (cur && cur.snapped && best && best.shotRef === cur) best.combo = n;
+      else if (cur && !cur.snapped) { cur.snapped = true; snapWant = n; }
+    }
   }
   function frame(gl) {
     if (snapWant && gl) {
-      try { const img = snap(gl), n = snapWant; if (!best || n > best.combo) best = { combo: n, img, level: cur && cur.level, vid: null }; else if (!best.img) best.img = img; } catch (e) { /* lienzo no legible */ }
+      try { const img = snap(gl), n = Math.max(snapWant, cur ? cur.combo : 0); if (!best || n > best.combo) best = { combo: n, img, level: cur && cur.level, vid: null, shotRef: cur }; else if (!best.img) best.img = img; } catch (e) { /* lienzo no legible */ }
       snapWant = 0;
     }
     if (shot) {

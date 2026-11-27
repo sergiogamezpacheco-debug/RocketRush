@@ -679,6 +679,23 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   Ajustes › Canjear código (`giftcodes`, `Social.redeem`, `save.codesUsed`). No sale a menores de 13 ni sin funciones en línea.
 - Prueba: `tools/redeemshopflow.py`.
 
+## Cambios del 27-11-2026
+
+- **Jefes nuevos más difíciles** (`bosses.js`, prueba `tools/jefesnuevosflow.py`, textos `tools/i18n_jefes4.py`):
+  - **Maese Brochazo**: la mancha solo brilla (y solo le hace daño) después de reventar 5, 7 y 9 bloques; antes basta con
+    darle con el color. Sin cargar, la bola rebota («¡Aún no! Revienta bloques»).
+  - **Grúa Mordisco**: el contenedor ya no está desde el principio ni vuelve cada 3 tiros: lo trae al reventar 4, 6 y 8
+    bloques (lo que rompe el propio contenedor al caer no cuenta).
+  - **Nimbo**: cada tiro lo carga (cuenta al disparar, rompa o no rompa bloques). Tras el 2.º tiro brilla y el 3.º tiene que ir
+    al pararrayos: si aciertas pierde una vida; si fallas te suelta la descarga y te quita 2 bolas. La barra dice «Nimbo se
+    carga (1/3)». (Antes los tiros contaban al «cerrarse» y, disparando seguido, no se cerraban: por eso parecía que no
+    cargaba cada 3.)
+- **Fábrica**: la cinta avanza tras **cada** disparo (antes solo si el tiro anterior había terminado, así que disparando
+  seguido dejaba de moverse) y la cámara está un poco más atrás en esos niveles (`camBack`) para que se vea la palanca.
+- **Retos**: la Torre sin fin sale la primera. Menos tirones al reventar bloques: la foto de la jugada (copiar el lienzo
+  del juego, un parón en el móvil) se hace como mucho una vez por tiro (antes en el combo 5, 6, 9, 10, 12…), y la arena
+  (el laberinto del desafío) suelta menos partículas y una nube más pequeña.
+
 ## Cambios del 26-11-2026
 
 - **Brasas del volcán solo de adorno** (clima «lluvia de ceniza», desde el nivel 300): siguen cayendo sobre la estructura y se

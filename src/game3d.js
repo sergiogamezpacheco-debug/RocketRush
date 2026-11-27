@@ -1439,7 +1439,7 @@
     const aspect = W / H;
     camera.fov = aspect < 0.7 ? 56 : 46; camera.updateProjectionMatrix();
     const half = camera.fov / 2 * Math.PI / 180;
-    const back = aspect < 0.7 ? 3.4 : 2.6;
+    const back = (aspect < 0.7 ? 3.4 : 2.6) + ((L && L.camBack) || 0);   // camBack: niveles que necesitan ver más a los lados (la palanca de la fábrica)
     const lookY = Math.max(1.4, maxY * 0.42);
     // altura de cámara tal que el cañón quede justo encima de la bandeja (unos 3/4 de medio campo por debajo del centro)
     const want = half * 0.8;
@@ -2269,8 +2269,9 @@
         case 'gone': stats().blocks++; stats().specials++; break;
         case 'fall': stats().blocks++; break;
         case 'crumble': stats().blocks++; stats().specials++;
-          spawnDebris(e.x, e.y, e.z, 0xe6bf78, 16, 3, 0.16, 1.0); spawnDebris(e.x, e.y, e.z, 0xc9964a, 8, 2, 0.12, 0.9);
-          spawnSprite(e.x, e.y, e.z, 0xf0d8a8, 1.6, 1.4, 0.8, { alpha: 0.8, vy: 0.3 });
+          // arena: menos partículas y una nube más pequeña (en una cascada de arena se juntaban decenas de nubes grandes)
+          spawnDebris(e.x, e.y, e.z, 0xe6bf78, 9, 3, 0.16, 0.9); spawnDebris(e.x, e.y, e.z, 0xc9964a, 4, 2, 0.12, 0.8);
+          if (performance.now() - (G.lastDust || 0) > 120) { G.lastDust = performance.now(); spawnSprite(e.x, e.y, e.z, 0xf0d8a8, 1.1, 1.0, 0.6, { alpha: 0.7, vy: 0.3 }); }
           Audio.thud(1.5);
           break;
         case 'prize': { stats().blocks++; stats().specials++;

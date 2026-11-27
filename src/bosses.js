@@ -10,9 +10,9 @@
     pyramid: 'Rompe bloques del color de su escudo antes de que cambie (cada 2 tiros) para abrirlo y dispara a la máscara de oro. Cinco golpes y cae. Cuidado con su maldición de arena.',
     golem: 'Camina de lado a lado. Sus 3 núcleos de lava se encienden de uno en uno: revienta el encendido antes de que cargue el golpe sísmico, o derriba todos sus bloques de colores.',
     golemArmor: 'Camina de lado a lado. Sus 3 núcleos de lava se encienden de uno en uno y llevan coraza: dale varias veces al encendido, o derriba todos sus bloques de colores.',
-    brush: 'Dale a la mancha de pintura que brilla en su paleta con una bola de ESE color: le quitas una vida. Cada 3 tiros repinta una fila de tu muro.',
-    crane: 'Dale al contenedor que cuelga: cae, rompe lo que hay debajo y la grúa se queda aturdida. Aturdida, dispárale a la cabina. Cada 3 tiros trae otro contenedor.',
-    nimbo: 'Cada 3 tiros carga un rayo y electrifica bloques. Mientras carga (brilla), dale al pararrayos de encima del muro: le devuelves el rayo y pierde una vida.',
+    brush: 'Revienta bloques para cargar su paleta. Cuando brille la mancha, dale con una bola de ESE color: le quitas una vida. Cada 3 tiros repinta una fila de tu muro.',
+    crane: 'Revienta bloques para que la grúa traiga el contenedor. Dale para que caiga: la grúa se queda aturdida y entonces dispárale a la cabina.',
+    nimbo: 'Con cada tiro se carga un poco. Al tercer tiro, dale al pararrayos: le devuelves el rayo y pierde una vida. Si fallas, te suelta la descarga y te quita 2 bolas.',
     nut: 'Mientras sonríe es inmune. Cada bloque que derribas llena una barra (un tiro puede llenar las 3): con las 3 se enfada y entonces dispárale a la cara para quitarle una vida. Si fallas 2 tiros, vuelve a sonreír.',
   };
   // colores del escudo del faraón
@@ -84,6 +84,7 @@
 
   let S = null;
   const banner = (big, small) => { const el = $('bossBanner'); el.innerHTML = `<b>${big}</b>${small ? `<span>${small}</span>` : ''}`; el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); };
+  const tr = t => (window.I18N && I18N.t ? I18N.t(t) : t);
   const ft = (x, y, z, txt, col, size) => X.floatText(x, y, z, txt, col, size || 22, true, true);
   const centerOf = () => {
     const live = S.sim.liveBlocks(); if (!live.length) return { x: 0, y: 1.5, z: 0 };
@@ -695,6 +696,7 @@
   function initSpot() {
     const T = T3(), sim = S.sim;
     S.lives = 3; S.livesLeft = 3; S.hp = 1; S.shotsSeen = 0; S.wasOpen = false; S.flash = 0; S.stun = 0; S.cages = [];
+    S.fired = sim.shots; S.charge = 0; S.ready = false; S.quietT = 0;   // 27-11: carga por bloques (Brochazo, Grúa) o por tiros (Nimbo)
     const wb = wallBox(); S.wb = wb;
     if (S.key === 'brush') {
       // paleta de pintor con boina, bigote y pincel; la mancha que brilla es el punto débil
@@ -743,7 +745,7 @@
       const r1 = mesh3(new T.TorusGeometry(0.5, 0.05, 8, 30), bas3(0xffffff), 0, 0, 0.6, S.crateG), r2 = mesh3(new T.TorusGeometry(0.28, 0.05, 8, 30), bas3(0xff4f6d), 0, 0, 0.6, S.crateG); r1.castShadow = r2.castShadow = false;
       S.crateHit = new T.Mesh(new T.SphereGeometry(0.95, 12, 10), new T.MeshBasicMaterial({ visible: false })); S.crateG.add(S.crateHit);
       X.aimObjs.length = 0; X.aimObjs.push(S.crateHit, S.cabHit);
-      S.tz = tz; S.crate = 'hang'; S.cx = 0; S.cDir = 1; S.crateY = wb.top + 2.6;
+      S.tz = tz; S.crate = 'gone'; S.crateG.visible = false; S.cx = 0; S.cDir = 1; S.crateY = wb.top + 2.6;
     } else if (S.key === 'nimbo') {
       const N = spotAdd(new T.Group()); N.position.set(0.3, wb.top + 4.2, -3.2); S.model = N;
       const cm = std3(0x4a5070, { roughness: 1 }), cm2 = std3(0x343a54, { roughness: 1 });
@@ -763,16 +765,53 @@
     S.sub = spotSub();
   }
   function spotSub() {
-    if (S.key === 'brush') return 'Dale a la mancha que brilla con una bola <b style="color:' + PC[S.want].css + '">' + PC[S.want].name + '</b>';
-    if (S.key === 'crane') return S.stun > 0 ? '¡ATURDIDA! Dispárale a la cabina' : 'Dale al contenedor que cuelga';
-    return S.charging ? '¡CARGA UN RAYO! Dale al pararrayos' : 'Espera a que cargue el rayo (cada 3 tiros)';
+    if (S.key === 'brush') return S.ready ? 'Dale a la mancha que brilla con una bola <b style="color:' + PC[S.want].css + '">' + PC[S.want].name + '</b>' : tr('Revienta bloques para cargar la paleta') + ' (' + S.charge + '/' + spotNeed() + ')';
+    if (S.key === 'crane') return S.stun > 0 ? '¡ATURDIDA! Dispárale a la cabina' : S.crate === 'hang' ? 'Dale al contenedor que cuelga' : S.crate === 'fall' ? '¡CAE!' : tr('Revienta bloques para que traiga el contenedor') + ' (' + S.charge + '/' + spotNeed() + ')';
+    return S.charging ? '¡CARGADO! Dale al pararrayos en este tiro' : tr('Nimbo se carga') + ' (' + S.charge + '/3)';
   }
   function brushPick() {
     const cols = [...new Set(S.sim.liveBlocks().map(b => b.userData.c).filter(c => PC[c]))], q = S.sim.queue.filter(c => PC[c]);
     const pool = (cols.length ? cols : Object.keys(PC)).filter(c => c !== S.want);
     S.want = (q.find(c => pool.includes(c))) || pool[Math.floor(Math.random() * pool.length)] || 'r';
-    for (const sp of S.spots) sp.m.material.emissiveIntensity = sp.c === S.want ? 0.9 : 0;
-    const sp = S.spots.find(o => o.c === S.want); S.ring.position.set(sp.x, sp.y, 0.62); S.hit.position.set(sp.x, sp.y, 0.5);
+    for (const sp of S.spots) sp.m.material.emissiveIntensity = sp.c === S.want && S.ready ? 0.9 : 0;
+    const sp = S.spots.find(o => o.c === S.want); S.ring.position.set(sp.x, sp.y, 0.62); S.hit.position.set(sp.x, sp.y, 0.5); S.ring.visible = !!S.ready;
+    S.sub = spotSub();
+  }
+  // bloques que hay que reventar para habilitar el punto débil (sube con cada vida que pierde; nunca más de los que quedan)
+  function spotNeed() {
+    const base = S.key === 'brush' ? [5, 7, 9] : [4, 6, 8], n = base[Math.min(2, S.lives - S.livesLeft)];
+    const live = S.sim.liveBlocks().filter(b => b.userData.kind === 'block' && !b.userData.popping).length;
+    return Math.max(1, Math.min(n, S.charge + live));
+  }
+  function spotRemoved(b, d) {
+    if (S.done || d.kind !== 'block' || S.ready || S.key === 'nimbo') return;
+    if (S.key === 'crane' && (S.crate !== 'gone' || S.stun > 0 || S.t < (S.landT || 0) + 1.2)) return;   // lo que rompe el propio contenedor no cuenta
+    S.charge++;
+    const p = b.position, need = spotNeed();
+    ft(p.x, p.y + 0.6, p.z, Math.min(S.charge, need) + '/' + need, S.key === 'brush' ? '#ffd23f' : '#ffc21a', 20);
+    if (S.charge >= need) spotCharged();
+    S.sub = spotSub();
+  }
+  function spotCharged() {
+    S.charge = 0;
+    if (S.key === 'brush') { S.ready = true; brushPick(); banner(tr('¡LA PALETA BRILLA!'), tr('Dale a la mancha del color que brilla')); X.Audio.horn && X.Audio.horn(); }
+    else if (S.key === 'crane') { S.crate = 'hang'; S.crateG.visible = true; S.cx = S.wb.x0 + Math.random() * (S.wb.x1 - S.wb.x0); S.crateY = S.wb.top + 2.6; banner('¡OTRO CONTENEDOR!', 'Dale para que caiga'); X.Audio.horn && X.Audio.horn(); }
+  }
+  // Nimbo: cada tiro lo carga (1/3, 2/3); el tercero es el bueno: o le das al pararrayos o te suelta la descarga (-2 bolas)
+  function nimboShot(ball) {
+    if (S.charging) { S.decBall = ball; return; }
+    S.charge++;
+    if (S.charge >= 2) { S.charging = true; S.charge = 2; banner('¡NIMBO CARGA UN RAYO!', tr('Dale al pararrayos en el próximo tiro o te quita 2 bolas')); X.Audio.horn && X.Audio.horn(); }
+    else ft(S.rod.position.x, S.wb.top + 2.6, 0.1, S.charge + '/3', '#9ff0ff', 22);
+  }
+  function nimboDischarge() {
+    const sim = S.sim; S.charging = false; S.charge = 0; S.decBall = null;
+    let n = 0; while (n < 2 && sim.queue.length > 1) { sim.queue.pop(); n++; }
+    X.refreshTray();
+    const m = spotPos(S.model), c = { x: 0, y: 1.2, z: 13 };
+    for (let i = 0; i <= 12; i++) { const t = i / 12; X.spawnSprite(m.x + (c.x - m.x) * t + rnd(-0.4, 0.4), m.y + (c.y - m.y) * t, m.z + (c.z - m.z) * t, 0x9ff0ff, 0.9, 1.6, 0.4, { add: true }); }
+    G.shake = Math.max(G.shake, 0.7); X.Audio.explode && X.Audio.explode(); X.vibe && X.vibe([80, 40, 80]);
+    banner('¡RAYO!', n ? tr('Te ha quitado {x} bolas').replace('{x}', n) : tr('¡Por los pelos!'));
     S.sub = spotSub();
   }
   function spotPos(o) { const v = new (T3().Vector3)(); o.getWorldPosition(v); return v; }
@@ -782,7 +821,7 @@
     X.spawnSprite(at.x, at.y, at.z + 0.8, 0xffe27a, 3, 1.4, 0.4, { add: true }); X.spawnDebris(at.x, at.y, at.z + 0.6, 0xffffff, 16, 6, 0.14, 1);
     for (let r = 0; r < 2; r++) X.spawnRing(at.x, at.y, at.z + 0.6, 0xff4f6d, 2.4 + r * 1.4, 0.4 + r * 0.2);
     ft(at.x, at.y + 1.4, at.z, S.livesLeft > 0 ? txt : '¡K.O.!', '#ffd23f', 30);
-    S.hp = Math.max(0, S.livesLeft / S.lives);
+    S.hp = Math.max(0, S.livesLeft / S.lives); S.ready = false; S.charge = 0;
     if (S.livesLeft > 0) { S.sim.giveBalls(['r', 'b', 'y'].map(() => { const c = [...new Set(S.sim.liveBlocks().map(b => b.userData.c).filter(k => PC[k]))]; return c[Math.floor(Math.random() * c.length)] || 'r'; })); X.refreshTray(); }
   }
   // cada 3 tiros: Brochazo repinta una fila (mezclando colores), la grúa trae otro contenedor, Nimbo carga el rayo
@@ -795,14 +834,6 @@
       S.brush.rotation.z = -0.4; setTimeout(() => { if (S && S.brush) S.brush.rotation.z = -0.9; }, 500);
       let i = 0; for (const b of live) if (Math.round(b.position.y) === y) { const c = cols[(i++ + Math.floor(Math.random() * 5)) % 5]; if (c === b.userData.c) continue; b.userData.c = c; sim.emit({ type: 'recolor', id: b.userData.id, c, x: b.position.x, y: b.position.y, z: b.position.z }); }
       banner('¡BROCHAZO!', 'Ha repintado una fila de tu muro');
-    } else if (S.key === 'crane') {
-      if (S.crate !== 'gone') return;
-      S.crate = 'hang'; S.crateG.visible = true; S.cx = S.wb.x0 + Math.random() * (S.wb.x1 - S.wb.x0); S.crateY = S.wb.top + 2.6;
-      banner('¡OTRO CONTENEDOR!', 'Dale para que caiga');
-    } else if (S.key === 'nimbo') {
-      if (S.charging) return;
-      S.charging = true; S.chargeShots = 0; banner('¡NIMBO CARGA UN RAYO!', 'Dale al pararrayos antes de que suelte el rayo');
-      X.Audio.horn && X.Audio.horn();
     }
     S.sub = spotSub();
   }
@@ -822,20 +853,24 @@
   function spotTick(dt) {
     const sim = S.sim, T = T3();
     S.flash = Math.max(0, S.flash - dt * 2.5); if (S.stun > 0 && S.key !== 'crane') S.stun -= dt;
+    // Nimbo: los tiros cuentan al disparar (si se dispara rápido, el tiro no llega a «cerrarse» y antes no contaba)
+    if (S.key === 'nimbo' && !S.done) {
+      while (S.fired < sim.shots) { S.fired++; nimboShot(sim.balls[sim.balls.length - 1] || null); S.sub = spotSub(); }
+      if (S.charging && S.decBall && (S.decBall.userData.dead || !sim.balls.includes(S.decBall))) nimboDischarge();
+    }
     // tiros: cuentan al acabar cada uno
     if (!sim.shotOpen && S.wasOpen && !S.done) {
       S.shotsSeen++;
       for (const c of S.cages.slice()) if (S.shotsSeen >= c.b.userData.nimboLock) { c.b.userData.locked = false; c.g.remove(c.cage); S.cages.splice(S.cages.indexOf(c), 1); }
-      if (S.key === 'nimbo' && S.charging && ++S.chargeShots >= 2) { S.charging = false; nimboStrike(); }
       if (S.key === 'crane' && S.stun > 0 && --S.stun <= 0) { S.stun = 0; S.stars.visible = false; ft(S.cab.position.x, 8.8, S.tz, 'SE DESPIERTA', '#ffe27a', 22); }
-      if (S.shotsSeen % 3 === 0) spotEveryThree();
+      if (S.shotsSeen % 3 === 0 && S.key === 'brush') spotEveryThree();
       S.sub = spotSub();
     }
     S.wasOpen = sim.shotOpen;
     // animación
     if (S.model) { S.model.position.y += Math.sin(S.t * 1.6) * dt * 0.25; }
     if (S.key === 'brush') { S.ring.scale.setScalar(1 + Math.sin(S.t * 6) * 0.1); S.tip.material.color.setHex(PC[S.want].hex); }
-    if (S.key === 'nimbo') { S.glow.material.opacity = S.charging ? 0.12 + 0.1 * Math.sin(S.t * 10) : 0; S.rodGlow.material.opacity = S.charging ? 0.5 + 0.3 * Math.sin(S.t * 10) : 0.15; for (const e of S.eyes) e.material.color.setHex(S.charging ? 0xffffff : 0xfff36a); }
+    if (S.key === 'nimbo') { S.glow.material.opacity = S.charging ? 0.14 + 0.1 * Math.sin(S.t * 10) : S.charge * 0.05; S.rodGlow.material.opacity = S.charging ? 0.5 + 0.3 * Math.sin(S.t * 10) : 0.15; for (const e of S.eyes) e.material.color.setHex(S.charging ? 0xffffff : 0xfff36a); }
     if (S.key === 'crane') {
       S.beacon.material.color.setHex(Math.sin(S.t * 8) > 0 ? 0xff7a1a : 0x7a2a00);
       if (S.stun > 0) S.stars.rotation.y += dt * 4;
@@ -857,11 +892,12 @@
       if (dist > (S.key === 'nimbo' ? 1.05 : 1.0)) continue;
       d.spotT = S.t + 0.5;
       if (S.key === 'brush') {
-        if (d.c === S.want || d.ball === 'golden' || d.ball === 'rainbow') { sim.killBall(b, false); spotDamage(c, '¡MANCHA!'); if (S.livesLeft > 0) brushPick(); }
+        if (!S.ready) { bounce(b, c); ft(c.x, c.y + 1.2, c.z, tr('¡Aún no! Revienta bloques'), '#ffe27a', 20); }
+        else if (d.c === S.want || d.ball === 'golden' || d.ball === 'rainbow') { sim.killBall(b, false); spotDamage(c, '¡MANCHA!'); if (S.livesLeft > 0) brushPick(); }
         else { bounce(b, c); ft(c.x, c.y + 1.2, c.z, '¡ESE COLOR NO!', '#ff6a7a', 22); }
       } else if (S.key === 'nimbo') {
         sim.killBall(b, false);
-        if (S.charging) { S.charging = false; const m = spotPos(S.model); for (let i = 0; i <= 10; i++) { const t = i / 10; X.spawnSprite(c.x + (m.x - c.x) * t + rnd(-0.3, 0.3), c.y + (m.y - c.y) * t, c.z + (m.z - c.z) * t, 0x9ff0ff, 0.9, 1.6, 0.4, { add: true }); } spotDamage(m, '¡RAYO DEVUELTO!'); }
+        if (S.charging) { S.charging = false; S.charge = 0; S.decBall = null; const m = spotPos(S.model); for (let i = 0; i <= 10; i++) { const t = i / 10; X.spawnSprite(c.x + (m.x - c.x) * t + rnd(-0.3, 0.3), c.y + (m.y - c.y) * t, c.z + (m.z - c.z) * t, 0x9ff0ff, 0.9, 1.6, 0.4, { add: true }); } spotDamage(m, '¡RAYO DEVUELTO!'); }
         else { ft(c.x, c.y + 1.2, c.z, 'Aún no carga', '#ffe27a', 20); X.Audio.thud && X.Audio.thud(4, false); }
         S.sub = spotSub();
       }
@@ -870,7 +906,7 @@
   function bounce(b, c) { const p = b.position, dx = p.x - c.x, dy = p.y - c.y, dz = p.z - c.z, dist = Math.hypot(dx, dy, dz) || 1, nx = dx / dist, ny = dy / dist, nz = dz / dist, vn = b.velocity.x * nx + b.velocity.y * ny + b.velocity.z * nz; if (vn < 0) { b.velocity.x -= 1.6 * vn * nx; b.velocity.y -= 1.6 * vn * ny; b.velocity.z -= 1.6 * vn * nz; } X.Audio.thud && X.Audio.thud(5, true); }
   function craneLand() {
     const sim = S.sim, x = S.cx, y = S.wb.top, z = 0;
-    S.crate = 'gone'; S.crateG.visible = false;
+    S.crate = 'gone'; S.crateG.visible = false; S.landT = S.t; S.charge = 0;
     sim.explode(x, y, z, 1.7, true);
     S.stun = 2; S.stars.visible = true;           // aturdida durante 2 tiros
     G.shake = Math.max(G.shake, 0.8);
@@ -878,6 +914,7 @@
     S.sub = spotSub();
   }
   function onRemoved(b, d) {
+    if (SPOT[S.key]) return spotRemoved(b, d);
     const p = b.position;
     if (S.key === 'ship') {
       if (d.kind !== 'stone') S.removed++;
