@@ -38,6 +38,7 @@
     const s = new T.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; i ? s.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : s.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }
     const m = new T.Mesh(new T.ExtrudeGeometry(s, { depth: depth || r * 0.35, bevelEnabled: true, bevelThickness: r * 0.08, bevelSize: r * 0.08, bevelSegments: 2 }), mat); m.geometry.center(); return m;
   }
+  // fixed: luces de color fijo (los pinos del fondo, entre las casas: si cambiaban de color, de lejos parecía que parpadeaban)
   function pine(h, o) {
     o = o || {}; const g = new T.Group(), r = h * 0.36;
     g.add(mesh(new T.CylinderGeometry(r * 0.12, r * 0.16, h * 0.2, 7), M.bark, 0, h * 0.1, 0));
@@ -46,7 +47,7 @@
       const k = i / tiers, tr = r * (1 - k * 0.62), th = h * 0.42, y = h * 0.16 + k * h * 0.62, ry = rnd(0, 3);
       const c = mesh(new T.ConeGeometry(tr, th, 9), i % 2 ? M.pineD : M.pine, 0, y + th / 2, 0); c.rotation.y = ry; g.add(c);
       const s = mesh(new T.ConeGeometry(tr * 0.72, th * 0.42, 9), M.snow, 0, y + th * 0.79, 0); s.rotation.y = ry; g.add(s);
-      if (o.lights) for (let j = 0; j < 7 + (tiers - i) * 2; j++) { const a = rnd(0, TAU), yy = rnd(0.05, 0.6), rr = tr * (1 - yy) * 0.98; g.add(mesh(new T.SphereGeometry(h * 0.012 + 0.05, 6, 5), bulbMats[(j + i) % 5], Math.cos(a) * rr, y + yy * th, Math.sin(a) * rr)); }
+      if (o.lights) for (let j = 0; j < 7 + (tiers - i) * 2; j++) { const a = rnd(0, TAU), yy = rnd(0.05, 0.6), rr = tr * (1 - yy) * 0.98; g.add(mesh(new T.SphereGeometry(h * 0.012 + 0.05, 6, 5), (o.fixed ? houseBulbs : bulbMats)[(j + i) % 5], Math.cos(a) * rr, y + yy * th, Math.sin(a) * rr)); }
     }
     if (o.star) { const st = star(h * 0.07, M.gold); st.position.y = h * 1.18; g.add(st); const gl = glowSprite(0xffe27a, h * 0.35, 0.75); gl.position.copy(st.position); g.add(gl); g.userData.glow = gl; }
     return g;
@@ -209,8 +210,8 @@
     [[-30, -128, 18], [-14, -132, 22], [4, -138, 25], [20, -134, 22], [36, -126, 17], [52, -122, 14], [-46, -118, 12], [12, -150, 26]].forEach(([x, z, y], i) => { const c = cols[i % 5]; const hs = house(rnd(7, 10), rnd(6, 8), rnd(6, 8), c[0], c[1]); hs.position.set(x, Y0 + y - 2, z); hs.lookAt(0, Y0 + y, 10); hs.scale.setScalar(1.15); env.add(hs); });
     const tw = house(5, 16, 5, 0xc8b8a0, 0x2a3a5a); tw.position.set(22, Y0, -120); env.add(tw);
     env.add(mesh(new T.CircleGeometry(1.3, 24), basic(0xfff2c8, { fog: false }), 22, Y0 + 12, -117.4));
-    for (let i = 0; i < 40; i++) { const x = rnd(-90, 90), z = rnd(-150, -40); if (Math.abs(x) < 10 && z > -90) continue; const t = pine(rnd(6, 12), { lights: i % 4 === 0 }); t.position.set(x, Y0, z); env.add(t); }
-    for (let i = 0; i < 30; i++) { const x = rnd(-80, 80), z = rnd(-170, -120); const t = pine(rnd(8, 13), { lights: i % 3 === 0 }); const hy = Math.max(0, 26 * Math.sqrt(Math.max(0, 1 - ((x + 6) ** 2 + (z + 150) ** 2) / 4900))); t.position.set(x, Y0 + hy - 1, z); env.add(t); }
+    for (let i = 0; i < 40; i++) { const x = rnd(-90, 90), z = rnd(-150, -40); if (Math.abs(x) < 10 && z > -90) continue; const t = pine(rnd(6, 12), { lights: i % 4 === 0, fixed: true }); t.position.set(x, Y0, z); env.add(t); }
+    for (let i = 0; i < 30; i++) { const x = rnd(-80, 80), z = rnd(-170, -120); const t = pine(rnd(8, 13), { lights: i % 3 === 0, fixed: true }); const hy = Math.max(0, 26 * Math.sqrt(Math.max(0, 1 - ((x + 6) ** 2 + (z + 150) ** 2) / 4900))); t.position.set(x, Y0 + hy - 1, z); env.add(t); }
     for (const [x, z] of [[-11, -30], [12, -32]]) { const s = snowman(1.2); s.position.set(x, Y0, z); s.lookAt(0, Y0, 10); env.add(s); }
     const snow = H.points(500, 0, 0xffffff, 0.3, () => [rnd(-40, 40), rnd(-6, 34), rnd(-60, 8)]); snow.material.map = H.TEX.soft; snow.material.size = 0.34; snow.material.transparent = true; env.add(snow);
     // la nieve la mueve la tarjeta gráfica (sin recorrer los 500 copos en cada fotograma)
@@ -428,9 +429,12 @@
     TS.g.rotation.set(0.1, dir > 0 ? -0.45 : Math.PI + 0.45, Math.sin(G.t * 2) * 0.05);
     gallop(TS.g, G.t);
   }
-  function titleCam(cam, t) {
-    cam.position.set(4 + Math.sin(t * 0.07) * 1.5, 5, 18);
-    cam.lookAt(-4 + Math.sin(t * 0.05) * 1.5, 17, -80);
+  // 27-11: cámara quieta. Se balanceaba muy despacio y los bordes finos de las casas del fondo (nieve de los tejados,
+  // ventanas, chimeneas) avanzaban menos de un píxel por fotograma: los píxeles del borde se encendían y apagaban y las casas
+  // parecían parpadear. Con la cámara fija no hay parpadeo; lo que se mueve es el trineo y la nieve.
+  function titleCam(cam) {
+    cam.position.set(4, 5, 18);
+    cam.lookAt(-4, 17, -80);
   }
 
   const _v = new T.Vector3();

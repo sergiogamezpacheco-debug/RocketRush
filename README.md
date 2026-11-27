@@ -681,6 +681,13 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
 
 ## Cambios del 27-11-2026
 
+- **Parpadeo de las casas del fondo (Navidad)**. Medido comparando fotogramas seguidos (`tmp_scratch/flicker.py`):
+  - En la portada la cámara se balanceaba muy despacio y los bordes finos de las casas lejanas (nieve de los tejados,
+    ventanas) avanzaban menos de un píxel por fotograma, así que se encendían y apagaban: ahora la cámara está quieta.
+  - Los pinos del fondo, entre las casas, tenían luces que cambiaban de color cada 0,7 s (las mismas que el árbol grande):
+    ahora tienen color fijo (`pine(h, { fixed: true })`). El árbol grande sigue cambiando.
+  - En los niveles la cámara ya está quieta (después de la entrada) y no queda nada que parpadee aparte de la nieve.
+
 - **Rendimiento (tirones al reventar bloques, sobre todo en Navidad)**. Medido con el simulador de física, que era lo que más
   pesaba en los niveles grandes (los de Navidad tienen 45-80 bloques frente a ~20):
   - Al reventar un bloque ya no se despierta **toda** la estructura (`wakeAll`), solo los bloques que lo tocaban
