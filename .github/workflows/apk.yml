@@ -1,8 +1,7 @@
 name: Compilar APK
 
 on:
-  push:
-    branches: [main]
+  # 27-11: solo a mano (cuando se entrega una versión), para no gastar minutos en cada subida
   workflow_dispatch: {}
 
 permissions:

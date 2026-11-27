@@ -696,6 +696,11 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   del juego, un parón en el móvil) se hace como mucho una vez por tiro (antes en el combo 5, 6, 9, 10, 12…), y la arena
   (el laberinto del desafío) suelta menos partículas y una nube más pequeña.
 
+- **Compilaciones**: «Compilar APK» ya no se lanza en cada subida a `main`, solo a mano
+  (`gh api -X POST repos/.../actions/workflows/apk.yml/dispatches -f ref=main`), y «Compilar iOS» está desactivado en GitHub
+  (activarlo solo para subir a la App Store: en Mac cada minuto cuenta como 10). Así, con el repositorio privado, sobran los
+  2.000 minutos gratis al mes.
+
 ## Cambios del 26-11-2026
 
 - **Brasas del volcán solo de adorno** (clima «lluvia de ceniza», desde el nivel 300): siguen cayendo sobre la estructura y se
