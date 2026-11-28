@@ -1,0 +1,68 @@
+# 28-11: cofre gratis en la tienda y el pase (fuera de la portada), Retos en el mapa y botón de finalizar en los retos
+from playwright.sync_api import sync_playwright
+import json, sys
+OUT = '/home/claude/chroma3d/tmp_scratch/'
+fails = []
+def chk(name, ok, extra=None):
+    print(('OK   ' if ok else 'FALLO') + ' ' + name + ('' if ok or extra is None else '  ' + json.dumps(extra, ensure_ascii=False)))
+    if not ok: fails.append(name)
+with sync_playwright() as p:
+    b = p.chromium.launch(args=['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'])
+    pg = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2).new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.add_init_script("window.RR_AGE = 30; window.RR_LIVE_OFF = true; window.RR_NO_INTRO = true; localStorage.setItem('rocketrush.lang','es'); localStorage.setItem('chromacrash3d.v1', JSON.stringify({unlocked: 30, played: 30, birthYear: 1990, coins: 100, freeChest: {at: 0, n: 2}, tut: {main: true, tips: {daily: 1, club: 1, shop: 1, pass: 1, fcmove: 1, retos: 1, retoPlay: 1}}}))")
+    pg.goto('file:///home/claude/chroma3d/dist/index.html'); pg.wait_for_timeout(4500)
+    pg.evaluate("() => document.querySelectorAll('.screen.dim.on').forEach(s => s.classList.remove('on'))"); pg.wait_for_timeout(400)
+    st = pg.evaluate("""() => ({ chestBtn: !!document.getElementById('freeChest'), left: [...document.querySelectorAll('#title .tside.left .sb')].filter(e => !e.hidden).map(e => e.id),
+      right: [...document.querySelectorAll('#title .tside.right .sb')].map(e => e.id), five: document.querySelector('#title .tside.right').classList.contains('five'), dot: !document.getElementById('shopDotT').hidden })""")
+    chk('portada: sin botón de cofre, tienda en la izquierda (4.º) con aviso rojo', not st['chestBtn'] and st['left'][-1] == 'btnShopT' and st['dot'], st)
+    chk('portada: derecha = Retos, Club, Amigos, Ajustes (sin «five»)', st['right'] == ['btnRetosT', 'btnClubT', 'btnSocT', 'btnSetT'] and not st['five'], st)
+    pg.screenshot(path=OUT + 'r2_title.png')
+    # tienda
+    pg.evaluate("() => RRGame.openShop()"); pg.wait_for_timeout(600)
+    st = pg.evaluate("() => { const c = document.querySelector('#shopList [data-fccard]'); return c && { first: c === document.querySelector('#shopList').querySelector('.fccard'), ready: c.classList.contains('ready'), txt: c.textContent }; }")
+    chk('tienda: tarjeta de cofre gratis listo', st and st['ready'], st)
+    pg.screenshot(path=OUT + 'r2_shop.png')
+    c0 = pg.evaluate("() => RRGame.save.coins")
+    pg.click('#shopList [data-fc]'); pg.wait_for_timeout(800)
+    st = pg.evaluate("() => { const c = document.querySelector('#shopList [data-fccard]'); return { ready: c && c.classList.contains('ready'), btn: c && c.querySelector('button').textContent, n: RRGame.save.freeChest.n, coins: RRGame.save.coins, dot: !document.getElementById('shopDotT').hidden }; }")
+    chk('tienda: al abrirlo da premio y pasa a cuenta atrás (sin aviso en la portada)', st['n'] == 3 and st['coins'] > c0 and not st['ready'] and '⏳' in st['btn'] and not st['dot'], st)
+    pg.evaluate("() => { document.getElementById('chestOpen').classList.remove('on'); document.querySelectorAll('.screen.on').forEach(s => s.classList.remove('on')); RRGame.save.freeChest.at = 0; document.getElementById('title').classList.add('on'); document.getElementById('btnPassT').click(); }"); pg.wait_for_timeout(800)
+    if True:
+        st = pg.evaluate("() => { const c = document.querySelector('#passFc [data-fccard]'); return c && { ready: c.classList.contains('ready') }; }")
+        chk('pase: tarjeta de cofre gratis', st and st['ready'], st)
+        pg.screenshot(path=OUT + 'r2_pass.png')
+    # mapa: botón Retos (antes Desafío)
+    pg.evaluate("() => { document.querySelectorAll('.screen.on').forEach(s => s.classList.remove('on')); RRGame.goMap(); }"); pg.wait_for_timeout(800)
+    st = pg.evaluate("() => { const b = document.getElementById('navWk'); return b && b.textContent; }")
+    chk('mapa: botón «Retos»', st and 'Retos' in st, st)
+    pg.click('#navWk'); pg.wait_for_timeout(600)
+    st = pg.evaluate("() => { const h = document.getElementById('retosPop'); return h && h.classList.contains('on') && document.querySelectorAll('#rtBody .rtcard').length; }")
+    chk('mapa: «Retos» abre el hub con los dos modos', st == 2, st)
+    pg.screenshot(path=OUT + 'r2_map_retos.png')
+    # torre: finalizar
+    pg.evaluate("() => { document.getElementById('retosPop').classList.remove('on'); Torre.play(); }"); pg.wait_for_timeout(2500)
+    st = pg.evaluate("() => ({ fin: !document.getElementById('btnFin').hidden, pfin: !document.getElementById('pFin').hidden })")
+    chk('torre: botón 🏁 visible', st['fin'] and st['pfin'], st)
+    pg.screenshot(path=OUT + 'r2_torre.png')
+    pg.evaluate("() => { const s = ChromaGame.G.sim; s.liveBlocks().filter(b => b.userData.kind === 'block').slice(0, 30).forEach(o => s.popSingle(o, 0)); }"); pg.wait_for_timeout(1500)
+    pg.click('#btnFin'); pg.wait_for_timeout(400)
+    st = pg.evaluate("() => ({ ask: document.getElementById('finAsk').classList.contains('on'), paused: ChromaGame.G.paused })")
+    chk('torre: 🏁 pregunta y pausa', st['ask'] and st['paused'], st)
+    pg.screenshot(path=OUT + 'r2_finask.png')
+    pg.click('#finNo'); pg.wait_for_timeout(300)
+    chk('torre: «Seguir jugando» vuelve a la partida', pg.evaluate("() => !ChromaGame.G.paused && ChromaGame.G.sim.state === 'play'"))
+    pg.click('#btnFin'); pg.wait_for_timeout(300); pg.click('#finYes'); pg.wait_for_timeout(800)
+    st = pg.evaluate("() => { const p = document.getElementById('torrePop'); return { pop: p && p.classList.contains('on'), best: RRGame.save.torre.best, score: RRGame.save.torre.wkScore }; }")
+    chk('torre: finalizar enseña el resultado y guarda el récord', st['pop'] and st['best'] >= 1 and st['score'] > 0, st)
+    # desafío: finalizar
+    pg.evaluate("() => { document.getElementById('torrePop').classList.remove('on'); const L = Levels.weekly('S' + Math.floor((Date.now() - Date.UTC(2026, 9, 5)) / (7 * 864e5))); Retencion.weeklyStart && Retencion.weeklyStart(); ChromaGame.startLevel(L.id, []); }"); pg.wait_for_timeout(2500)
+    pg.evaluate("() => { const s = ChromaGame.G.sim; s.score = 1234; }")
+    chk('desafío: botón 🏁 visible', pg.evaluate("() => !document.getElementById('btnFin').hidden"))
+    pg.click('#btnFin'); pg.wait_for_timeout(300); pg.click('#finYes'); pg.wait_for_timeout(1200)
+    st = pg.evaluate("() => { const w = Retencion._wk(); return { best: w.best, cur: w.cur, mode: ChromaGame.G.mode, map: document.getElementById('map').classList.contains('on') }; }")
+    chk('desafío: finalizar guarda la puntuación y vuelve', st['best'] >= 1234 and not st['cur'], st)
+    pg.screenshot(path=OUT + 'r2_wk_end.png')
+    print(errs[:3])
+    if errs: fails.append('errores de página')
+    b.close()
+print('TODO BIEN' if not fails else 'FALLOS: ' + ', '.join(fails))

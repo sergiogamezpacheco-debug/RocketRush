@@ -1238,6 +1238,18 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
 .wkrow .p{width:28px;text-align:center}.wkrow .a{font-size:18px}.wkrow .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wkrow .s{color:#ffe27a}
 .wkrow.me{background:rgba(255,210,63,.18);border-radius:10px}
 .wkres{font-size:26px;font-weight:900;color:#ffe27a}.wkres small{display:block;font-size:13px;color:#fff}
+/* retos: botón de finalizar (debajo de la pausa) */
+.hudbtns{display:flex;flex-direction:column;gap:8px;align-items:center}
+.iconbtn.finbtn{font-size:22px;background:linear-gradient(160deg,#ffd23f,#ff8a1a)}
+/* cofre gratis: tarjeta en la tienda y en el pase (28-11; antes era un botón de la portada) */
+.fccard{display:flex;align-items:center;gap:10px;margin:6px 0 10px;padding:10px 12px;border-radius:16px;background:linear-gradient(160deg,#8a5a32,#5a3518);border:3px solid #2a1606;box-shadow:0 4px 0 #2a1606;color:#fff}
+.fccard.ready{background:linear-gradient(160deg,#ffcf4a,#ff8a1a);border-color:#6a3200;box-shadow:0 4px 0 #6a3200}
+.fccard .chest{width:44px;height:38px;flex:none;transform:none}
+.fccard .fctx{flex:1;min-width:0;text-align:left;line-height:1.15}
+.fccard .fctx b{display:block;font-size:16px}.fccard.ready .fctx b{color:#4a1e00;text-shadow:none}
+.fccard .fctx small{display:block;font-size:11px;opacity:.9;margin-top:2px}.fccard.ready .fctx small{color:#5a2a00}
+.fccard .btn{flex:none;width:auto;min-width:92px;padding:10px 12px;font-size:15px;margin:0}
+#passFc{padding:0 12px}#passFc:empty{display:none}
 /* cofre gratis de la portada (4.º botón de la columna izquierda) */
 .sb.freechest{background:linear-gradient(160deg,#a87a4a,#6a4422)}
 .sb.freechest .chest{width:34px;height:30px;margin:0 0 1px;transform:none}
@@ -1289,7 +1301,7 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
       <div class="metermark" id="meterTarget"></div>
       <div class="meterlabel"><span id="meterPct">0%</span> <small>DEMOLICIÓN</small></div>
     </div>
-    <button class="iconbtn" id="btnPause" aria-label="Pausa">II</button>
+    <div class="hudbtns"><button class="iconbtn" id="btnPause" aria-label="Pausa">II</button><button class="iconbtn finbtn" id="btnFin" aria-label="Finalizar" hidden>&#127937;</button></div>
   </div>
   <div class="tray" id="tray" role="button" aria-label="Cambiar de bola">
     <div class="ball big" id="trayCur"></div>
@@ -1323,11 +1335,11 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
     <button class="sb fire" id="btnDailyT" hidden aria-label="Racha diaria"><span><i class="ico ico-fire"></i></span><b id="dailyNT">0</b><i id="dailyTT" hidden></i><i class="bdg" id="dailyDotT" hidden>!</i></button>
     <button class="sb" id="btnPassT" aria-label="Pase"><span><i class="ico ico-star"></i></span><b>Pase</b><i class="bdg" id="passDotT" hidden>!</i></button>
     <button class="sb" id="btnMisT" aria-label="Misiones"><span>&#127919;</span><b>Misiones</b><i class="bdg" id="misDotT" hidden>0</i></button>
+    <button class="sb" id="btnShopT" aria-label="Tienda"><span>&#128722;</span><b>Tienda</b><i class="bdg" id="shopDotT" hidden>!</i></button>
   </div>
   <div class="tside right">
     <button class="sb clubsb" id="btnClubT" aria-label="Club"><span>&#128737;&#65039;</span><b>Club</b></button>
     <button class="sb" id="btnSocT" aria-label="Amigos"><span>&#128101;</span><b>Amigos</b><i class="bdg" id="socDotT" hidden>0</i></button>
-    <button class="sb" id="btnShopT" aria-label="Tienda"><span>&#128722;</span><b>Tienda</b></button>
     <button class="sb" id="btnSetT" aria-label="Ajustes"><span>&#9881;&#65039;</span><b>Ajustes</b></button>
   </div>
   <button class="hwpump xmtree" id="xmTree" hidden aria-label="Navidad"><div class="xtw"></div><span class="hwcd xmcd">⏳ <span class="xmcdTxt"></span></span><b>NAVIDAD</b></button>
@@ -1422,6 +1434,7 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
     <button class="btn gold" id="passBuy"></button>
     <div class="skins" id="passSkins"></div>
   </div>
+  <div id="passFc"></div>
   <div class="pcols"><span>GRATIS</span><span></span><span class="pro">PRO</span></div>
   <div class="mapscroll" id="passList"></div>
   <button class="btn green small" id="passClaimAll" hidden>RECLAMAR TODO</button>
@@ -1500,7 +1513,17 @@ body.bossmode .wxchip{top:calc(max(10px,var(--sat,env(safe-area-inset-top))) + 1
     <button class="btn green" id="pResume" style="margin-top:16px">SEGUIR</button>
     <button class="btn" id="pRetry">REINTENTAR</button>
     <button class="btn gray" id="pMap">NIVELES</button>
+    <button class="btn gold" id="pFin" hidden><span>&#127937;</span> <span>FINALIZAR Y GUARDAR</span></button>
     <div class="toggles"><button class="iconbtn" id="pSound" aria-label="Sonido">&#9835;</button><button class="iconbtn" id="pVibe" aria-label="Vibración">&#12316;</button><button class="iconbtn" id="pMusic" aria-label="Música">&#9836;</button></div>
+  </div>
+</div>
+
+<div class="screen dim" id="finAsk">
+  <div class="panel">
+    <div class="ribbon fire">FINALIZAR</div>
+    <p class="sub" style="margin-top:14px">¿Terminar la partida? Tu puntuación se guarda en la clasificación.</p>
+    <button class="btn green" id="finYes">FINALIZAR Y GUARDAR</button>
+    <button class="btn gray" id="finNo">SEGUIR JUGANDO</button>
   </div>
 </div>
 

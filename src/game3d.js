@@ -2660,7 +2660,7 @@
   }
 
   // ---------------- pantallas ----------------
-  const screens = ['title', 'map', 'hwmap', 'xmmap', 'pass', 'missions', 'social', 'club', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard', 'privacy'];
+  const screens = ['title', 'map', 'hwmap', 'xmmap', 'pass', 'missions', 'social', 'club', 'pre', 'win', 'lose', 'pause', 'shop', 'settings', 'newCard', 'privacy', 'finAsk'];
   function show(id) { for (const s of screens) $(s).classList.toggle('on', s === id); }
   function hideAll() { for (const s of screens) $(s).classList.remove('on'); }
   // mensaje sobre la bandeja de bolas (no tapa el cielo ni la estructura)
@@ -2981,6 +2981,7 @@
     G.casi = 0; G.firstShot = false; G.swapped = false; G.winShown = false; G.winAt = 0; G.extraUsed = false; shownScore = 0; lastTray = '';
     $('btnFinish').hidden = true; G.cannonKind = null;
     G.aimTarget.set(0, 1.5, 0);
+    $('btnFin').hidden = $('pFin').hidden = !(L.endless || L.weekly);   // retos: botón de finalizar
     $('hudLevel').textContent = L.endless ? 'TORRE' : L.weekly ? 'DESAFÍO' : L.club ? ({ ex: 'EXPEDICIÓN ' + L.pos, lg: 'LIGA ' + L.pos, boss: 'JEFE COLOSAL' })[L.club] : L.xm ? 'NAVIDAD ' + L.pos : L.hw ? 'HALLOWEEN ' + L.pos : L.bonus ? 'EXTRA ' + L.world : 'NIVEL ' + id;
     Audio.setStyle(L.hw ? 'spooky' : L.xm ? 'xmas' : 'normal'); G.hwWorld = false; G.xmWorld = false;
     G.candyRun = 0; G.xcandyRun = 0; hwCandyChip(); xmCandyChip();
@@ -3300,7 +3301,7 @@
       .map(([id, ic, t]) => `<button data-to="${id}">${ic.startsWith('emo:') ? `<i class="emo">${ic.slice(4)}</i>` : `<i class="${ic}"></i>`}${t}</button>`).join('');
     $('shopTabs').classList.toggle('withhw', hw || xm || !!RH('shopTab'));
     // el Pack de inicio (la forma más barata de quitar los anuncios), arriba del todo mientras no se haya comprado
-    $('shopList').innerHTML = feat + x2Ban + (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + (RH('shopTop') || '') + tmpShopHtml() + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${codeCard}${noAdsBan}${wkCard}` + canShopHtml() +
+    $('shopList').innerHTML = (RH('shopChest') || '') + feat + x2Ban + (xm ? xmShopHtml() : '') + (hw ? hwShopHtml() : '') + (RH('shopTop') || '') + tmpShopHtml() + `<div class="sechead" id="sOff"><span>Ofertas</span></div>${codeCard}${noAdsBan}${wkCard}` + canShopHtml() +
       `<div class="sechead" id="sGem"><span>Gemas · para el Pase Pro</span></div>${by(['g1', 'g2', 'g3'])}` +
       `<div class="sechead" id="sBall"><span>Potenciadores</span></div>${by(['b1', 'b2', 'b3'])}` +
       `<div class="sechead"><span>Bolas de los mundos</span></div>${WB_KEYS.map(wrow).join('')}` +
@@ -3693,6 +3694,7 @@
     buy.classList.toggle('owned', !!p.pro);
     buy.innerHTML = p.pro ? 'PASE PRO ACTIVADO' : `<span>PASE PRO &middot; <i class="gem"></i> ${PASS_PRO_GEMS}</span><small>150 gemas ≈ 4,99 € · lo ya alcanzado se reclama al momento</small>`;
     $('passSkins').innerHTML = save.skins.owned.length > 1 ? save.skins.owned.map(k => `<span class="skin ${save.skins.equip === k ? 'on' : ''}" data-k="${k}"><i style="background:${SKINS[k].css}"></i>${SKINS[k].name}</span>`).join('') : '';
+    RH('passTop', $('passFc'));   // cofre gratis (retencion.js)
     $('passSkins').querySelectorAll('.skin').forEach(el => el.addEventListener('click', () => { save.skins.equip = el.dataset.k; applySkin(); persist(); Audio.click(); openPass(); }));
     let h = '';
     for (let i = 0; i < 30; i++) {
@@ -4975,6 +4977,22 @@
   on('ncOk', () => { Audio.click(); closeNewCard(); });
   on('btnFinish', () => { if (G.mode === 'play' && G.sim && G.sim.finish()) handleEvents(); });
   on('btnPause', () => { if (G.mode !== 'play') return; G.paused = true; refreshToggles(); show('pause'); });
+  // 28-11: Retos (torre sin fin y desafío de la semana): terminar cuando quieras y guardar la puntuación en la clasificación
+  const isReto = L => !!(L && (L.endless || L.weekly));
+  function finishReto() {
+    const L = G.level, sim = G.sim;
+    if (G.mode !== 'play' || !sim || G.ended || !isReto(L)) return;
+    G.paused = false; hideAll(); G.ended = true; sim.state = 'lost';
+    if (L.endless && window.Torre) { window.Torre.end(); return; }
+    const sc = sim.score;
+    RH('lose', { L, score: sc });                 // guarda el récord y lo manda a la clasificación (retencion.js)
+    goMap(); RH('weeklyBack');
+    toast('Puntuación guardada', 2400);
+  }
+  on('btnFin', () => { if (G.mode !== 'play' || G.ended) return; Audio.click(); G.paused = true; show('finAsk'); });
+  on('pFin', () => { Audio.click(); show('finAsk'); });
+  on('finYes', () => { Audio.click(); finishReto(); });
+  on('finNo', () => { Audio.click(); G.paused = false; hideAll(); });
   on('pResume', () => { G.paused = false; hideAll(); });
   on('pRetry', () => { if (paidReplay(G.level)) { goMap(); openPre(G.level.id); } else { hideAll(); startLevel(G.level.id, []); } });
   on('pMap', goMap);

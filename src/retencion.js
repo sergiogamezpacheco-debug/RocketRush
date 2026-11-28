@@ -53,7 +53,7 @@
   }
 
   // =====================================================================
-  // 1 · COFRE GRATIS CADA 4 HORAS (botón en la portada y aviso en el móvil)
+  // 1 · COFRE GRATIS CADA 4 HORAS (en la tienda y en el pase, y aviso en el móvil)
   // =====================================================================
   const FREE_MS = 4 * 3600e3;
   function fc() { if (!S().freeChest) S().freeChest = { at: 0, n: 0 }; return S().freeChest; }
@@ -120,16 +120,23 @@
       for (const k of NOTICES) { if (p[k]) a.scheduleNotice(k, String(p[k].at), p[k].title, p[k].text); else if (a.cancelNotice) a.cancelNotice(k); }
     } catch (e) { /* sin avisos */ }
   }
-  function fcUi() {
-    let b = $('freeChest');
-    if (!b) {
-      const col = document.querySelector('#title .tside.left'); if (!col) return;
-      b = document.createElement('button'); b.id = 'freeChest'; b.className = 'sb freechest'; b.setAttribute('aria-label', T('Cofre gratis'));
-      col.appendChild(b); b.addEventListener('click', fcOpen);
-    }
+  // 28-11: el cofre gratis ya no está en la portada: va en la tienda (arriba del todo) y en el pase. En la portada, la tienda
+  // lleva un aviso rojo cuando está listo.
+  function fcCard(where) {
     const ok = fcReady();
-    b.classList.toggle('ready', ok);
-    b.innerHTML = `<i class="chest ${ok ? 'gold' : 'wood'}"><i></i></i>` + (ok ? `<b>${T('¡GRATIS!')}</b><i class="bdg">1</i>` : `<b class="fct">${X.leftTxt(fc().at - Date.now())}</b>`);
+    return `<div class="fccard${ok ? ' ready' : ''}" data-fccard="${where}"><i class="chest ${ok ? 'gold' : 'wood'}"><i></i></i>` +
+      `<div class="fctx"><b>${T('Cofre gratis')}</b><small>${T('Cada 4 horas: monedas, potenciadores y a veces gemas')}</small></div>` +
+      (ok ? `<button class="btn green" data-fc="1">${T('¡ABRIR!')}</button>` : `<button class="btn gray" data-fc="1">⏳ ${X.leftTxt(fc().at - Date.now())}</button>`) + '</div>';
+  }
+  function fcBind(box) {
+    if (!box) return;
+    box.querySelectorAll('[data-fc]').forEach(b => { if (b._fc) return; b._fc = 1; b.addEventListener('click', () => fcOpen()); });
+  }
+  function fcUi() {
+    const old = $('freeChest'); if (old) old.remove();   // el botón antiguo de la portada
+    const dot = $('shopDotT'); if (dot) dot.hidden = !fcReady();
+    // las tarjetas que estén a la vista (tienda / pase) se repintan con la cuenta atrás
+    document.querySelectorAll('[data-fccard]').forEach(c => { const w = c.dataset.fccard, tmp = document.createElement('div'); tmp.innerHTML = fcCard(w); const n = tmp.firstChild; c.replaceWith(n); fcBind(n.parentNode); });
   }
 
   // =====================================================================
@@ -364,10 +371,11 @@
     if (!b) {
       b = document.createElement('button'); b.id = 'navWk'; b.className = 'wkb';
       const club = $('navClub'); club.insertAdjacentElement('afterend', b);
-      b.addEventListener('click', () => { click(); wkOpen(); });
+      // 28-11: el botón del mapa abre los Retos (desafío de la semana + torre sin fin), ya no solo el desafío
+      b.addEventListener('click', () => { click(); if (window.Torre && window.Torre.hubOpen) window.Torre.hubOpen(); else wkOpen(); });
     }
     const n = triesLeft();
-    b.innerHTML = `<span>⚔️</span><b>${T('Desafío')}</b>${n ? `<i>${n}</i>` : ''}`;
+    b.innerHTML = `<span>🏆</span><b>${T('Retos')}</b>${n ? `<i>${n}</i>` : ''}`;
   }
 
   // ---------------- enganches con el juego ----------------
@@ -391,9 +399,12 @@
     lose(d) { if (d.L.weekly) weeklyEnd(d.score); setTimeout(achToast, 600); },
     weeklyStart() { const w = wk(); w.tries++; w.cur = true; st().weeklyPlays = (st().weeklyPlays || 0) + 1; X.persist(); navUi(); },
     weeklyBack() { setTimeout(wkOpen, 200); },
+    shopChest: () => fcCard('shop'),   // arriba del todo de la tienda
     shopTop: () => miniShopHtml(),
+    passTop(box) { if (!box) return; box.innerHTML = fcCard('pass'); fcBind(box); },
     shopTab() { const m = miniNow(); return m ? `<button data-to="sMini" class="hwtab minitab" aria-label="${esc(T(MINI[m.theme].name))}">${MINI[m.theme].ico}</button>` : ''; },
     shopBind(box) {
+      fcBind(box);
       box.querySelectorAll('[data-mini]').forEach(b => b.addEventListener('click', () => { click(); miniBuy(b.dataset.mini); }));
     },
     open: { ach: () => achOpen(), weekly: () => wkOpen(), chest: () => fcOpen() },

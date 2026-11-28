@@ -162,13 +162,15 @@
     if (!S) return;
     const A = X(), f = S.floor, s = sv(), wk = weekId();
     const rec = f > s.best; if (rec) s.best = f;
-    if (s.wk !== wk) { s.wk = wk; s.wkBest = 0; }
-    const sendable = f > s.wkBest; if (sendable) s.wkBest = f;
+    if (s.wk !== wk) { s.wk = wk; s.wkBest = 0; s.wkScore = 0; }
     const sim = A.G.sim, blocks = sim ? sim.popped + sim.fallen : 0;
+    const score0 = f * 10000 + Math.min(9999, blocks);
+    const sendable = score0 > (s.wkScore || 0); if (sendable) s.wkScore = score0;   // 28-11: también si llegas al mismo piso con más bloques
+    if (f > s.wkBest) s.wkBest = f;
     const coins = 20 * (f - 1) + Math.min(200, Math.round(blocks / 2)), gems = Math.floor((f - 1) / 5) * 2;
     A.save.coins = (A.save.coins || 0) + coins; if (gems) A.save.gems = (A.save.gems || 0) + gems;
     A.persist(); A.setCoins && A.setCoins();
-    const score = f * 10000 + Math.min(9999, blocks);
+    const score = score0;
     if (sendable && window.Social && window.Social.weekly && window.Social.weekly.online) window.Social.weekly.submit(wk, score).catch(() => {});
     if (!pop) {
       pop = document.createElement('div'); pop.className = 'screen dim'; pop.id = 'torrePop';
@@ -218,7 +220,7 @@
     const col = document.querySelector('#title .tside.right'); if (!col) return;
     const b = document.createElement('button'); b.className = 'sb retossb'; b.id = 'btnRetosT'; b.setAttribute('aria-label', T('Retos'));
     b.innerHTML = '<span>🏆</span><b>' + T('Retos') + '</b>';
-    col.insertBefore(b, col.firstChild); col.classList.add('five');
+    col.insertBefore(b, col.firstChild);   // 28-11: la tienda pasó a la izquierda, así que aquí vuelven a ser 4
     b.addEventListener('click', () => { click(); hubOpen(); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hubBtn); else hubBtn();

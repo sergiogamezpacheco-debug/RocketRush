@@ -679,6 +679,21 @@ Cuatro paisajes nuevos intercalados desde el mundo 52 (`src/mundos.js`; orden en
   Ajustes › Canjear código (`giftcodes`, `Social.redeem`, `save.codesUsed`). No sale a menores de 13 ni sin funciones en línea.
 - Prueba: `tools/redeemshopflow.py`.
 
+## Cambios del 28-11-2026
+
+- **Cofre gratis fuera de la portada**: ahora es una tarjeta arriba del todo en la **tienda** y en el **pase**
+  (`Retencion.shopChest` / `passTop`, `.fccard`). La **tienda** ocupa su sitio en la portada (4.º botón de la columna izquierda)
+  y lleva un aviso rojo cuando el cofre está listo; la columna derecha vuelve a tener 4 botones (Retos, Club, Amigos, Ajustes).
+- **Retos — botón de finalizar** en la Torre sin fin y en el Desafío de la semana: bandera 🏁 debajo de la pausa (y
+  «Finalizar y guardar» en la pausa). Pregunta, termina la partida y guarda la puntuación en la clasificación: la torre enseña
+  su resultado; el desafío guarda el récord y vuelve a su panel. La torre manda la puntuación también si llegas al mismo piso
+  con más bloques (`torre.wkScore`).
+- **Mapa**: el botón «Desafío» pasa a ser **«Retos»** (abre el panel con los dos modos; el número sigue siendo los intentos
+  del desafío que quedan).
+- **Cubi**: el tutorial nombra la tienda junto a las recompensas y los Retos en la columna derecha y en los modos del mapa;
+  consejos nuevos: «El cofre gratis se ha mudado» (a quien ya lo había abierto), «Retos» (al abrir el panel) y «Termina
+  cuando quieras» (señala la bandera). Textos en 6 idiomas (`tools/i18n_retos2.py`). Prueba: `tools/retos2flow.py`.
+
 ## Cambios del 27-11-2026
 
 - **Parpadeo de las casas del fondo (Navidad)**. Medido comparando fotogramas seguidos (`tmp_scratch/flicker.py`):

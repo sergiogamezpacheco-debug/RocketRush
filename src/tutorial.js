@@ -13,7 +13,7 @@
   const dimOpen = () => !!document.querySelector('.screen.dim.on') || on('chestOpen') || on('ad') || ($('langPick') && !$('langPick').hidden) || ($('welcome') && !$('welcome').hidden) || ($('ageGate') && !$('ageGate').hidden) || on('gAcc');
 
   // ---------- estado guardado ----------
-  const TIP_KEYS = ['candy', 'xgift', 'shop', 'pass', 'missions', 'social', 'daily', 'hw', 'xm', 'nut', 'boss', 'club', 'clubIn', 'clubEx', 'clubBoss', 'clubLg'];
+  const TIP_KEYS = ['candy', 'xgift', 'fcmove', 'retos', 'retoPlay', 'shop', 'pass', 'missions', 'social', 'daily', 'hw', 'xm', 'nut', 'boss', 'club', 'clubIn', 'clubEx', 'clubBoss', 'clubLg'];
   function st() {
     const s = X.save;
     if (!s.tut) {
@@ -36,14 +36,14 @@
   // Los nuevos, al tocar ¡A DEMOLER!, van directos a la ficha del nivel 1: el mapa se explica al volver de la primera partida.
   const MAIN = [
     { when: titleReady, title: '¡Bienvenido!', text: '¡Hola! Soy Cubi. En un momento te enseño cómo funciona Rocket Rush.' },
-    { when: titleReady, target: () => visible(['btnDailyT', 'btnPassT', 'btnMisT']), title: 'Tus recompensas', text: 'Aquí tienes la racha diaria, el pase de temporada y las misiones. Cuando tengan algo para ti, verás un aviso rojo.' },
-    { when: titleReady, target: () => visible(['btnClubT', 'btnSocT', 'btnShopT', 'btnSetT']), title: 'Club, amigos, tienda y ajustes', text: 'Juega en equipo con tu club, añade amigos y mira la clasificación, compra en la tienda y cambia el idioma o el sonido en los ajustes.' },
+    { when: titleReady, target: () => visible(['btnDailyT', 'btnPassT', 'btnMisT', 'btnShopT']), title: 'Tus recompensas', text: 'Aquí tienes la racha diaria, el pase de temporada, las misiones y la tienda. En la tienda y en el pase está el cofre gratis, cada 4 horas. Cuando haya algo para ti, verás un aviso rojo.' },
+    { when: titleReady, target: () => visible(['btnRetosT', 'btnClubT', 'btnSocT', 'btnSetT']), title: 'Retos, club, amigos y ajustes', text: 'En Retos tienes la Torre sin fin y el Desafío de la semana, con clasificación. Juega en equipo con tu club, añade amigos y cambia el idioma o el sonido en los ajustes.' },
     { when: titleReady, target: () => ['#btnPlay'], must: () => on('map') || on('pre'), title: '¡A jugar!', text: 'Toca ¡A DEMOLER! para empezar.' },
     { when: () => on('pre'), target: () => ['#preGo'], must: () => X.G.mode === 'play', title: 'Antes de jugar', text: 'Aquí ves el objetivo del nivel y puedes llevar ventajas como la bomba o el arcoíris. Toca ¡A DEMOLER!' },
     { when: playReady, aim: true, must: () => X.G.sim && X.G.sim.shots > 0, title: 'Apunta y dispara', text: 'Arrastra el dedo para apuntar y suéltalo para disparar. Cada bola revienta los bloques de su color; los demás caen empujados.' },
     { when: () => playReady() && X.G.sim && X.G.sim.state === 'play', auto: 6, title: '¡Así se hace!', text: 'Derriba el porcentaje que marca la barra de arriba para superar el nivel. ¡Suerte!' },
     { when: mapReady, target: () => ['#btnMis'], title: 'Tu nivel de jugador', text: 'Al jugar ganas experiencia y subes de nivel. Toca aquí cuando quieras ver tus misiones y sus premios.' },
-    { when: mapReady, target: () => ['.hwnav'], title: 'Modos de juego', text: () => !$('navXm').hidden ? 'Además de los mundos tienes el Club y los eventos, como el de Navidad, con sus propios niveles y premios.' : !$('navHw').hidden ? 'Además de los mundos tienes el Club y los eventos, como el de Halloween, con sus propios niveles y premios.' : 'Además de los mundos tienes el Club y los eventos especiales, con sus propios niveles y premios.' },
+    { when: mapReady, target: () => ['.hwnav'], title: 'Modos de juego', text: () => !$('navXm').hidden ? 'Además de los mundos tienes el Club, los Retos y los eventos, como el de Navidad, con sus propios niveles y premios.' : !$('navHw').hidden ? 'Además de los mundos tienes el Club, los Retos y los eventos, como el de Halloween, con sus propios niveles y premios.' : 'Además de los mundos tienes el Club, los Retos y los eventos especiales, con sus propios niveles y premios.' },
     { when: mapReady, target: () => ['#navClub'], point: true, title: 'El Club', text: 'Únete a un club para jugar en equipo: expedición semanal, jefe colosal y liga del fin de semana, con premios para todos.' },
     { when: mapReady, target: () => ['#mapList .lv.cur'], scroll: '#mapList .lv.cur', point: true, last: true, title: 'Tu camino', text: 'Cada mundo tiene sus niveles y un jefe al final. Toca el siguiente nivel cuando quieras seguir.' },
   ];
@@ -64,8 +64,11 @@
   }
   const TIPS = {
     candy: { when: () => playReady() && X.G.sim && X.G.sim.state === 'play' && X.G.candies && X.G.candies.length > 0 && X.hw && X.hw.active(), rect: candyRect, point: true, title: 'Bloques de caramelo', text: 'Durante Halloween, los bloques con rayas llevan caramelos: el del bastón da 2 y el del envoltorio, 1. Si revientan o se caen, son tuyos. Gástalos en la tienda de Halloween.' },
-    shop: { when: () => on('shop'), target: () => ['#shopTabs'], title: 'La tienda', text: 'Compra gemas, monedas, potenciadores, mejoras y aspectos para el cañón y las bolas. En «Temporales» hay legendarios que cambian cada semana.' },
-    pass: { when: () => on('pass') && !dimOpen(), target: () => ['#pass .passhead'], title: 'Pase de temporada', text: 'Cada estrella que ganas suma al pase y desbloquea premios. Con el Pase Pro te llevas también los de la columna dorada.' },
+    fcmove: { when: () => titleReady() && X.save.freeChest && X.save.freeChest.n > 0, target: () => visible(['btnShopT']), point: true, title: 'El cofre gratis se ha mudado', text: 'Ya no está en la portada: ahora lo tienes arriba del todo en la tienda y también en el pase. Cuando esté listo, la tienda lleva un aviso rojo.' },
+    retos: { when: () => { const p = document.getElementById('retosPop'); return p && p.classList.contains('on'); }, target: () => ['#rtBody'], title: 'Retos', text: 'Dos modos con clasificación semanal: la Torre sin fin (se rellena sola, ¿hasta qué piso llegas?) y el Desafío de la semana. Las clasificaciones necesitan internet.' },
+    retoPlay: { when: () => playReady() && X.G.level && (X.G.level.endless || X.G.level.weekly) && X.G.sim && X.G.sim.state === 'play', target: () => visible(['btnFin']), point: true, title: 'Termina cuando quieras', text: 'Toca la bandera cuando quieras terminar: tu puntuación se guarda en la clasificación.' },
+    shop: { when: () => on('shop'), target: () => ['#shopTabs'], title: 'La tienda', text: 'Arriba del todo tienes el cofre gratis, cada 4 horas. Compra gemas, monedas, potenciadores, mejoras y aspectos para el cañón y las bolas. En «Temporales» hay legendarios que cambian cada semana.' },
+    pass: { when: () => on('pass') && !dimOpen(), target: () => ['#pass .passhead'], title: 'Pase de temporada', text: 'Cada estrella que ganas suma al pase y desbloquea premios. Con el Pase Pro te llevas también los de la columna dorada. Aquí también tienes el cofre gratis.' },
     missions: { when: () => on('missions') && !dimOpen(), target: () => ['#misList .mcard'], title: 'Misiones', text: 'Cumple misiones para ganar experiencia, monedas y gemas. Cuando una esté lista, toca COBRAR.' },
     social: { when: () => on('social') && !dimOpen(), target: () => ['#socTabs'], title: 'Amigos', text: 'Comparte tu código para añadir amigos, mira las clasificaciones y elige tu nombre y avatar en el perfil.' },
     daily: { when: () => on('daily') && $('dBtns') && $('dBtns').innerHTML, title: 'Racha diaria', text: 'Entra cada día para recoger tu premio. Cada 5 días toca un cofre, y cada cofre es mejor que el anterior.' },
